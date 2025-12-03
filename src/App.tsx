@@ -9,6 +9,8 @@ import Haberler from "./pages/Haberler";
 import Etkinlikler from "./pages/Etkinlikler";
 import Projeler from "./pages/Projeler";
 import Iletisim from "./pages/Iletisim";
+import Blog from "./pages/Blog";
+import Yayinlar from "./pages/Yayinlar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/haberler" element={<Haberler />} />
           <Route path="/etkinlikler" element={<Etkinlikler />} />
           <Route path="/projeler" element={<Projeler />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/yayinlar" element={<Yayinlar />} />
           <Route path="/iletisim" element={<Iletisim />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

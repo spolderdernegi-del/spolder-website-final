@@ -31,6 +31,7 @@ export default {
         "light-blue": "hsl(var(--light-blue))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          light: "hsl(var(--primary-light))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -76,6 +77,7 @@ export default {
       boxShadow: {
         'soft': 'var(--shadow-sm)',
         'card': 'var(--shadow-md)',
+        'card-hover': 'var(--shadow-lg)',
         'elevated': 'var(--shadow-lg)',
         'header': 'var(--shadow-header)',
       },
