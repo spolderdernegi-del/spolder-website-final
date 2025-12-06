@@ -19,15 +19,17 @@ import Search from "./pages/Search";
 import Gizlilik from "./pages/Gizlilik";
 import KVKK from "./pages/KVKK";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "@/lib/ScrollToTop";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+      <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/hakkimizda" element={<Hakkimizda />} />

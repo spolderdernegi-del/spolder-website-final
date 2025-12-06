@@ -10,11 +10,7 @@ const Footer = () => {
           {/* Logo & About */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <img src={logo} alt="SPOlDER Logo" className="h-12 w-auto brightness-0 invert" />
-              <div>
-                <span className="font-display font-bold text-lg">SPOlDER</span>
-                <p className="text-xs text-primary-foreground/70">Spor Politikaları Derneği</p>
-              </div>
+              <img src={logo} alt="SPOlDER Logo" className="h-16 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
               Türkiye'de spor politikalarının geliştirilmesi ve spor kültürünün yaygınlaştırılması için çalışıyoruz.
@@ -73,7 +69,9 @@ const Footer = () => {
             <ul className="space-y-3">
               {["Araştırma & Analiz", "Eğitim Programları", "Politika Önerileri", "Spor Danışmanlığı", "Uluslararası İşbirlikleri"].map((item) => (
                 <li key={item}>
-                  <span className="text-sm text-primary-foreground/80">{item}</span>
+                  <Link to={`/search?q=${encodeURIComponent(item)}`} className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                    {item}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -84,18 +82,22 @@ const Footer = () => {
             <h4 className="font-display font-bold text-lg mb-6">İletişim</h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm text-primary-foreground/80">
-                  Atatürk Bulvarı No: 123, Çankaya, Ankara
-                </span>
+                <a href="https://www.google.com/maps/search/?api=1&query=Atat%C3%BCrk+Bulvar%C4%B1+No:+123+%C3%87ankaya+Ankara" target="_blank" rel="noreferrer" className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-white shrink-0 mt-0.5" />
+                  <span className="text-sm text-primary-foreground/80">Atatürk Bulvarı No: 123, Çankaya, Ankara</span>
+                </a>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-sm text-primary-foreground/80">+90 (312) 123 45 67</span>
+                <a href="tel:+903121234567" className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-white shrink-0" />
+                  <span className="text-sm text-primary-foreground/80">+90 (312) 123 45 67</span>
+                </a>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-sm text-primary-foreground/80">info@spolider.org.tr</span>
+                <a href="mailto:info@spolider.org.tr" className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-white shrink-0" />
+                  <span className="text-sm text-primary-foreground/80">info@spolider.org.tr</span>
+                </a>
               </li>
             </ul>
           </div>
@@ -104,7 +106,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-primary-foreground/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-primary-foreground/60">
-            © 2024 SPOlDER Spor Politikaları Derneği. Tüm hakları saklıdır.
+            © {new Date().getFullYear()} SPOlDER Spor Politikaları Derneği. Tüm hakları saklıdır.
           </p>
           <div className="flex gap-6">
             <Link to="/gizlilik" className="text-sm text-primary-foreground/60 hover:text-primary transition-colors">

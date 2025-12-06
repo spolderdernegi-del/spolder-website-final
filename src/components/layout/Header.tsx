@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logoLight from "@/assets/logo_disi.webp";
-import logoDark from "@/assets/logo_erkek_tek.webp";
+import logoFull from "@/assets/logo_disi.webp";
+import logoMark from "@/assets/logo_erkek_tek.webp";
+import { allContent } from "@/lib/searchIndex";
 
 const navItems = [
   { label: "Ana Sayfa", href: "/" },
@@ -24,6 +25,7 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,6 +45,22 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.trim().length === 0) {
+      setSuggestions([]);
+      return;
+    }
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = allContent.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.excerpt.toLowerCase().includes(q) ||
+        item.content.toLowerCase().includes(q) ||
+        item.author.toLowerCase().includes(q)
+    );
+    setSuggestions(filtered);
+  }, [searchQuery]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -53,6 +71,9 @@ const Header = () => {
 
   // Determine if dark header: not scrolled anywhere = dark, scrolled = light
   const isDarkHeader = !isScrolled;
+
+  // Suggestions
+  const [suggestions, setSuggestions] = useState<any[]>([]);
 
   return (
     <header
@@ -66,35 +87,36 @@ const Header = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo - Dynamic based on header state */}
           <Link to="/" className="flex items-center gap-3">
-            <img 
-              src={isScrolled ? logoDark : logoLight}
-              alt="SPOlDER Logo" 
-              className="h-12 w-auto transition-opacity duration-300" 
+            <img
+              src={isScrolled ? logoMark : logoFull}
+              alt="SPOLDER Logo"
+              className={`w-auto transition-all duration-300 ${isScrolled ? "h-14" : "h-11"}`}
             />
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  location.pathname === item.href
-                    ? isDarkHeader
-                      ? "text-primary-light bg-white/10"
-                      : "text-primary bg-primary/10"
-                    : isDarkHeader
-                    ? "text-white hover:text-primary-light hover:bg-white/10"
-                    : "text-foreground hover:text-primary hover:bg-primary/5"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    isActive
+                      ? "text-primary bg-primary/10"
+                      : isDarkHeader
+                      ? "text-white hover:text-sky-500 hover:bg-sky-50"
+                      : "text-foreground hover:text-sky-500 hover:bg-sky-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
 
             {/* Search Button with Expandable Input */}
-            <div 
+            <div
               ref={searchRef}
               className="relative ml-2"
               onMouseEnter={() => setIsSearchOpen(true)}
@@ -126,11 +148,25 @@ const Header = () => {
                   />
                 </div>
               </form>
+
+              {/* Suggestions dropdown */}
+              {isSearchOpen && searchQuery.trim().length > 0 && suggestions.length > 0 && (
+                <div className="absolute left-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                  {suggestions.slice(0, 6).map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => navigate(s.link)}
+                      className="w-full text-left px-3 py-2 hover:bg-muted transition-colors"
+                    >
+                      <div className="text-sm font-medium text-foreground">{s.title}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">{s.excerpt}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Button variant="gradient" size="sm" className="ml-2">
-              Üye Ol
-            </Button>
+            {/* donation button removed per request */}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -200,9 +236,7 @@ const Header = () => {
                 {item.label}
               </Link>
             ))}
-            <Button variant="gradient" className="mt-2">
-              Üye Ol
-            </Button>
+            {/* mobile donation/member button removed */}
           </nav>
         </div>
       )}

@@ -3,7 +3,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Copy } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -19,6 +19,18 @@ const Iletisim = () => {
     e.preventDefault();
     toast.success("Mesajınız başarıyla gönderildi!");
     setFormData({ name: "", email: "", subject: "", message: "" });
+  };
+
+  const donationIbanTL = "TR00 0000 0000 0000 0000 00"; // REPLACE with real IBAN
+  const donationIbanEUR = "TR00 0000 0000 0000 0000 01"; // optional
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Kopyalandı: " + text);
+    } catch (e) {
+      toast.error("Kopyalama başarısız. Lütfen manuel kopyalayın.");
+    }
   };
 
   return (
@@ -56,6 +68,38 @@ const Iletisim = () => {
                       <p className="text-muted-foreground text-sm">
                         Atatürk Bulvarı No: 123<br />Çankaya, Ankara 06100
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Donation Card */}
+                  <div id="bagis" className="flex items-start gap-4 p-4 bg-card rounded-lg shadow-soft">
+                    <div className="w-12 h-12 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0">
+                      <svg className="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">Bizi Destekleyebilirsiniz</h3>
+                      <p className="text-muted-foreground text-sm mb-2">Katkılarınızla çalışmalarımızı sürdürmemize yardımcı olabilirsiniz. Aşağıdaki IBAN bilgilerini kullanarak destek olabilirsiniz.</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-background p-3 rounded">
+                          <div>
+                            <div className="text-xs text-muted-foreground">IBAN (TL)</div>
+                            <div className="font-mono text-sm">{donationIbanTL}</div>
+                          </div>
+                          <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2">
+                            <Copy className="w-4 h-4" /> Kopyala
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-background p-3 rounded">
+                          <div>
+                            <div className="text-xs text-muted-foreground">IBAN (EUR)</div>
+                            <div className="font-mono text-sm">{donationIbanEUR}</div>
+                          </div>
+                          <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2">
+                            <Copy className="w-4 h-4" /> Kopyala
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
