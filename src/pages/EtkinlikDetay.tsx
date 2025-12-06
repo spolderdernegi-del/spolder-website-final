@@ -79,10 +79,15 @@ const EtkinlikDetay = () => {
   }
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const handleRegister = () => {
     // show inline modal (frontend stub). The modal includes a direct link to the original Google Form.
     setShowRegisterModal(true);
+  };
+
+  const handleLocationClick = () => {
+    setShowMapModal(true);
   };
 
   return (
@@ -137,12 +142,16 @@ const EtkinlikDetay = () => {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 col-span-2">
+                  <div
+                    onClick={handleLocationClick}
+                    className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 col-span-2 cursor-pointer hover:border-primary/50 transition-colors"
+                  >
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="text-xs text-muted-foreground font-medium mb-1">Konum</p>
                         <p className="font-semibold text-foreground">{etkinlik.location}</p>
+                        <p className="text-xs text-primary mt-1">Haritada görmek için tıklayın</p>
                       </div>
                     </div>
                   </div>
@@ -237,6 +246,34 @@ const EtkinlikDetay = () => {
         </section>
       </main>
       <Footer />
+      {/* Map modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMapModal(false)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg w-full max-w-4xl z-70 overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-lg font-bold">{etkinlik.location}</h3>
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="w-full h-96 md:h-[500px]">
+              <iframe
+                title="Etkinlik Konumu"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                style={{ border: 0 }}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(etkinlik.location)}&output=embed`}
+                allowFullScreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Registration modal (inline) */}
       {showRegisterModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center">
