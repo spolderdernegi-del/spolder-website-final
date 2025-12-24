@@ -1,23 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Calendar, MapPin, Clock, ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Event {
   id: number;
-  title: string;
-  excerpt: string;
-  full_content?: string;
-  date: string;
-  time: string;
-  location: string;
-  image: string;
-  category: string;
-  capacity: string;
-  registered: string;
-  status: string;
+  baslik: string;
+  ozet: string;
+  icerik?: string;
+  tarih: string;
+  saat: string;
+  konum: string;
+  gorsel: string;
+  kategori: string;
+  kapasite: string;
+  kayitli: string;
+  durum: string;
 }
 
 const eventsDatabase = [
@@ -74,8 +75,31 @@ const eventsDatabase = [
 const EtkinlikDetay = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const etkinlik = eventsDatabase.find((e) => e.id === parseInt(id || "0"));
+  const [etkinlik, setEtkinlik] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', parseInt(id || "0"))
+          .eq('yayin_durumu', 'yayinlandi')
+          .single();
+        
+        if (error) throw error;
+        setEtkinlik(data);
+      } catch (error) {
+        console.error('Error fetching event:', error);
+        setEtkinlik(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvent();
+  }, [id]);
 
   if (!etkinlik) {
     return (
@@ -113,18 +137,18 @@ const EtkinlikDetay = () => {
         {/* Hero Image */}
         <section className="relative h-96">
           <img
-            src={etkinlik.image}
-            alt={etkinlik.title}
+            src={etkinlik.gorsel}
+            alt={etkinlik.baslik}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-anthracite/80 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="container-custom mx-auto">
               <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full mb-4">
-                {etkinlik.category}
+                {etkinlik.kategori}
               </span>
               <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground">
-                {etkinlik.title}
+                {etkinlik.baslik}
               </h1>
             </div>
           </div>
@@ -143,7 +167,7 @@ const EtkinlikDetay = () => {
                       <Calendar className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="text-xs text-muted-foreground font-medium mb-1">Tarih</p>
-                        <p className="font-semibold text-foreground">{etkinlik.date}</p>
+                        <p className="font-semibold text-foreground">{etkinlik.tarih}</p>
                       </div>
                     </div>
                   </div>
@@ -153,7 +177,7 @@ const EtkinlikDetay = () => {
                       <Clock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="text-xs text-muted-foreground font-medium mb-1">Saat</p>
-                        <p className="font-semibold text-foreground">{etkinlik.time}</p>
+                        <p className="font-semibold text-foreground">{etkinlik.saat}</p>
                       </div>
                     </div>
                   </div>
@@ -166,7 +190,7 @@ const EtkinlikDetay = () => {
                       <MapPin className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="text-xs text-muted-foreground font-medium mb-1">Konum</p>
-                        <p className="font-semibold text-foreground">{etkinlik.location}</p>
+                        <p className="font-semibold text-foreground">{etkinlik.konum}</p>
                         <p className="text-xs text-primary mt-1">Haritada görmek için tıklayın</p>
                       </div>
                     </div>
@@ -178,7 +202,7 @@ const EtkinlikDetay = () => {
                   <div className="bg-white dark:bg-slate-950 rounded-lg p-8 border border-slate-200 dark:border-slate-800">
                     <h2 className="text-2xl font-bold text-foreground mb-4">Etkinlik Hakkında</h2>
                     <div className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                      {etkinlik.fullContent}
+                      {etkinlik.icerik}
                     </div>
                   </div>
                 </div>
@@ -207,14 +231,14 @@ const EtkinlikDetay = () => {
                         Kapasite
                       </span>
                       <span className="text-sm font-semibold text-primary">
-                        {etkinlik.registered}/{etkinlik.capacity}
+                        {etkinlik.kayitli}/{etkinlik.kapasite}
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                       <div
                         className="bg-primary rounded-full h-2 transition-all"
                         style={{
-                          width: `${(parseInt(etkinlik.registered) / parseInt(etkinlik.capacity)) * 100}%`,
+                          width: `${(parseInt(etkinlik.kayitli) / parseInt(etkinlik.kapasite)) * 100}%`,
                         }}
                       />
                     </div>
@@ -224,12 +248,12 @@ const EtkinlikDetay = () => {
                   <div className="mb-6">
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        etkinlik.status === "Açık"
+                        etkinlik.durum === "Açık"
                           ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                           : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
                       }`}
                     >
-                      {etkinlik.status === "Açık" ? "✓ Kayıtlar Açık" : "⏳ Devam Ediyor"}
+                      {etkinlik.durum === "Açık" ? "✓ Kayıtlar Açık" : "⏳ Devam Ediyor"}
                     </span>
                   </div>
 

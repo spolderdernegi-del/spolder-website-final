@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-interface SlideEvent {
+interface SlideItem {
   id: number;
   baslik: string;
   ozet: string;
@@ -12,39 +12,82 @@ interface SlideEvent {
   tarih: string;
   kategori: string;
   sliderda_goster?: boolean;
+  contentType: 'event' | 'news' | 'project';
+  link: string;
 }
 
 const HeroSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [slides, setSlides] = useState<SlideEvent[]>([]);
+  const [slides, setSlides] = useState<SlideItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Supabase'den slider etkinliklerini yükle
-    const fetchSliderEvents = async () => {
+    // Supabase'den tüm slider içeriklerini yükle (events, news, projects)
+    const fetchSliderContent = async () => {
       try {
-        const { data, error } = await supabase
+        const allSlides: SlideItem[] = [];
+
+        // Etkinlikler
+        const { data: events, error: eventsError } = await supabase
           .from('events')
           .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('created_at', { ascending: false });
         
-        if (error) {
-          console.error("Error fetching slider events:", error);
-          setSlides([]);
-        } else {
-          setSlides(data || []);
+        if (!eventsError && events) {
+          allSlides.push(...events.map(e => ({
+            ...e,
+            contentType: 'event' as const,
+            link: `/etkinlik/${e.id}`
+          })));
         }
+
+        // Haberler
+        const { data: news, error: newsError } = await supabase
+          .from('news')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
+          .eq('sliderda_goster', true)
+          .eq('yayin_durumu', 'yayinlandi')
+          .order('created_at', { ascending: false });
+        
+        if (!newsError && news) {
+          allSlides.push(...news.map(n => ({
+            ...n,
+            contentType: 'news' as const,
+            link: `/haber/${n.id}`
+          })));
+        }
+
+        // Projeler
+        const { data: projects, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
+          .eq('sliderda_goster', true)
+          .eq('yayin_durumu', 'yayinlandi')
+          .order('created_at', { ascending: false });
+        
+        if (!projectsError && projects) {
+          allSlides.push(...projects.map(p => ({
+            ...p,
+            contentType: 'project' as const,
+            link: `/proje/${p.id}`
+          })));
+        }
+
+        // Tarihe göre sırala (en yeni en başta)
+        allSlides.sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+        
+        setSlides(allSlides);
       } catch (error) {
-        console.error("Error loading slider events:", error);
+        console.error("Error loading slider content:", error);
         setSlides([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSliderEvents();
+    fetchSliderContent();
   }, []);
 
   useEffect(() => {
@@ -67,7 +110,7 @@ const HeroSlider = () => {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-4xl font-bold text-white mb-4">Slider Boş</h2>
-            <p className="text-gray-300 text-lg">Admin panelinden etkinlik oluşturup "Show in Slider" seçeneğini işaretleyin.</p>
+            <p className="text-gray-300 text-lg">Admin panelinden etkinlik, haber veya proje oluşturup "Slider'da Göster" seçeneğini işaretleyin.</p>
           </div>
         </div>
       )}
@@ -115,14 +158,20 @@ const HeroSlider = () => {
 
             {/* CTA */}
             <div className="flex gap-4 pt-4">
-              <Link to={`/haber/${slides[currentSlide].id}`}>
+              <Link to={slides[currentSlide].link}>
                 <Button variant="hero" size="lg">
                   Devamını Oku
                 </Button>
               </Link>
-              <Link to="/haberler">
+              <Link to={
+                slides[currentSlide].contentType === 'event' ? '/etkinlikler' :
+                slides[currentSlide].contentType === 'news' ? '/haberler' :
+                '/projeler'
+              }>
                 <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                  Tüm Haberler
+                  {slides[currentSlide].contentType === 'event' ? 'Tüm Etkinlikler' :
+                   slides[currentSlide].contentType === 'news' ? 'Tüm Haberler' :
+                   'Tüm Projeler'}
                 </Button>
               </Link>
             </div>
