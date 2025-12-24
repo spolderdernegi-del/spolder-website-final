@@ -45,7 +45,7 @@ const defaultSlides = [
 
 const HeroSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [slides, setSlides] = useState<SlideEvent[]>(defaultSlides);
+  const [slides, setSlides] = useState<SlideEvent[]>([]);
 
   useEffect(() => {
     // localStorage'dan etkinlikleri yükle ve filtreleme yap
@@ -55,14 +55,20 @@ const HeroSlider = () => {
         const events = JSON.parse(storedEvents);
         const sliderEvents = events.filter((e: SlideEvent) => e.showInSlider === true);
         
-        // Eğer slider etkinliği varsa kullan, yoksa default slides kullan
+        // Admin panelinden slider etkinlikleri varsa kullan
         if (sliderEvents.length > 0) {
           setSlides(sliderEvents);
+        } else {
+          // Slider etkinliği yoksa boş bırak (empty state gösterilecek)
+          setSlides([]);
         }
+      } else {
+        // localStorage boş ise boş bırak
+        setSlides([]);
       }
     } catch (error) {
       console.error("Error loading slider events:", error);
-      setSlides(defaultSlides);
+      setSlides([]);
     }
   }, []);
 
@@ -80,9 +86,19 @@ const HeroSlider = () => {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   return (
-    <section className="relative h-[90vh] min-h-[600px] overflow-hidden">
+    <section className="relative h-[90vh] min-h-[600px] overflow-hidden bg-gray-900">
+      {/* Empty State */}
+      {slides.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-4xl font-bold text-white mb-4">Slider Boş</h2>
+            <p className="text-gray-300 text-lg">Admin panelinden etkinlik oluşturup "Show in Slider" seçeneğini işaretleyin.</p>
+          </div>
+        </div>
+      )}
+
       {/* Background Slides */}
-      {slides.map((slide, index) => (
+      {slides.length > 0 && slides.map((slide, index) => (
         <div
           key={slide.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -98,73 +114,79 @@ const HeroSlider = () => {
       ))}
 
       {/* Content */}
-      <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
-        <div className="max-w-2xl space-y-6 animate-fade-up">
-          {/* Category Badge */}
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {slides[currentSlide].category}
-          </span>
+      {slides.length > 0 && (
+        <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
+          <div className="max-w-2xl space-y-6 animate-fade-up">
+            {/* Category Badge */}
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+              {slides[currentSlide].category}
+            </span>
 
-          {/* Title */}
-          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
-            {slides[currentSlide].title}
-          </h1>
+            {/* Title */}
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
+              {slides[currentSlide].title}
+            </h1>
 
-          {/* Description */}
-          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl">
-            {slides[currentSlide].excerpt}
-          </p>
+            {/* Description */}
+            <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl">
+              {slides[currentSlide].excerpt}
+            </p>
 
-          {/* Date */}
-          <div className="flex items-center gap-2 text-primary-foreground/70">
-            <Calendar className="w-4 h-4" />
-            <span className="text-sm">{slides[currentSlide].date}</span>
-          </div>
+            {/* Date */}
+            <div className="flex items-center gap-2 text-primary-foreground/70">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">{slides[currentSlide].date}</span>
+            </div>
 
-          {/* CTA */}
-          <div className="flex gap-4 pt-4">
-            <Link to={`/haber/${slides[currentSlide].id}`}>
-              <Button variant="hero" size="lg">
-                Devamını Oku
-              </Button>
-            </Link>
-            <Link to="/haberler">
-              <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                Tüm Haberler
-              </Button>
-            </Link>
+            {/* CTA */}
+            <div className="flex gap-4 pt-4">
+              <Link to={`/haber/${slides[currentSlide].id}`}>
+                <Button variant="hero" size="lg">
+                  Devamını Oku
+                </Button>
+              </Link>
+              <Link to="/haberler">
+                <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+                  Tüm Haberler
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation Arrows */}
-      <div className="absolute bottom-8 right-8 flex gap-3">
-        <button
-          onClick={prevSlide}
-          className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
-      </div>
+      {slides.length > 0 && (
+        <div className="absolute bottom-8 right-8 flex gap-3">
+          <button
+            onClick={prevSlide}
+            className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentSlide(index)}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "w-8 bg-primary" : "w-2 bg-primary-foreground/40"
-            }`}
-          />
-        ))}
-      </div>
+      {slides.length > 0 && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentSlide ? "w-8 bg-primary" : "w-2 bg-primary-foreground/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };
