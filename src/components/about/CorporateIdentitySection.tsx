@@ -63,8 +63,8 @@ export default function CorporateIdentitySection() {
           <CardContent className="grid grid-cols-2 gap-2">
             <ColorSwatch name="Yeşil" className="bg-primary" hex="#2FAC66" />
             <ColorSwatch name="Turkuaz" className="bg-secondary" hex="#2DAAE2" />
-            <ColorSwatch name="Koyu Gri" className="bg-foreground" hex="#2B2B2C" />
-            <ColorSwatch name="Açık Gri" className="bg-background" hex="#F7F7F7" />
+            <ColorSwatch name="Siyah" className="bg-foreground" hex="#2B2B2C" />
+            <ColorSwatch name="Beyaz" className="bg-background" hex="#F7F7F7" />
           </CardContent>
         </Card>
       </div>
