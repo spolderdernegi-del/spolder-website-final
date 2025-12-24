@@ -8,13 +8,11 @@ const ColorSwatch = ({ name, className, hex }: { name: string; className: string
   const ref = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="p-4 border border-border rounded-lg bg-card">
-      <div className="flex items-center gap-3">
-        <div ref={ref} className={`h-10 w-10 rounded ${className}`} />
-        <span className="text-sm text-muted-foreground">
-          {name} <strong>{hex}</strong>
-        </span>
-      </div>
+    <div className="flex items-center gap-3">
+      <div ref={ref} className={`h-10 w-10 rounded border border-border ${className}`} />
+      <span className="text-sm text-muted-foreground">
+        {name} <strong>{hex}</strong>
+      </span>
     </div>
   );
 };
