@@ -62,10 +62,10 @@ export default function CorporateIdentitySection() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button asChild variant="outline">
-                <a href="/docs/spolder_logokullanimklavuzu.pdf" target="_blank" rel="noopener noreferrer">Logo Kullanım Kılavuzu (PDF)</a>
+                <a href="/docs/sporled_vector_logo.pdf" target="_blank" rel="noopener noreferrer" download>Vektör Logo (PDF)</a>
               </Button>
               <Button asChild variant="outline">
-                <a href="/docs/sporled_vector_logo.ai" target="_blank" rel="noopener noreferrer">Vektör Logo (AI)</a>
+                <a href="/docs/spolder_logokullanimklavuzu.pdf" target="_blank" rel="noopener noreferrer" download>Logo Kullanım Kılavuzu (PDF)</a>
               </Button>
             </div>
           </CardContent>
