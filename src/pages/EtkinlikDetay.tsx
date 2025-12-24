@@ -214,10 +214,6 @@ const EtkinlikDetay = () => {
                   </div>
 
                   {/* Register Button */}
-                  <Button
-                    onClick={handleRegister}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6"
-                  >
                   {etkinlik.google_form_link ? (
                     <a
                       href={etkinlik.google_form_link}
