@@ -67,6 +67,9 @@ export default function CorporateIdentitySection() {
               <Button asChild variant="outline">
                 <a href="/docs/spolder_logokullanimklavuzu.pdf" target="_blank" rel="noopener noreferrer" download>Logo Kullanım Kılavuzu (PDF)</a>
               </Button>
+              <Button asChild variant="outline">
+                <a href="/docs/spolder_logokullanimklavuzu_v2.pdf" target="_blank" rel="noopener noreferrer" download>Marka Kılavuzu (PDF)</a>
+              </Button>
             </div>
           </CardContent>
         </Card>
