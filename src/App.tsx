@@ -20,6 +20,7 @@ import Gizlilik from "./pages/Gizlilik";
 import KVKK from "./pages/KVKK";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/lib/ScrollToTop";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminEvents from "./pages/admin/Events";
@@ -60,18 +61,18 @@ const App = () => (
           <Route path="/gizlilik" element={<Gizlilik />} />
           <Route path="/kvkk" element={<KVKK />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/events" element={<AdminEvents />} />
-          <Route path="/admin/news" element={<AdminNews />} />
-          <Route path="/admin/projects" element={<AdminProjects />} />
-          <Route path="/admin/files" element={<AdminFiles />} />
-          <Route path="/admin/categories" element={<AdminCategories />} />
-          <Route path="/admin/blog" element={<AdminBlog />} />
-          <Route path="/admin/welcome-modal" element={<AdminWelcomeModal />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/media" element={<AdminMediaLibrary />} />
-          <Route path="/admin/board" element={<AdminBoard />} />
-          <Route path="/admin/bank-info" element={<AdminBankInfo />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
+          <Route path="/admin/news" element={<ProtectedRoute><AdminNews /></ProtectedRoute>} />
+          <Route path="/admin/projects" element={<ProtectedRoute><AdminProjects /></ProtectedRoute>} />
+          <Route path="/admin/files" element={<ProtectedRoute><AdminFiles /></ProtectedRoute>} />
+          <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
+          <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
+          <Route path="/admin/welcome-modal" element={<ProtectedRoute><AdminWelcomeModal /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/media" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
+          <Route path="/admin/board" element={<ProtectedRoute><AdminBoard /></ProtectedRoute>} />
+          <Route path="/admin/bank-info" element={<ProtectedRoute><AdminBankInfo /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         {/* WhatsApp Floating Button */}
