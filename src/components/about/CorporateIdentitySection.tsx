@@ -59,7 +59,7 @@ export default function CorporateIdentitySection() {
           <CardHeader>
             <CardTitle>Renk Paleti</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-2 gap-2">
             <ColorSwatch name="Primary" className="bg-primary" hex="#2FAC66" />
             <ColorSwatch name="Secondary" className="bg-secondary" hex="#2DAAE2" />
             <ColorSwatch name="Foreground" className="bg-foreground" hex="#2B2B2C" />
