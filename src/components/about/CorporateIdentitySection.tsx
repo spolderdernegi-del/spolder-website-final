@@ -33,11 +33,11 @@ export default function CorporateIdentitySection() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6">
               {/* Siyah/renkli logo için daha koyu (foreground %10) arka plan */}
-              <div className="h-28 w-44 bg-foreground/10 rounded-lg border shadow-card flex items-center justify-center p-5">
+              <div className="h-28 w-44 bg-foreground/10 rounded-lg border flex items-center justify-center p-5">
                 <img src={erkekLogo} alt="SPOLDER Logo Erkek" className="max-h-24 w-auto" />
               </div>
               {/* Beyaz yazılı logo için koyu anthracite arka plan */}
-              <div className="h-28 w-44 bg-anthracite rounded-lg border shadow-card flex items-center justify-center p-5">
+              <div className="h-28 w-44 bg-anthracite rounded-lg border flex items-center justify-center p-5">
                 <img src={disiLogo} alt="SPOLDER Logo Dişi" className="max-h-24 w-auto" />
               </div>
             </div>
