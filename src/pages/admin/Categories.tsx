@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Tag } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface Category {
   id: number;
@@ -35,38 +37,59 @@ const AdminCategories = () => {
     }
   };
 
-  const fetchCategories = () => {
+  const fetchCategories = async () => {
     try {
-      const storedCategories = localStorage.getItem('spolder_categories');
-      const categoriesData = storedCategories ? JSON.parse(storedCategories) : [];
-      setCategories(categoriesData);
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Kategoriler yüklenirken hata: " + error.message);
+        return;
+      }
+      
+      setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+      toast.error("Kategoriler yüklenirken hata oluştu");
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const storedCategories = localStorage.getItem('spolder_categories');
-      const categoriesData = storedCategories ? JSON.parse(storedCategories) : [];
-
       if (editingCategory) {
-        const index = categoriesData.findIndex((c: Category) => c.id === editingCategory.id);
-        if (index !== -1) {
-          categoriesData[index] = { ...formData, id: editingCategory.id, created_at: editingCategory.created_at };
+        // Update kategorisi
+        const { error } = await supabase
+          .from('categories')
+          .update(formData)
+          .eq('id', editingCategory.id);
+        
+        if (error) {
+          throw error;
         }
+        
+        toast.success('Kategori güncellendi!');
       } else {
-        const newCategory = { ...formData, id: Date.now(), created_at: new Date().toISOString() };
-        categoriesData.push(newCategory);
+        // Yeni kategori ekle
+        const { error } = await supabase
+          .from('categories')
+          .insert([formData]);
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success('Kategori eklendi!');
       }
 
-      localStorage.setItem('spolder_categories', JSON.stringify(categoriesData));
       resetForm();
       fetchCategories();
     } catch (error: any) {
-      alert("Hata: " + error.message);
+      toast.error("Hata: " + error.message);
     }
   };
 
@@ -80,17 +103,23 @@ const AdminCategories = () => {
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("Bu kategoriyi silmek istediğinizden emin misiniz?")) return;
 
     try {
-      const storedCategories = localStorage.getItem('spolder_categories');
-      const categoriesData = storedCategories ? JSON.parse(storedCategories) : [];
-      const filtered = categoriesData.filter((c: Category) => c.id !== id);
-      localStorage.setItem('spolder_categories', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Kategori silindi!');
       fetchCategories();
     } catch (error: any) {
-      alert("Hata: " + error.message);
+      toast.error("Hata: " + error.message);
     }
   };
 

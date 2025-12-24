@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "@/lib/toast";
 
 interface BoardMember {
   id: number;
@@ -47,64 +50,102 @@ const AdminBoard = () => {
     loadMembers();
   }, []);
 
-  const loadMembers = () => {
-    const saved = localStorage.getItem("spolder_board");
-    if (saved) {
-      setMembers(JSON.parse(saved));
-    } else {
-      // Varsayılan yönetim kurulu
-      const defaultMembers: BoardMember[] = [
-        {
-          id: 1,
-          name: "Prof. Dr. Ahmet Yılmaz",
-          position: "Başkan",
-          bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
-          image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-          order: 1,
-        },
-        {
-          id: 2,
-          name: "Doç. Dr. Ayşe Demir",
-          position: "Başkan Yardımcısı",
-          bio: "Spor politikaları ve toplumsal cinsiyet eşitliği uzmanı.",
-          image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
-          order: 2,
-        },
-        {
-          id: 3,
-          name: "Dr. Mehmet Kaya",
-          position: "Genel Sekreter",
-          bio: "Uluslararası spor organizasyonları deneyimi.",
-          image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
-          order: 3,
-        },
-      ];
-      localStorage.setItem("spolder_board", JSON.stringify(defaultMembers));
-      setMembers(defaultMembers);
+  const loadMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('board')
+        .select('*')
+        .order('order', { ascending: true });
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Üyeler yüklenirken hata: " + error.message);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setMembers(data);
+      } else {
+        // Varsayılan yönetim kurulu - ilk kez oluştur
+        const defaultMembers: BoardMember[] = [
+          {
+            id: 1,
+            name: "Prof. Dr. Ahmet Yılmaz",
+            position: "Başkan",
+            bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
+            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+            order: 1,
+          },
+          {
+            id: 2,
+            name: "Doç. Dr. Ayşe Demir",
+            position: "Başkan Yardımcısı",
+            bio: "Spor politikaları ve toplumsal cinsiyet eşitliği uzmanı.",
+            image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
+            order: 2,
+          },
+          {
+            id: 3,
+            name: "Dr. Mehmet Kaya",
+            position: "Genel Sekreter",
+            bio: "Uluslararası spor organizasyonları deneyimi.",
+            image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
+            order: 3,
+          },
+        ];
+
+        // İlk kez ekle
+        const { error: insertError } = await supabase
+          .from('board')
+          .insert(defaultMembers);
+        
+        if (insertError) {
+          console.error("Insert error:", insertError);
+        } else {
+          setMembers(defaultMembers);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading members:", error);
+      toast.error("Üyeler yüklenirken hata oluştu");
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingMember) {
-      const updated = members.map((m) =>
-        m.id === editingMember.id ? { ...formData, id: m.id } : m
-      );
-      setMembers(updated);
-      localStorage.setItem("spolder_board", JSON.stringify(updated));
-    } else {
-      const newMember: BoardMember = {
-        ...formData,
-        id: Date.now(),
-      };
-      const updated = [...members, newMember];
-      setMembers(updated);
-      localStorage.setItem("spolder_board", JSON.stringify(updated));
-    }
+    try {
+      if (editingMember) {
+        // Update üyesi
+        const { error } = await supabase
+          .from('board')
+          .update(formData)
+          .eq('id', editingMember.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success('Üye güncellendi!');
+      } else {
+        // Yeni üye ekle
+        const { error } = await supabase
+          .from('board')
+          .insert([formData]);
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success('Üye eklendi!');
+      }
 
-    setIsDialogOpen(false);
-    resetForm();
+      setIsDialogOpen(false);
+      resetForm();
+      loadMembers();
+    } catch (error: any) {
+      toast.error("Hata: " + error.message);
+    }
   };
 
   const handleEdit = (member: BoardMember) => {
@@ -119,11 +160,23 @@ const AdminBoard = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Bu üyeyi silmek istediğinizden emin misiniz?")) {
-      const updated = members.filter((m) => m.id !== id);
-      setMembers(updated);
-      localStorage.setItem("spolder_board", JSON.stringify(updated));
+      try {
+        const { error } = await supabase
+          .from('board')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success('Üye silindi!');
+        loadMembers();
+      } catch (error: any) {
+        toast.error("Hata: " + error.message);
+      }
     }
   };
 
