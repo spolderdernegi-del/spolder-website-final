@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,13 +77,23 @@ const AdminBlog = () => {
     }
   };
 
-  const fetchPosts = () => {
+  const fetchPosts = async () => {
     try {
-      const storedPosts = localStorage.getItem('spolder_blog');
-      const postsData = storedPosts ? JSON.parse(storedPosts) : [];
-      setPosts(postsData);
+      const { data, error } = await supabase
+        .from('blog')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Blog yazıları yüklenirken hata: " + error.message);
+        return;
+      }
+      
+      setPosts(data || []);
     } catch (error) {
       console.error("Error fetching blog posts:", error);
+      toast.error("Blog yazıları yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -141,25 +152,34 @@ const AdminBlog = () => {
         slug,
         publishStatus: formData.publishStatus || 'draft'
       };
-      
-      const storedPosts = localStorage.getItem('spolder_blog');
-      const postsData = storedPosts ? JSON.parse(storedPosts) : [];
 
       if (editingPost) {
-        const index = postsData.findIndex((p: BlogPost) => p.id === editingPost.id);
-        if (index !== -1) {
-          postsData[index] = { ...dataToSave, id: editingPost.id, created_at: editingPost.created_at };
+        // Update mevcut blog yazısı
+        const { error } = await supabase
+          .from('blog')
+          .update(dataToSave)
+          .eq('id', editingPost.id);
+        
+        if (error) {
+          throw error;
         }
+        
         logActivity('update', 'blog', formData.title);
         toast.success('Blog yazısı güncellendi!');
       } else {
-        const newPost = { ...dataToSave, id: Date.now(), created_at: new Date().toISOString() };
-        postsData.unshift(newPost);
+        // Yeni blog yazısı ekle
+        const { error } = await supabase
+          .from('blog')
+          .insert([dataToSave]);
+        
+        if (error) {
+          throw error;
+        }
+        
         logActivity('create', 'blog', formData.title);
         toast.success('Blog yazısı eklendi!');
       }
 
-      localStorage.setItem('spolder_blog', JSON.stringify(postsData));
       resetForm();
       fetchPosts();
     } catch (error: any) {
@@ -190,15 +210,19 @@ const AdminBlog = () => {
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     const post = posts.find(p => p.id === id);
     if (!confirm("Bu blog yazısını silmek istediğinizden emin misiniz?")) return;
 
     try {
-      const storedPosts = localStorage.getItem('spolder_blog');
-      const postsData = storedPosts ? JSON.parse(storedPosts) : [];
-      const filtered = postsData.filter((p: BlogPost) => p.id !== id);
-      localStorage.setItem('spolder_blog', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('blog')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'blog', post?.title || 'Blog');
       toast.success('Blog yazısı silindi!');
@@ -208,7 +232,7 @@ const AdminBlog = () => {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedPosts.length === 0) {
       toast.warning('Lütfen silinecek blog yazılarını seçin');
       return;
@@ -217,10 +241,14 @@ const AdminBlog = () => {
     if (!confirm(`${selectedPosts.length} blog yazısı silinecek. Emin misiniz?`)) return;
 
     try {
-      const storedPosts = localStorage.getItem('spolder_blog');
-      const postsData = storedPosts ? JSON.parse(storedPosts) : [];
-      const filtered = postsData.filter((p: BlogPost) => !selectedPosts.includes(p.id));
-      localStorage.setItem('spolder_blog', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('blog')
+        .delete()
+        .in('id', selectedPosts);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'blog', `${selectedPosts.length} blog`);
       toast.success(`${selectedPosts.length} blog yazısı silindi!`);
@@ -232,21 +260,23 @@ const AdminBlog = () => {
     }
   };
 
-  const togglePublishStatus = (id: number, currentStatus?: 'draft' | 'published') => {
+  const togglePublishStatus = async (id: number, currentStatus?: 'draft' | 'published') => {
     try {
-      const storedPosts = localStorage.getItem('spolder_blog');
-      const postsData = storedPosts ? JSON.parse(storedPosts) : [];
-      const index = postsData.findIndex((p: BlogPost) => p.id === id);
+      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      const post = posts.find(p => p.id === id);
       
-      if (index !== -1) {
-        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-        postsData[index].publishStatus = newStatus;
-        localStorage.setItem('spolder_blog', JSON.stringify(postsData));
-        
-        logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'blog', postsData[index].title);
-        toast.success(newStatus === 'published' ? 'Blog yayınlandı!' : 'Blog taslağa alındı!');
-        fetchPosts();
+      const { error } = await supabase
+        .from('blog')
+        .update({ publishStatus: newStatus })
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
       }
+      
+      logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'blog', post?.title || 'Blog');
+      toast.success(newStatus === 'published' ? 'Blog yayınlandı!' : 'Blog taslağa alındı!');
+      fetchPosts();
     } catch (error: any) {
       toast.error("Hata: " + error.message);
     }

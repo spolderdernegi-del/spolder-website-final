@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Download, Upload, Trash2, Key, Activity } from "lucide-react";
@@ -14,11 +15,33 @@ const AdminSettings = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
 
   useEffect(() => {
     checkAuth();
     loadActivityLogs();
+    loadCounts();
   }, []);
+
+  const loadCounts = async () => {
+    try {
+      const [eventsRes, newsRes, projectsRes, blogRes] = await Promise.all([
+        supabase.from('events').select('id', { count: 'exact', head: true }),
+        supabase.from('news').select('id', { count: 'exact', head: true }),
+        supabase.from('projects').select('id', { count: 'exact', head: true }),
+        supabase.from('blog').select('id', { count: 'exact', head: true })
+      ]);
+
+      setCounts({
+        events: eventsRes.count || 0,
+        news: newsRes.count || 0,
+        projects: projectsRes.count || 0,
+        blog: blogRes.count || 0
+      });
+    } catch (error) {
+      console.error("Error loading counts:", error);
+    }
+  };
 
   const checkAuth = () => {
     const simpleAuth = localStorage.getItem("adminAuth");
@@ -272,19 +295,23 @@ const AdminSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Depolama Tipi</p>
-              <p className="font-medium">LocalStorage</p>
+              <p className="font-medium">Supabase</p>
             </div>
             <div>
               <p className="text-muted-foreground">Toplam Etkinlik</p>
-              <p className="font-medium">{JSON.parse(localStorage.getItem('spolder_events') || '[]').length}</p>
+              <p className="font-medium">{counts.events}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Toplam Haber</p>
-              <p className="font-medium">{JSON.parse(localStorage.getItem('spolder_news') || '[]').length}</p>
+              <p className="font-medium">{counts.news}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Toplam Proje</p>
-              <p className="font-medium">{JSON.parse(localStorage.getItem('spolder_projects') || '[]').length}</p>
+              <p className="font-medium">{counts.projects}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Toplam Blog Yazısı</p>
+              <p className="font-medium">{counts.blog}</p>
             </div>
           </div>
         </div>

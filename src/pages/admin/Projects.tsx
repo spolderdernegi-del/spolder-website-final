@@ -86,11 +86,21 @@ const AdminProjects = () => {
 
   const fetchProjects = async () => {
     try {
-      const storedProjects = localStorage.getItem('spolder_projects');
-      const projectsData = storedProjects ? JSON.parse(storedProjects) : [];
-      setProjects(projectsData);
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Projeler yüklenirken hata: " + error.message);
+        return;
+      }
+      
+      setProjects(data || []);
     } catch (error) {
       console.error("Error fetching projects:", error);
+      toast.error("Projeler yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -150,25 +160,34 @@ const AdminProjects = () => {
         slug,
         publishStatus: formData.publishStatus || 'draft'
       };
-      
-      const storedProjects = localStorage.getItem('spolder_projects');
-      const projectsData = storedProjects ? JSON.parse(storedProjects) : [];
 
       if (editingProject) {
-        const index = projectsData.findIndex((p: Project) => p.id === editingProject.id);
-        if (index !== -1) {
-          projectsData[index] = { ...dataToSave, id: editingProject.id, created_at: editingProject.created_at, updated_at: new Date().toISOString() };
+        // Update mevcut proje
+        const { error } = await supabase
+          .from('projects')
+          .update(dataToSave)
+          .eq('id', editingProject.id);
+        
+        if (error) {
+          throw error;
         }
+        
         logActivity('update', 'project', formData.title);
         toast.success('Proje güncellendi!');
       } else {
-        const newProject = { ...dataToSave, id: Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-        projectsData.unshift(newProject);
+        // Yeni proje ekle
+        const { error } = await supabase
+          .from('projects')
+          .insert([dataToSave]);
+        
+        if (error) {
+          throw error;
+        }
+        
         logActivity('create', 'project', formData.title);
         toast.success('Proje eklendi!');
       }
 
-      localStorage.setItem('spolder_projects', JSON.stringify(projectsData));
       resetForm();
       fetchProjects();
     } catch (error: any) {
@@ -205,10 +224,14 @@ const AdminProjects = () => {
     if (!confirm("Bu projeyi silmek istediğinizden emin misiniz?")) return;
 
     try {
-      const storedProjects = localStorage.getItem('spolder_projects');
-      const projectsData = storedProjects ? JSON.parse(storedProjects) : [];
-      const filtered = projectsData.filter((p: Project) => p.id !== id);
-      localStorage.setItem('spolder_projects', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'project', project?.title || 'Proje');
       toast.success('Proje silindi!');
@@ -218,7 +241,7 @@ const AdminProjects = () => {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedProjects.length === 0) {
       toast.warning('Lütfen silinecek projeleri seçin');
       return;
@@ -227,10 +250,14 @@ const AdminProjects = () => {
     if (!confirm(`${selectedProjects.length} proje silinecek. Emin misiniz?`)) return;
 
     try {
-      const storedProjects = localStorage.getItem('spolder_projects');
-      const projectsData = storedProjects ? JSON.parse(storedProjects) : [];
-      const filtered = projectsData.filter((p: Project) => !selectedProjects.includes(p.id));
-      localStorage.setItem('spolder_projects', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .in('id', selectedProjects);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'project', `${selectedProjects.length} proje`);
       toast.success(`${selectedProjects.length} proje silindi!`);
@@ -242,21 +269,23 @@ const AdminProjects = () => {
     }
   };
 
-  const togglePublishStatus = (id: number, currentStatus?: 'draft' | 'published') => {
+  const togglePublishStatus = async (id: number, currentStatus?: 'draft' | 'published') => {
     try {
-      const storedProjects = localStorage.getItem('spolder_projects');
-      const projectsData = storedProjects ? JSON.parse(storedProjects) : [];
-      const index = projectsData.findIndex((p: Project) => p.id === id);
+      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      const project = projects.find(p => p.id === id);
       
-      if (index !== -1) {
-        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-        projectsData[index].publishStatus = newStatus;
-        localStorage.setItem('spolder_projects', JSON.stringify(projectsData));
-        
-        logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'project', projectsData[index].title);
-        toast.success(newStatus === 'published' ? 'Proje yayınlandı!' : 'Proje taslağa alındı!');
-        fetchProjects();
+      const { error } = await supabase
+        .from('projects')
+        .update({ publishStatus: newStatus })
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
       }
+      
+      logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'project', project?.title || 'Proje');
+      toast.success(newStatus === 'published' ? 'Proje yayınlandı!' : 'Proje taslağa alındı!');
+      fetchProjects();
     } catch (error: any) {
       toast.error("Hata: " + error.message);
     }

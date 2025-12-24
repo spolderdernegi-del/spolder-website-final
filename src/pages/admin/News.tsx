@@ -84,11 +84,21 @@ const AdminNews = () => {
 
   const fetchNews = async () => {
     try {
-      const storedNews = localStorage.getItem('spolder_news');
-      const newsData = storedNews ? JSON.parse(storedNews) : [];
-      setNews(newsData);
+      const { data, error } = await supabase
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Haberler yüklenirken hata: " + error.message);
+        return;
+      }
+      
+      setNews(data || []);
     } catch (error) {
       console.error("Error fetching news:", error);
+      toast.error("Haberler yüklenirken hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -149,25 +159,34 @@ const AdminNews = () => {
         slug,
         publishStatus: formData.publishStatus || 'draft'
       };
-      
-      const storedNews = localStorage.getItem('spolder_news');
-      const newsData = storedNews ? JSON.parse(storedNews) : [];
 
       if (editingNews) {
-        const index = newsData.findIndex((n: News) => n.id === editingNews.id);
-        if (index !== -1) {
-          newsData[index] = { ...dataToSave, id: editingNews.id, created_at: editingNews.created_at, updated_at: new Date().toISOString() };
+        // Update mevcut haber
+        const { error } = await supabase
+          .from('news')
+          .update(dataToSave)
+          .eq('id', editingNews.id);
+        
+        if (error) {
+          throw error;
         }
+        
         logActivity('update', 'news', formData.title);
         toast.success('Haber güncellendi!');
       } else {
-        const newNews = { ...dataToSave, id: Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-        newsData.unshift(newNews);
+        // Yeni haber ekle
+        const { error } = await supabase
+          .from('news')
+          .insert([dataToSave]);
+        
+        if (error) {
+          throw error;
+        }
+        
         logActivity('create', 'news', formData.title);
         toast.success('Haber eklendi!');
       }
 
-      localStorage.setItem('spolder_news', JSON.stringify(newsData));
       resetForm();
       fetchNews();
     } catch (error: any) {
@@ -203,10 +222,14 @@ const AdminNews = () => {
     if (!confirm("Bu haberi silmek istediğinizden emin misiniz?")) return;
 
     try {
-      const storedNews = localStorage.getItem('spolder_news');
-      const newsData = storedNews ? JSON.parse(storedNews) : [];
-      const filtered = newsData.filter((n: News) => n.id !== id);
-      localStorage.setItem('spolder_news', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('news')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'news', newsItem?.title || 'Haber');
       toast.success('Haber silindi!');
@@ -216,7 +239,7 @@ const AdminNews = () => {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedNews.length === 0) {
       toast.warning('Lütfen silinecek haberleri seçin');
       return;
@@ -225,10 +248,14 @@ const AdminNews = () => {
     if (!confirm(`${selectedNews.length} haber silinecek. Emin misiniz?`)) return;
 
     try {
-      const storedNews = localStorage.getItem('spolder_news');
-      const newsData = storedNews ? JSON.parse(storedNews) : [];
-      const filtered = newsData.filter((n: News) => !selectedNews.includes(n.id));
-      localStorage.setItem('spolder_news', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from('news')
+        .delete()
+        .in('id', selectedNews);
+      
+      if (error) {
+        throw error;
+      }
       
       logActivity('delete', 'news', `${selectedNews.length} haber`);
       toast.success(`${selectedNews.length} haber silindi!`);
@@ -240,21 +267,23 @@ const AdminNews = () => {
     }
   };
 
-  const togglePublishStatus = (id: number, currentStatus?: 'draft' | 'published') => {
+  const togglePublishStatus = async (id: number, currentStatus?: 'draft' | 'published') => {
     try {
-      const storedNews = localStorage.getItem('spolder_news');
-      const newsData = storedNews ? JSON.parse(storedNews) : [];
-      const index = newsData.findIndex((n: News) => n.id === id);
+      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      const newsItem = news.find(n => n.id === id);
       
-      if (index !== -1) {
-        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-        newsData[index].publishStatus = newStatus;
-        localStorage.setItem('spolder_news', JSON.stringify(newsData));
-        
-        logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'news', newsData[index].title);
-        toast.success(newStatus === 'published' ? 'Haber yayınlandı!' : 'Haber taslağa alındı!');
-        fetchNews();
+      const { error } = await supabase
+        .from('news')
+        .update({ publishStatus: newStatus })
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
       }
+      
+      logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'news', newsItem?.title || 'Haber');
+      toast.success(newStatus === 'published' ? 'Haber yayınlandı!' : 'Haber taslağa alındı!');
+      fetchNews();
     } catch (error: any) {
       toast.error("Hata: " + error.message);
     }
