@@ -134,8 +134,8 @@ const Haberler = () => {
                 </Button>
               </div>
             )}
-          </div>
-        </section>
+            </div>
+          </section>
       </main>
       <Footer />
     </div>
