@@ -11,7 +11,7 @@ const ColorSwatch = ({ name, className, hex }: { name: string; className: string
     <div className="flex items-center gap-3">
       <div ref={ref} className={`h-10 w-10 rounded border border-border ${className}`} />
       <span className="text-sm text-muted-foreground">
-        {name} <strong>{hex}</strong>
+        <strong>{hex}</strong>
       </span>
     </div>
   );
