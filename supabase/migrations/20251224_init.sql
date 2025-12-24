@@ -161,56 +161,80 @@ CREATE POLICY "Enable read access for all users" ON public.files FOR SELECT USIN
 
 -- INSERT (authenticated users only)
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.categories;
 CREATE POLICY "Enable insert for authenticated users" ON public.categories FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.board;
 CREATE POLICY "Enable insert for authenticated users" ON public.board FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.bank_info;
 CREATE POLICY "Enable insert for authenticated users" ON public.bank_info FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.events;
 CREATE POLICY "Enable insert for authenticated users" ON public.events FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.news;
 CREATE POLICY "Enable insert for authenticated users" ON public.news FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.blog;
 CREATE POLICY "Enable insert for authenticated users" ON public.blog FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.projects;
 CREATE POLICY "Enable insert for authenticated users" ON public.projects FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.files;
 CREATE POLICY "Enable insert for authenticated users" ON public.files FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- UPDATE (authenticated users only)
 DROP POLICY IF EXISTS "Enable update for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.categories;
 CREATE POLICY "Enable update for authenticated users" ON public.categories FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.board;
 CREATE POLICY "Enable update for authenticated users" ON public.board FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.bank_info;
 CREATE POLICY "Enable update for authenticated users" ON public.bank_info FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.events;
 CREATE POLICY "Enable update for authenticated users" ON public.events FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.news;
 CREATE POLICY "Enable update for authenticated users" ON public.news FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.blog;
 CREATE POLICY "Enable update for authenticated users" ON public.blog FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.projects;
 CREATE POLICY "Enable update for authenticated users" ON public.projects FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.files;
 CREATE POLICY "Enable update for authenticated users" ON public.files FOR UPDATE USING (auth.uid() IS NOT NULL);
 
 -- DELETE (authenticated users only)
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.categories;
 CREATE POLICY "Enable delete for authenticated users" ON public.categories FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.board;
 CREATE POLICY "Enable delete for authenticated users" ON public.board FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.bank_info;
 CREATE POLICY "Enable delete for authenticated users" ON public.bank_info FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.events;
 CREATE POLICY "Enable delete for authenticated users" ON public.events FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.news;
 CREATE POLICY "Enable delete for authenticated users" ON public.news FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.blog;
 CREATE POLICY "Enable delete for authenticated users" ON public.blog FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.projects;
 CREATE POLICY "Enable delete for authenticated users" ON public.projects FOR DELETE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.files;
 CREATE POLICY "Enable delete for authenticated users" ON public.files FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Settings tablosu (basit key/value)
@@ -224,10 +248,13 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.settings;
 CREATE POLICY "Enable read access for all users" ON public.settings FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.settings;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.settings;
 CREATE POLICY "Enable insert for authenticated users" ON public.settings FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable update for all users" ON public.settings;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.settings;
 CREATE POLICY "Enable update for authenticated users" ON public.settings FOR UPDATE USING (auth.uid() IS NOT NULL);
 DROP POLICY IF EXISTS "Enable delete for all users" ON public.settings;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.settings;
 CREATE POLICY "Enable delete for authenticated users" ON public.settings FOR DELETE USING (auth.uid() IS NOT NULL);
 
 -- Şema hizalama: eksik kolonları güvenli şekilde ekle (IF NOT EXISTS)
