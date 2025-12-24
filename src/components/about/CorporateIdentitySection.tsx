@@ -10,7 +10,7 @@ const ColorSwatch = ({ name, className, hex }: { name: string; className: string
   return (
     <div className="flex items-center gap-3">
       <div ref={ref} className={`h-10 w-10 rounded border border-border ${className}`} />
-      <div className="flex flex-col">
+      <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-foreground">{name}</span>
         <span className="text-xs text-muted-foreground">{hex}</span>
       </div>
