@@ -23,6 +23,7 @@ CREATE TABLE public.events (
   meta_aciklama TEXT,
   yayin_durumu TEXT DEFAULT 'taslak',
   sliderda_goster BOOLEAN DEFAULT false,
+  google_form_link TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

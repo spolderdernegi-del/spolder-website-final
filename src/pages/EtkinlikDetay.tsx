@@ -19,6 +19,7 @@ interface Event {
   kapasite: string;
   kayitli: string;
   durum: string;
+  google_form_link?: string;
 }
 
 const EtkinlikDetay = () => {
@@ -26,7 +27,6 @@ const EtkinlikDetay = () => {
   const navigate = useNavigate();
   const [etkinlik, setEtkinlik] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
 
   useEffect(() => {
@@ -50,10 +50,6 @@ const EtkinlikDetay = () => {
 
     fetchEvent();
   }, [id]);
-
-  const handleRegister = () => {
-    setShowRegisterModal(true);
-  };
 
   const handleLocationClick = () => {
     setShowMapModal(true);
@@ -222,12 +218,25 @@ const EtkinlikDetay = () => {
                     onClick={handleRegister}
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6"
                   >
-                    Katıl ve Kayıt Ol
-                  </Button>
-
-                  <p className="text-xs text-muted-foreground mt-3 text-center">
-                    Google Form üzerinden kayıt yaptırılacaktır
-                  </p>
+                  {etkinlik.google_form_link ? (
+                    <a
+                      href={etkinlik.google_form_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6">
+                        Katıl ve Kayıt Ol
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button
+                      disabled
+                      className="w-full bg-gray-400 text-white font-semibold py-6 cursor-not-allowed"
+                    >
+                      Kayıt Linki Eklenmemiş
+                    </Button>
+                  )}
                 </div>
 
                 {/* Info Box */}
@@ -271,41 +280,6 @@ const EtkinlikDetay = () => {
                 allowFullScreen
               ></iframe>
             </div>
-          </div>
-        </div>
-      )}
-      {/* Registration modal (inline) */}
-      {showRegisterModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowRegisterModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-lg z-70">
-            <h3 className="text-xl font-bold mb-2">Etkinliğe Kayıt</h3>
-            <p className="text-sm text-muted-foreground mb-4">Kayıt formunu doldurarak etkinliğe başvurabilirsiniz. (Bu bir ön yüz örneğidir.)</p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // Simple stub behaviour
-                setShowRegisterModal(false);
-                alert("Kayıt isteğiniz alındı (örnek). Gerçek kayıt akışı için form entegrasyonu gereklidir.");
-              }}
-            >
-              <div className="grid grid-cols-1 gap-3 mb-4">
-                <input required name="name" placeholder="Ad Soyad" className="w-full p-2 border rounded" />
-                <input required name="email" type="email" placeholder="E-posta" className="w-full p-2 border rounded" />
-              </div>
-              <div className="flex items-center gap-2 justify-end">
-                <a
-                  href="https://docs.google.com/forms/d/e/1FAIpQLSfFMYRza3z7VlxwQ8H9FHtSx2ghoN1MjXQOtlFRuCAjGD20og/viewform?usp=publish-editor"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground hover:underline"
-                >
-                  Google Form ile devam et
-                </a>
-                <button type="button" onClick={() => setShowRegisterModal(false)} className="px-4 py-2">Vazgeç</button>
-                <button type="submit" className="bg-primary text-white px-4 py-2 rounded">Gönder</button>
-              </div>
-            </form>
           </div>
         </div>
       )}

@@ -28,6 +28,7 @@ interface Event {
   meta_baslik?: string;
   meta_aciklama?: string;
   sliderda_goster?: boolean;
+  google_form_link?: string;
 }
 
 const AdminEvents = () => {
@@ -64,6 +65,7 @@ const AdminEvents = () => {
     meta_baslik: "",
     meta_aciklama: "",
     sliderda_goster: false,
+    google_form_link: "",
   });
 
   useEffect(() => {
@@ -214,6 +216,7 @@ const AdminEvents = () => {
       meta_baslik: event.meta_baslik || '',
       meta_aciklama: event.meta_aciklama || '',
       sliderda_goster: event.sliderda_goster || false,
+      google_form_link: event.google_form_link || '',
     });
     setImagePreview(event.gorsel || "");
     setImageFile(null);
@@ -321,6 +324,7 @@ const AdminEvents = () => {
       meta_baslik: "",
       meta_aciklama: "",
       sliderda_goster: false,
+      google_form_link: "",
     });
   };
 
@@ -517,6 +521,22 @@ const AdminEvents = () => {
                     <option value="Devam Ediyor">Devam Ediyor</option>
                     <option value="Tamamlandı">Tamamlandı</option>
                   </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Google Form Kayıt Linki
+                    <span className="text-xs text-muted-foreground ml-2">(Etkinliğe kayıt için)</span>
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.google_form_link}
+                    onChange={(e) => setFormData({ ...formData, google_form_link: e.target.value })}
+                    placeholder="https://docs.google.com/forms/d/e/..."
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    "Kayıt Ol" butonuna tıklandığında bu link açılacak
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">
