@@ -62,7 +62,7 @@ export default function CorporateIdentitySection() {
           <CardContent className="grid grid-cols-2 gap-4">
             <ColorSwatch name="Primary" className="bg-primary" hex="#2FAC66" />
             <ColorSwatch name="Secondary" className="bg-secondary" hex="#2DAAE2" />
-            <ColorSwatch name="Foreground" className="bg-foreground" hex="#1F1F1F" />
+            <ColorSwatch name="Foreground" className="bg-foreground" hex="#2B2B2C" />
             <ColorSwatch name="Background" className="bg-background" hex="#F7F7F7" />
           </CardContent>
         </Card>
