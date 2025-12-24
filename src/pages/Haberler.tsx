@@ -123,19 +123,20 @@ const Haberler = () => {
                         </Button>
                       </div>
                     </div>
-                </Link>
-              ))}
-            </div>
-
-            {hasMore && (
-              <div className="text-center mt-12">
-                <Button onClick={loadMore} variant="outline" size="lg">
-                  Daha Fazla Haber Yükle
-                </Button>
+                  </Link>
+                ))}
               </div>
-            )}
+
+              {hasMore && (
+                <div className="text-center mt-12">
+                  <Button onClick={loadMore} variant="outline" size="lg">
+                    Daha Fazla Haber Yükle
+                  </Button>
+                </div>
+              )}
             </div>
           </section>
+        )}
       </main>
       <Footer />
     </div>
