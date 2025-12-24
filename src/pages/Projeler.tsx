@@ -17,57 +17,6 @@ interface Project {
   created_at: string;
 }
 
-const projects = [
-  {
-    id: 1,
-    title: "Spor ve Toplum Araştırması",
-    description: "Türkiye genelinde spor alışkanlıklarını ve spor tesislerine erişimi inceleyen kapsamlı araştırma projesi.",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    statusColor: "primary",
-  },
-  {
-    id: 2,
-    title: "Yerel Spor Politikaları Rehberi",
-    description: "Belediyelere yönelik spor politikası geliştirme rehberi hazırlama projesi.",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    status: "Tamamlandı",
-    statusColor: "secondary",
-  },
-  {
-    id: 3,
-    title: "Spor Ekonomisi İzleme Sistemi",
-    description: "Türkiye'nin spor ekonomisini takip eden dijital platform geliştirme projesi.",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    statusColor: "primary",
-  },
-  {
-    id: 4,
-    title: "Kadın Sporcu Destek Programı",
-    description: "Kadın sporcuların kariyer gelişimini destekleyen mentorluk ve eğitim programı.",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    statusColor: "primary",
-  },
-  {
-    id: 5,
-    title: "Okul Sporları Analiz Raporu",
-    description: "Türkiye'deki okul sporları sisteminin kapsamlı analizi ve politika önerileri.",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&auto=format&fit=crop&q=80",
-    status: "Tamamlandı",
-    statusColor: "secondary",
-  },
-  {
-    id: 6,
-    title: "Engelli Sporları Erişilebilirlik Projesi",
-    description: "Engelli bireylerin spora erişimini artırmaya yönelik kapsamlı araştırma ve savunuculuk projesi.",
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&auto=format&fit=crop&q=80",
-    status: "Planlanıyor",
-    statusColor: "turquoise",
-  },
-];
-
 const Projeler = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +40,6 @@ const Projeler = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Projeler yüklenirken hata oluştu");
       console.error("Error fetching projects:", err);
-      setProjects(projects);
     } finally {
       setLoading(false);
     }

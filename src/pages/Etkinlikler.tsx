@@ -20,45 +20,6 @@ interface Event {
   created_at: string;
 }
 
-const events = [
-  {
-    id: 1,
-    title: "Spor ve Gençlik Konferansı 2024",
-    description: "Gençlerin spor yoluyla gelişimi üzerine kapsamlı bir konferans.",
-    content: "Gençlerin spor yoluyla gelişimi üzerine kapsamlı bir konferans. Eğitim, sağlık ve sosyal gelişim konularında uzmanlar bir araya geliyor. Konferansta gençlik ve spor politikaları, gençlerin spora erişimi ve sporun gençler üzerindeki etkileri tartışılacak.",
-    date: "15 Ocak 2025",
-    time: "09:30 - 17:00",
-    location: "İstanbul Kongre Merkezi, Ana Salon",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-    author: "SPOLDER",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler Spor Forumu",
-    description: "Belediyelerin spor politikaları ve bütçe planlaması üzerine eğitim semineri.",
-    content: "Belediyelerin spor politikaları ve bütçe planlaması üzerine eğitim semineri. Yerel yönetimlerin spor tesisi yönetimi, spor kulüplerinin desteklenmesi ve toplum sporlarının yaygınlaştırılması konuları ele alınacak.",
-    date: "22 Ocak 2025",
-    time: "10:00 - 16:00",
-    location: "Ankara, Kamu Yönetimi Enstitüsü",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-    author: "SPOLDER",
-  },
-  {
-    id: 3,
-    title: "Spor Bilimleri Araştırma Atölyesi",
-    description: "Spor araştırmalarında metodoloji ve veri analizi tekniklerinin öğretildiği atölye.",
-    content: "Spor araştırmalarında metodoloji ve veri analizi tekniklerinin öğretildiği atölye. Akademisyenler ve araştırmacılar için tasarlanan programda nicel ve nitel araştırma yöntemleri, veri toplama ve analiz teknikleri uygulamalı olarak öğretilecek.",
-    date: "3 Şubat 2025",
-    time: "09:00 - 15:00",
-    location: "İstanbul Üniversitesi, Spor Bilimleri Fakültesi",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-    author: "SPOLDER",
-  },
-];
-
 const Etkinlikler = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +43,6 @@ const Etkinlikler = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Etkinlikler yüklenirken hata oluştu");
       console.error("Error fetching events:", err);
-      setEvents(events);
     } finally {
       setLoading(false);
     }

@@ -18,63 +18,6 @@ interface BlogPost {
   created_at: string;
 }
 
-const blogPosts = [
-  {
-    id: 1,
-    title: "Spor Politikalarında Yeni Yaklaşımlar",
-    excerpt: "Modern spor politikalarının toplum üzerindeki etkilerini ve gelecek vizyonunu ele alan kapsamlı bir analiz.",
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&h=400&fit=crop",
-    author: "Dr. Ahmet Yılmaz",
-    date: "28 Kasım 2024",
-    category: "Analiz",
-  },
-  {
-    id: 2,
-    title: "Kadın Sporculara Destek Programları",
-    excerpt: "Türkiye'de kadın sporcuların karşılaştığı zorluklar ve çözüm önerileri üzerine bir değerlendirme.",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&h=400&fit=crop",
-    author: "Prof. Elif Kaya",
-    date: "25 Kasım 2024",
-    category: "Araştırma",
-  },
-  {
-    id: 3,
-    title: "Spor ve Sürdürülebilirlik",
-    excerpt: "Çevre dostu spor tesisleri ve sürdürülebilir spor etkinlikleri hakkında güncel gelişmeler.",
-    image: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=600&h=400&fit=crop",
-    author: "Mehmet Demir",
-    date: "20 Kasım 2024",
-    category: "Görüş",
-  },
-  {
-    id: 4,
-    title: "Dijital Dönüşüm ve Spor",
-    excerpt: "Teknolojinin spor dünyasındaki dönüştürücü etkisi ve geleceğe yönelik öngörüler.",
-    image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&h=400&fit=crop",
-    author: "Zeynep Arslan",
-    date: "15 Kasım 2024",
-    category: "Teknoloji",
-  },
-  {
-    id: 5,
-    title: "Engelli Sporculara Eşit Fırsatlar",
-    excerpt: "Engelli bireylerin spora erişimi ve paralimpik hareketin Türkiye'deki gelişimi.",
-    image: "https://images.unsplash.com/photo-1591343395082-e120087004b4?w=600&h=400&fit=crop",
-    author: "Ali Öztürk",
-    date: "10 Kasım 2024",
-    category: "Sosyal",
-  },
-  {
-    id: 6,
-    title: "Gençlik ve Spor Kültürü",
-    excerpt: "Z kuşağının spor alışkanlıkları ve spor kültürünün gençler arasında yaygınlaştırılması.",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&h=400&fit=crop",
-    author: "Selin Yıldız",
-    date: "5 Kasım 2024",
-    category: "Gençlik",
-  },
-];
-
 const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +41,6 @@ const Blog = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Blog yazıları yüklenirken hata oluştu");
       console.error("Error fetching blog posts:", err);
-      setPosts(blogPosts);
     } finally {
       setLoading(false);
     }

@@ -17,68 +17,7 @@ interface Publication {
   created_at: string;
 }
 
-const publications = [
-  {
-    id: 1,
-    title: "Türkiye'de Spor Politikalarının Tarihsel Gelişimi",
-    type: "Rapor",
-    year: "2024",
-    description: "Cumhuriyet döneminden günümüze Türkiye'deki spor politikalarının kapsamlı analizi.",
-    pages: 156,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-  {
-    id: 2,
-    title: "Kadın ve Spor: Fırsatlar ve Engeller",
-    type: "Araştırma",
-    year: "2024",
-    description: "Türkiye'de kadın sporcuların karşılaştığı zorluklar üzerine saha araştırması.",
-    pages: 98,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-  {
-    id: 3,
-    title: "Yerel Yönetimler ve Spor Tesisleri",
-    type: "Politika Belgesi",
-    year: "2023",
-    description: "Belediyelerin spor tesisi yatırımları ve erişilebilirlik konusunda öneriler.",
-    pages: 45,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-  {
-    id: 4,
-    title: "Sporda Dijital Dönüşüm",
-    type: "Rapor",
-    year: "2023",
-    description: "Teknolojinin spor yönetimi ve performans analizindeki rolü.",
-    pages: 72,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-  {
-    id: 5,
-    title: "Engelli Bireylerin Spora Katılımı",
-    type: "Araştırma",
-    year: "2023",
-    description: "Engelli bireylerin spor olanaklarına erişimi üzerine kapsamlı değerlendirme.",
-    pages: 134,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-  {
-    id: 6,
-    title: "Okul Sporları ve Fiziksel Aktivite",
-    type: "Politika Belgesi",
-    year: "2022",
-    description: "Eğitim sisteminde beden eğitimi ve okul sporlarının güçlendirilmesi önerileri.",
-    pages: 56,
-    downloadUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    previewUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-  },
-];
+
 
 const getTypeColor = (type: string) => {
   switch (type) {
@@ -117,7 +56,6 @@ const Yayinlar = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Yayınlar yüklenirken hata oluştu");
       console.error("Error fetching publications:", err);
-      setPublications(publications);
     } finally {
       setLoading(false);
     }
