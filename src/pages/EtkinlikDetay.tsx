@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Calendar, MapPin, Clock, ArrowLeft, Users } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowLeft, Users, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,62 +21,13 @@ interface Event {
   durum: string;
 }
 
-const eventsDatabase = [
-  {
-    id: 1,
-    title: "Spor ve Gençlik Konferansı 2024",
-    excerpt: "Gençlerin spor yoluyla gelişimi üzerine kapsamlı bir konferans.",
-    fullContent: "Spor ve Gençlik Konferansı 2024, genç sporcuların gelişimi, eğitim ve kariyer yolları hakkında derinlemesine tartışmaların yapıldığı bir etkinliktir. Konferansımız, spor dünyasının önde gelen isimleri, akademisyenler ve spor politikası uzmanlarını bir araya getirmektedir.\n\nKonferansta şu konular ele alınacaktır:\n- Gençlerin spora katılımını arttırma stratejileri\n- Sporla eğitimin entegrasyonu\n- Spor alanında kariyer fırsatları\n- Uluslararası gençlik spor programları\n\nEtkinliğimize katılmak için kayıt yaptırabilirsiniz. Sınırlı sayıda yer bulunmaktadır.",
-    date: "15 Ocak 2025",
-    month: "Ocak",
-    year: "2025",
-    time: "09:30",
-    location: "İstanbul Kongre Merkezi, Ana Salon",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80",
-    category: "Konferans",
-    capacity: "500",
-    registered: "387",
-    status: "Devam Ediyor",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler Spor Forumu",
-    excerpt: "Belediyelerin spor politikaları ve bütçe planlaması üzerine eğitim semineri.",
-    fullContent: "Yerel Yönetimler Spor Forumu, belediyelerin spor alanında daha etkili kararlar alabilmesi için tasarlanmış bir platformdur. Forumuzdaki oturumlar şu başlıklar etrafında dönecektir:\n\n- Spor tesisi yatırımı ve bakım işletme\n- Toplumsal spor programlarının planlaması\n- Spor camiasıyla işbirliği\n- Uluslararası en iyi uygulamalar\n\nForuma tüm belediye temsilcileri, muhtar ve yerel yönetim çalışanları katılabilir. Katılım tamamen ücretsizdir.",
-    date: "22 Ocak 2025",
-    month: "Ocak",
-    year: "2025",
-    time: "10:00",
-    location: "Ankara, Kamu Yönetimi Enstitüsü",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=1200&auto=format&fit=crop&q=80",
-    category: "Forum",
-    capacity: "300",
-    registered: "245",
-    status: "Açık",
-  },
-  {
-    id: 3,
-    title: "Spor Bilimleri Araştırma Atölyesi",
-    excerpt: "Spor araştırmalarında metodoloji ve veri analizi tekniklerinin öğretildiği atölye.",
-    fullContent: "Spor Bilimleri Araştırma Atölyesi, akademisyen ve araştırmacıların spor alanında daha nitelikli çalışmalar yapabilmesi için tasarlanmıştır. Atölyede aşağıdaki konular uygulamalı olarak anlatılacaktır:\n\n- Spor araştırmalarında araştırma tasarımı\n- Veri toplama teknikleri\n- İstatistiksel analiz\n- Akademik yayın yazma\n- Etik konular\n\nAtölye dört gün sürecek olup, her gün 6 saat çalışma yapılacaktır. Katılımcılara sertifikat verilecektir.",
-    date: "3 Şubat 2025",
-    month: "Şubat",
-    year: "2025",
-    time: "09:00",
-    location: "İstanbul Üniversitesi, Spor Bilimleri Fakültesi",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200&auto=format&fit=crop&q=80",
-    category: "Atölye",
-    capacity: "60",
-    registered: "52",
-    status: "Açık",
-  },
-];
-
 const EtkinlikDetay = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [etkinlik, setEtkinlik] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -85,7 +36,6 @@ const EtkinlikDetay = () => {
           .from('events')
           .select('*')
           .eq('id', parseInt(id || "0"))
-          .eq('yayin_durumu', 'yayinlandi')
           .single();
         
         if (error) throw error;
@@ -101,6 +51,28 @@ const EtkinlikDetay = () => {
     fetchEvent();
   }, [id]);
 
+  const handleRegister = () => {
+    setShowRegisterModal(true);
+  };
+
+  const handleLocationClick = () => {
+    setShowMapModal(true);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-20">
+          <Loader className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Not found state
   if (!etkinlik) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -117,17 +89,6 @@ const EtkinlikDetay = () => {
       </div>
     );
   }
-
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [showMapModal, setShowMapModal] = useState(false);
-
-  const handleRegister = () => {
-    // show inline modal (frontend stub). The modal includes a direct link to the original Google Form.
-    setShowRegisterModal(true);
-  };
-
-  const handleLocationClick = () => {
-    setShowMapModal(true);
   };
 
   return (
