@@ -107,22 +107,22 @@ const Haberler = () => {
                       </span>
                     </div>
                     <div className="p-6">
-                    <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                      {item.excerpt}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                        <Calendar className="w-4 h-4" />
-                        <span>{item.date}</span>
+                      <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
+                        {item.excerpt}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Calendar className="w-4 h-4" />
+                          <span>{item.date}</span>
+                        </div>
+                        <Button size="sm" className="text-white bg-foreground hover:bg-foreground/80">
+                          Devamı
+                        </Button>
                       </div>
-                      <Button size="sm" className="text-white bg-foreground hover:bg-foreground/80">
-                        Devamı
-                      </Button>
                     </div>
-                  </div>
                 </Link>
               ))}
             </div>
