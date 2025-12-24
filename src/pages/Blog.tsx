@@ -104,21 +104,22 @@ const Blog = () => {
                   <p className="text-muted-foreground mb-6">
                     {posts[0].excerpt}
                   </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    {posts[0].author}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {posts[0].date}
-                  </span>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                    <span className="flex items-center gap-1">
+                      <User className="w-4 h-4" />
+                      {posts[0].author}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {posts[0].date}
+                    </span>
+                  </div>
+                  <Link to={`/blog/${posts[0].id}`}>
+                    <Button variant="gradient" className="w-fit">
+                      Devamını Oku
+                    </Button>
+                  </Link>
                 </div>
-                <Link to={`/blog/${posts[0].id}`}>
-                  <Button variant="gradient" className="w-fit">
-                    Devamını Oku
-                  </Button>
-                </Link>
               </div>
             </div>
           </div>
