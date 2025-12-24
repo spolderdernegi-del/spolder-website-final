@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Save, Eye, EyeOff } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 interface BankInfo {
   bankName: string;
@@ -16,8 +17,8 @@ interface BankInfo {
 }
 
 const BankInfo = () => {
-  const { toast } = useToast();
   const [showIban, setShowIban] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [bankInfo, setBankInfo] = useState<BankInfo>({
     bankName: "Türkiye İş Bankası",
     accountHolder: "SPOLDER Spor Politikaları Derneği",
@@ -28,18 +29,57 @@ const BankInfo = () => {
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('spolder_bank_info');
-    if (stored) {
-      setBankInfo(JSON.parse(stored));
-    }
+    loadBankInfo();
   }, []);
 
-  const handleSave = () => {
-    localStorage.setItem('spolder_bank_info', JSON.stringify(bankInfo));
-    toast({
-      title: "Başarılı",
-      description: "IBAN bilgileri güncellendi",
-    });
+  const loadBankInfo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_info')
+        .select('*')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error loading bank info:", error);
+      }
+
+      if (data) {
+        setBankInfo(data);
+      }
+    } catch (error) {
+      console.error("Error loading bank info:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Mevcut veri varsa update et, yoksa insert et
+      const { data: existing } = await supabase
+        .from('bank_info')
+        .select('id')
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('bank_info')
+          .update(bankInfo)
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('bank_info')
+          .insert([bankInfo]);
+        
+        if (error) throw error;
+      }
+
+      toast.success('IBAN bilgileri güncellendi!');
+    } catch (error: any) {
+      toast.error("Hata: " + error.message);
+    }
   };
 
   const handleChange = (field: keyof BankInfo, value: string) => {

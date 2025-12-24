@@ -22,6 +22,19 @@ CREATE TABLE IF NOT EXISTS public.board (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Bank Info tablosu
+CREATE TABLE IF NOT EXISTS public.bank_info (
+    id BIGSERIAL PRIMARY KEY,
+    bankName TEXT,
+    accountHolder TEXT,
+    iban TEXT,
+    accountNumber TEXT,
+    branch TEXT,
+    swift TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Events tablosu
 CREATE TABLE IF NOT EXISTS public.events (
     id BIGSERIAL PRIMARY KEY,
@@ -119,6 +132,7 @@ CREATE TABLE IF NOT EXISTS public.files (
 -- RLS (Row Level Security) Politikaları
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bank_info ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog ENABLE ROW LEVEL SECURITY;
@@ -128,6 +142,7 @@ ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
 -- Public SELECT (herkes okuyabilir)
 CREATE POLICY "Enable read access for all users" ON public.categories FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.board FOR SELECT USING (true);
+CREATE POLICY "Enable read access for all users" ON public.bank_info FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.events FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.news FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.blog FOR SELECT USING (true);
@@ -137,6 +152,7 @@ CREATE POLICY "Enable read access for all users" ON public.files FOR SELECT USIN
 -- Public INSERT (herkes ekleyebilir)
 CREATE POLICY "Enable insert for all users" ON public.categories FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.board FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable insert for all users" ON public.bank_info FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.events FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.news FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.blog FOR INSERT WITH CHECK (true);
@@ -146,6 +162,7 @@ CREATE POLICY "Enable insert for all users" ON public.files FOR INSERT WITH CHEC
 -- Public UPDATE (herkes güncelleyebilir)
 CREATE POLICY "Enable update for all users" ON public.categories FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.board FOR UPDATE USING (true);
+CREATE POLICY "Enable update for all users" ON public.bank_info FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.events FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.news FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.blog FOR UPDATE USING (true);
@@ -155,6 +172,7 @@ CREATE POLICY "Enable update for all users" ON public.files FOR UPDATE USING (tr
 -- Public DELETE (herkes silebilir)
 CREATE POLICY "Enable delete for all users" ON public.categories FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.board FOR DELETE USING (true);
+CREATE POLICY "Enable delete for all users" ON public.bank_info FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.events FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.news FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.blog FOR DELETE USING (true);
