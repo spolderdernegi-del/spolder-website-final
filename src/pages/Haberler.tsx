@@ -8,13 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface NewsItem {
   id: number;
-  title: string;
-  excerpt: string;
-  content: string;
-  date: string;
-  image: string;
-  category: string;
-  author: string;
+  baslik: string;
+  ozet: string;
+  icerik: string;
+  tarih: string;
+  gorsel: string;
+  kategori: string;
+  yazar: string;
   created_at: string;
 }
 
@@ -34,7 +34,7 @@ const Haberler = () => {
       const { data, error: supabaseError } = await supabase
         .from("news")
         .select("*")
-        .eq('publishStatus', 'published')
+        .eq('yayin_durumu', 'yayinlandi')
         .order("created_at", { ascending: false });
       
       if (supabaseError) throw supabaseError;
@@ -102,22 +102,22 @@ const Haberler = () => {
                     className="bg-card rounded-lg overflow-hidden shadow-card card-hover block"
                   >
                     <div className="relative h-52">
-                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                      <img src={item.gorsel} alt={item.baslik} className="w-full h-full object-cover" />
                       <span className="absolute top-4 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        {item.category}
+                        {item.kategori}
                       </span>
                     </div>
                     <div className="p-6">
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
-                        {item.title}
+                        {item.baslik}
                       </h3>
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                        {item.excerpt}
+                        {item.ozet}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
                           <Calendar className="w-4 h-4" />
-                          <span>{item.date}</span>
+                          <span>{item.tarih}</span>
                         </div>
                         <Button size="sm" className="text-white bg-foreground hover:bg-foreground/80">
                           Devamı
