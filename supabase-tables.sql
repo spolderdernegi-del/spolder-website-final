@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS public.events (
     tarih TEXT,
     saat TEXT,
     konum TEXT,
+    konum_lat DOUBLE PRECISION DEFAULT 0,
+    konum_lng DOUBLE PRECISION DEFAULT 0,
     gorsel TEXT,
     kategori TEXT,
     kapasite TEXT,
