@@ -137,6 +137,19 @@ const AdminNews = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Kategori kontrolü
+    if (!formData.kategori || formData.kategori.trim() === "") {
+      toast.error("Lütfen bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
+      return;
+    }
+
+    // Başlık kontrolü
+    if (!formData.baslik || formData.baslik.trim() === "") {
+      toast.warning("Başlık alanı zorunludur!");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -366,17 +379,24 @@ const AdminNews = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategori</label>
-                  <select
-                    value={formData.kategori}
-                    onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Kategori seçin...</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kategori *</label>
+                  {categories.length === 0 ? (
+                    <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
+                      ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip haber kategorisi ekleyin.
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.kategori}
+                      onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+                      className="w-full p-2 border rounded-md"
+                      required
+                    >
+                      <option value="">Kategori seçin...</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>

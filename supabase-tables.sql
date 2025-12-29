@@ -129,6 +129,13 @@ CREATE TABLE IF NOT EXISTS public.files (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Settings tablosu (Admin giriş bilgileri)
+CREATE TABLE IF NOT EXISTS public.settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- RLS (Row Level Security) Politikaları
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.board ENABLE ROW LEVEL SECURITY;
@@ -138,6 +145,7 @@ ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
 -- Public SELECT (herkes okuyabilir)
 CREATE POLICY "Enable read access for all users" ON public.categories FOR SELECT USING (true);
@@ -148,6 +156,7 @@ CREATE POLICY "Enable read access for all users" ON public.news FOR SELECT USING
 CREATE POLICY "Enable read access for all users" ON public.blog FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.projects FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.files FOR SELECT USING (true);
+CREATE POLICY "Enable read access for all users" ON public.settings FOR SELECT USING (true);
 
 -- Public INSERT (herkes ekleyebilir)
 CREATE POLICY "Enable insert for all users" ON public.categories FOR INSERT WITH CHECK (true);
@@ -156,7 +165,8 @@ CREATE POLICY "Enable insert for all users" ON public.bank_info FOR INSERT WITH 
 CREATE POLICY "Enable insert for all users" ON public.events FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.news FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.blog FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable insert for all users" ON public.projects FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable insert for all users" ON public.projects FOR INSERT WITH CHECK (tru
+CREATE POLICY "Enable insert for all users" ON public.settings FOR INSERT WITH CHECK (true);e);
 CREATE POLICY "Enable insert for all users" ON public.files FOR INSERT WITH CHECK (true);
 
 -- Public UPDATE (herkes güncelleyebilir)
@@ -166,7 +176,8 @@ CREATE POLICY "Enable update for all users" ON public.bank_info FOR UPDATE USING
 CREATE POLICY "Enable update for all users" ON public.events FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.news FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.blog FOR UPDATE USING (true);
-CREATE POLICY "Enable update for all users" ON public.projects FOR UPDATE USING (true);
+CREATE POLICY "Enable update for all users" ON public.projects FOR UPDATE USING (tru
+CREATE POLICY "Enable update for all users" ON public.settings FOR UPDATE USING (true);e);
 CREATE POLICY "Enable update for all users" ON public.files FOR UPDATE USING (true);
 
 -- Public DELETE (herkes silebilir)
@@ -176,6 +187,14 @@ CREATE POLICY "Enable delete for all users" ON public.bank_info FOR DELETE USING
 CREATE POLICY "Enable delete for all users" ON public.events FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.news FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.blog FOR DELETE USING (true);
+CREATE POLICY "Enable delete for all users" ON public.settings FOR DELETE USING (true);
+
+-- Varsayılan admin bilgilerini ekle
+INSERT INTO public.settings (key, value, updated_at) 
+VALUES 
+    ('admin_email', 'admin@spolder.org', NOW()),
+    ('admin_password', 'spolder2024', NOW())
+ON CONFLICT (key) DO NOTHING;
 CREATE POLICY "Enable delete for all users" ON public.projects FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.files FOR DELETE USING (true);
 

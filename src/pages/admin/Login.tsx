@@ -17,35 +17,41 @@ const AdminLogin = () => {
     setLoading(true);
     setError("");
 
-    // Geçici basit giriş (test için)
-    if (email === "admin@spolder.org" && password === "spolder2024") {
-      localStorage.setItem("adminAuth", "true");
-      navigate("/admin");
-      return;
-    }
-
     try {
-      console.log("Giriş denemesi:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      let adminEmail = 'admin@spolder.org';
+      let adminPassword = 'spolder2024';
 
-      console.log("Supabase yanıtı:", { data, error });
+      // Supabase settings tablosundan admin bilgilerini al (varsa)
+      try {
+        const { data: settings, error: settingsError } = await supabase
+          .from('settings')
+          .select('key, value')
+          .in('key', ['admin_email', 'admin_password']);
 
-      if (error) {
-        console.error("Supabase hatası:", error);
-        throw error;
+        if (!settingsError && settings && settings.length > 0) {
+          // Settings varsa, oradan al
+          adminEmail = settings?.find(s => s.key === 'admin_email')?.value || adminEmail;
+          adminPassword = settings?.find(s => s.key === 'admin_password')?.value || adminPassword;
+          console.log("Admin bilgileri Supabase'den alındı");
+        } else {
+          console.log("Settings tablosu bulunamadı, varsayılan bilgiler kullanılıyor");
+        }
+      } catch (settingsErr) {
+        console.warn("Settings okunamadı, varsayılan bilgiler kullanılıyor:", settingsErr);
       }
 
-      if (data.session) {
+      // Girilen bilgileri kontrol et
+      if (email === adminEmail && password === adminPassword) {
         console.log("Giriş başarılı!");
         localStorage.setItem("adminAuth", "true");
+        localStorage.setItem("adminEmail", email);
         navigate("/admin");
+      } else {
+        throw new Error("E-posta veya şifre hatalı!");
       }
     } catch (err: any) {
-      console.error("Catch bloğu:", err);
-      setError(err.message || "Giriş başarısız. Test için: admin@spolder.org / spolder2024");
+      console.error("Giriş hatası:", err);
+      setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
     } finally {
       setLoading(false);
     }

@@ -15,12 +15,15 @@ const AdminSettings = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [currentEmail, setCurrentEmail] = useState("");
   const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
 
   useEffect(() => {
     checkAuth();
     loadActivityLogs();
     loadCounts();
+    loadCurrentEmail();
   }, []);
 
   const loadCounts = async () => {
@@ -55,6 +58,25 @@ const AdminSettings = () => {
   const loadActivityLogs = () => {
     const logs = getActivityLogs(50);
     setActivityLogs(logs);
+  };
+
+  const loadCurrentEmail = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'admin_email')
+        .single();
+      
+      if (!error && data) {
+        setCurrentEmail(data.value);
+      } else {
+        setCurrentEmail('admin@spolder.org'); // Default email
+      }
+    } catch (err) {
+      console.error("Email yüklenemedi:", err);
+      setCurrentEmail('admin@spolder.org');
+    }
   };
 
   const handleExport = () => {
@@ -116,6 +138,33 @@ const AdminSettings = () => {
       setConfirmPassword('');
     } catch (err: any) {
       toast.error('Şifre güncellenemedi: ' + err.message);
+    }
+  };
+
+  const handleEmailChange = async () => {
+    if (!newEmail) {
+      toast.warning('Lütfen yeni e-posta adresini girin');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast.error('Geçerli bir e-posta adresi girin');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'admin_email', value: newEmail, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw error;
+      toast.success('E-posta başarıyla değiştirildi!');
+      setCurrentEmail(newEmail);
+      setNewEmail('');
+      localStorage.setItem("adminEmail", newEmail);
+    } catch (err: any) {
+      toast.error('E-posta güncellenemedi: ' + err.message);
     }
   };
 
@@ -208,41 +257,66 @@ const AdminSettings = () => {
         <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <Key className="w-5 h-5" />
-            Şifre Değiştir
+            Giriş Bilgilerini Güncelle
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Yeni Şifre
-              </label>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="En az 6 karakter"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Şifre Tekrar
-              </label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Şifreyi tekrar girin"
-              />
+          {/* Email Değiştirme */}
+          <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+            <h3 className="text-lg font-semibold text-foreground mb-3">E-posta Adresi</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Mevcut e-posta: <span className="font-medium text-foreground">{currentEmail}</span>
+            </p>
+            <div className="flex gap-4 max-w-2xl">
+              <div className="flex-1">
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="yeni@email.com"
+                />
+              </div>
+              <Button onClick={handleEmailChange}>
+                E-postayı Güncelle
+              </Button>
             </div>
           </div>
 
-          <Button 
-            onClick={handlePasswordChange} 
-            className="mt-4"
-          >
-            Şifreyi Güncelle
-          </Button>
+          {/* Şifre Değiştirme */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-3">Şifre</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Yeni Şifre
+                </label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="En az 6 karakter"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Şifre Tekrar
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Şifreyi tekrar girin"
+                />
+              </div>
+            </div>
+
+            <Button 
+              onClick={handlePasswordChange} 
+              className="mt-4"
+            >
+              Şifreyi Güncelle
+            </Button>
+          </div>
         </div>
 
         {/* Aktivite Logu */}
