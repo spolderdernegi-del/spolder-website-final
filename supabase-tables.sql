@@ -88,11 +88,11 @@ CREATE TABLE IF NOT EXISTS public.blog (
     category TEXT,
     author TEXT,
     date TEXT,
-    publishStatus TEXT DEFAULT 'draft',
-    showInSlider BOOLEAN DEFAULT false,
+    "publishStatus" TEXT DEFAULT 'draft',
+    "showInSlider" BOOLEAN DEFAULT false,
     slug TEXT,
-    metaTitle TEXT,
-    metaDescription TEXT,
+    "metaTitle" TEXT,
+    "metaDescription" TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -108,11 +108,11 @@ CREATE TABLE IF NOT EXISTS public.projects (
     status TEXT DEFAULT 'Devam Ediyor',
     start_date TEXT,
     end_date TEXT,
-    publishStatus TEXT DEFAULT 'draft',
-    showInSlider BOOLEAN DEFAULT false,
+    "publishStatus" TEXT DEFAULT 'draft',
+    "showInSlider" BOOLEAN DEFAULT false,
     slug TEXT,
-    metaTitle TEXT,
-    metaDescription TEXT,
+    "metaTitle" TEXT,
+    "metaDescription" TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
