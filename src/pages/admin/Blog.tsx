@@ -67,13 +67,24 @@ const AdminBlog = () => {
     }
   };
 
-  const fetchCategories = () => {
+  const fetchCategories = async () => {
     try {
-      const storedCategories = localStorage.getItem('spolder_categories');
-      const categoriesData = storedCategories ? JSON.parse(storedCategories) : [];
-      setCategories(categoriesData.filter((c: any) => c.type === 'blog'));
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('type', 'blog')
+        .order('name');
+
+      if (error) {
+        console.error("Supabase error:", error);
+        toast.error("Kategoriler yüklenirken hata: " + error.message);
+        return;
+      }
+
+      setCategories(data || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
+      toast.error("Kategoriler yüklenirken hata oluştu");
     }
   };
 
