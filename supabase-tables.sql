@@ -148,6 +148,47 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
+-- Mevcut politikaları kaldır (varsa)
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.settings;
+
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable insert for all users" ON public.settings;
+
+DROP POLICY IF EXISTS "Enable update for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable update for all users" ON public.settings;
+
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.categories;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.board;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.bank_info;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.events;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.news;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.blog;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.projects;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.files;
+DROP POLICY IF EXISTS "Enable delete for all users" ON public.settings;
+
 -- Public SELECT (herkes okuyabilir)
 CREATE POLICY "Enable read access for all users" ON public.categories FOR SELECT USING (true);
 CREATE POLICY "Enable read access for all users" ON public.board FOR SELECT USING (true);
