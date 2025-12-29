@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.events (
     slug TEXT,
     metaTitle TEXT,
     metaDescription TEXT,
+    google_form_link TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
