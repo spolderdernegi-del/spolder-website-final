@@ -165,9 +165,9 @@ CREATE POLICY "Enable insert for all users" ON public.bank_info FOR INSERT WITH 
 CREATE POLICY "Enable insert for all users" ON public.events FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.news FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.blog FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable insert for all users" ON public.projects FOR INSERT WITH CHECK (tru
-CREATE POLICY "Enable insert for all users" ON public.settings FOR INSERT WITH CHECK (true);e);
+CREATE POLICY "Enable insert for all users" ON public.projects FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable insert for all users" ON public.files FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable insert for all users" ON public.settings FOR INSERT WITH CHECK (true);
 
 -- Public UPDATE (herkes güncelleyebilir)
 CREATE POLICY "Enable update for all users" ON public.categories FOR UPDATE USING (true);
@@ -176,9 +176,9 @@ CREATE POLICY "Enable update for all users" ON public.bank_info FOR UPDATE USING
 CREATE POLICY "Enable update for all users" ON public.events FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.news FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.blog FOR UPDATE USING (true);
-CREATE POLICY "Enable update for all users" ON public.projects FOR UPDATE USING (tru
-CREATE POLICY "Enable update for all users" ON public.settings FOR UPDATE USING (true);e);
+CREATE POLICY "Enable update for all users" ON public.projects FOR UPDATE USING (true);
 CREATE POLICY "Enable update for all users" ON public.files FOR UPDATE USING (true);
+CREATE POLICY "Enable update for all users" ON public.settings FOR UPDATE USING (true);
 
 -- Public DELETE (herkes silebilir)
 CREATE POLICY "Enable delete for all users" ON public.categories FOR DELETE USING (true);
@@ -187,6 +187,8 @@ CREATE POLICY "Enable delete for all users" ON public.bank_info FOR DELETE USING
 CREATE POLICY "Enable delete for all users" ON public.events FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.news FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.blog FOR DELETE USING (true);
+CREATE POLICY "Enable delete for all users" ON public.projects FOR DELETE USING (true);
+CREATE POLICY "Enable delete for all users" ON public.files FOR DELETE USING (true);
 CREATE POLICY "Enable delete for all users" ON public.settings FOR DELETE USING (true);
 
 -- Varsayılan admin bilgilerini ekle
@@ -195,8 +197,6 @@ VALUES
     ('admin_email', 'admin@spolder.org', NOW()),
     ('admin_password', 'spolder2024', NOW())
 ON CONFLICT (key) DO NOTHING;
-CREATE POLICY "Enable delete for all users" ON public.projects FOR DELETE USING (true);
-CREATE POLICY "Enable delete for all users" ON public.files FOR DELETE USING (true);
 
 -- Indexes (performans için)
 CREATE INDEX IF NOT EXISTS categories_type_idx ON public.categories(type);
