@@ -150,13 +150,6 @@ const AdminDashboard = () => {
       color: "bg-amber-500",
     },
     {
-      title: "IBAN Bilgileri",
-      description: "Bağış hesap bilgilerini düzenle",
-      icon: CreditCard,
-      href: "/admin/bank-info",
-      color: "bg-emerald-500",
-    },
-    {
       title: "Hoş Geldiniz Pop-up",
       description: "Ana sayfa pop-up içeriği düzenle",
       icon: MessageSquare,
