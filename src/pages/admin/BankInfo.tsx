@@ -8,6 +8,7 @@ import { CreditCard, Save, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 
 interface BankInfo {
+  id?: number;
   bankName: string;
   accountHolder: string;
   iban: string;
@@ -20,6 +21,7 @@ const BankInfo = () => {
   const [showIban, setShowIban] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bankInfo, setBankInfo] = useState<BankInfo>({
+    id: undefined,
     bankName: "Türkiye İş Bankası",
     accountHolder: "SPOLDER Spor Politikaları Derneği",
     iban: "TR00 0000 0000 0000 0000 0000 00",
@@ -36,7 +38,7 @@ const BankInfo = () => {
     try {
       const { data, error } = await supabase
         .from('bank_info')
-        .select('*')
+        .select('id, bankName:bankname, accountHolder:accountholder, iban, accountNumber:accountnumber, branch, swift')
         .single();
       
       if (error && error.code !== 'PGRST116') {
@@ -56,6 +58,15 @@ const BankInfo = () => {
   const handleSave = async () => {
     try {
       // Mevcut veri varsa update et, yoksa insert et
+      const payload = {
+        bankname: bankInfo.bankName,
+        accountholder: bankInfo.accountHolder,
+        iban: bankInfo.iban,
+        accountnumber: bankInfo.accountNumber,
+        branch: bankInfo.branch,
+        swift: bankInfo.swift,
+      };
+
       const { data: existing } = await supabase
         .from('bank_info')
         .select('id')
@@ -64,14 +75,14 @@ const BankInfo = () => {
       if (existing) {
         const { error } = await supabase
           .from('bank_info')
-          .update(bankInfo)
+          .update(payload)
           .eq('id', existing.id);
         
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('bank_info')
-          .insert([bankInfo]);
+          .insert([payload]);
         
         if (error) throw error;
       }
