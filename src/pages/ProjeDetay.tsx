@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader } from "lucide-react";
+import { Loader, Calendar, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 interface Project {
   id: number;
@@ -24,12 +28,12 @@ const ProjeDetay = () => {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, title, description, content, image, category, status, start_date')
+          .select('id, title, description, content, image, category, status:status, start_date')
           .eq('id', parseInt(id || "0"))
           .eq('publishStatus', 'published')
           .single();
         if (error) throw error;
-        setProje(data);
+        setProje(data as Project);
       } catch (err) {
         console.error('Project load error', err);
         setProje(null);
@@ -103,12 +107,8 @@ const ProjeDetay = () => {
           <div className="container-custom mx-auto px-4">
             <div className="flex flex-wrap gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span>{proje.author}</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>{proje.date}</span>
+                <span>{proje.start_date}</span>
               </div>
             </div>
           </div>

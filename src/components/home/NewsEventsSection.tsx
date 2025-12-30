@@ -11,6 +11,11 @@ interface NewsItem {
   gorsel: string;
   tarih: string;
   kategori: string;
+  image?: string;
+  title?: string;
+  excerpt?: string;
+  category?: string;
+  date?: string;
 }
 
 interface EventItem {
@@ -87,25 +92,27 @@ const NewsEventsSection = () => {
                     className="bg-card rounded-lg overflow-hidden shadow-card card-hover block"
                   >
                     <div className="relative h-48">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {item.gorsel && (
+                        <img
+                          src={item.gorsel}
+                          alt={item.baslik}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       <span className="absolute top-4 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        {item.category}
+                        {item.kategori}
                       </span>
                     </div>
                     <div className="p-6">
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
-                        {item.title}
+                        {item.baslik}
                       </h3>
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                        {item.excerpt}
+                        {item.ozet}
                       </p>
                       <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <Calendar className="w-4 h-4" />
-                        <span>{item.date}</span>
+                        <span>{item.tarih}</span>
                       </div>
                     </div>
                   </Link>
