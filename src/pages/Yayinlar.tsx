@@ -4,6 +4,7 @@ import Footer from "@/components/layout/Footer";
 import { FileText, Download, Calendar, ExternalLink, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/lib/toast";
 
 interface Publication {
   id: number;
@@ -84,9 +85,49 @@ const Yayinlar = () => {
     return `${(bytes / 1024).toFixed(2)} KB`;
   };
 
-  const handleDownload = (fileUrl: string, fileName: string) => {
-    // Dosyayı yeni sekmede aç (bu da indirir)
-    window.open(fileUrl, '_blank');
+  const handleDownload = (fileUrl: string, fileName: string, fileType: string) => {
+    try {
+      // Base64 kontrolü
+      if (fileUrl.startsWith('data:')) {
+        // Base64 dosyayı indir
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // Normal URL - yeni sekmede aç
+        window.open(fileUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('İndirme hatası:', error);
+      toast.error('Dosya indirilirken hata oluştu');
+    }
+  };
+
+  const handleOpen = (fileUrl: string) => {
+    try {
+      if (fileUrl.startsWith('data:')) {
+        // Base64 dosyayı yeni sekmede aç
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head><title>Dosya Önizleme</title></head>
+              <body style="margin:0">
+                <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
+              </body>
+            </html>
+          `);
+        }
+      } else {
+        window.open(fileUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Açma hatası:', error);
+      toast.error('Dosya açılırken hata oluştu');
+    }
   };
 
   return (
@@ -203,7 +244,7 @@ const Yayinlar = () => {
                           variant="outline" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => window.open(pub.file_url, '_blank')}
+                          onClick={() => handleOpen(pub.file_url)}
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
                           Aç
@@ -212,7 +253,7 @@ const Yayinlar = () => {
                           variant="gradient" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => handleDownload(pub.file_url, pub.title)}
+                          onClick={() => handleDownload(pub.file_url, pub.title, pub.file_type)}
                         >
                           <Download className="w-3 h-3 mr-1" />
                           İndir
