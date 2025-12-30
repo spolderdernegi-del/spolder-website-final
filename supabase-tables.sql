@@ -242,6 +242,14 @@ VALUES
     ('admin_password', 'spolder2024', NOW())
 ON CONFLICT (key) DO NOTHING;
 
+-- Yayınlar için sabit kategorileri ekle (silinemez/düzenlenemez)
+INSERT INTO public.categories (name, type, color, created_at, updated_at)
+VALUES 
+    ('Rapor', 'files', '#3B82F6', NOW(), NOW()),
+    ('Araştırma', 'files', '#10B981', NOW(), NOW()),
+    ('Politika Belgesi', 'files', '#8B5CF6', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
 -- Indexes (performans için)
 CREATE INDEX IF NOT EXISTS categories_type_idx ON public.categories(type);
 CREATE INDEX IF NOT EXISTS board_order_idx ON public.board("order");
