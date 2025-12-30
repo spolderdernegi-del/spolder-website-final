@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Loader, Calendar, User, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 interface BlogPost {
   id: number;
@@ -76,12 +80,16 @@ const BlogDetay = () => {
       <main className="flex-1 pt-20">
         {/* Hero Image */}
         <section className="relative h-96">
-          <img
-            src={post.image}
-            alt={post.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-anthracite/80 to-transparent" />
+          {post.image && (
+            <>
+              <img
+                src={post.image}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-anthracite/80 to-transparent" />
+            </>
+          )}
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="container-custom mx-auto">
               <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full mb-4">

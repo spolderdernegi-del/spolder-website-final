@@ -20,6 +20,8 @@ const AdminSettings = () => {
   const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
   const [mapEmbed, setMapEmbed] = useState("");
   const [mapEmbedInput, setMapEmbedInput] = useState("");
+  const [organizationLocation, setOrganizationLocation] = useState("");
+  const [organizationLocationInput, setOrganizationLocationInput] = useState("");
 
   useEffect(() => {
     checkAuth();
@@ -27,6 +29,7 @@ const AdminSettings = () => {
     loadCounts();
     loadCurrentEmail();
     loadMapEmbed();
+    loadOrganizationLocation();
   }, []);
 
   const loadCounts = async () => {
@@ -205,6 +208,40 @@ const AdminSettings = () => {
     }
   };
 
+  const loadOrganizationLocation = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'organization_location')
+        .single();
+      if (!error && data?.value) {
+        setOrganizationLocation(data.value);
+        setOrganizationLocationInput(data.value);
+      }
+    } catch (err) {
+      console.error("Konum ayarı yüklenemedi:", err);
+    }
+  };
+
+  const handleOrganizationLocationChange = async () => {
+    if (!organizationLocationInput.trim()) {
+      toast.warning('Lütfen konum bilgisini girin');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'organization_location', value: organizationLocationInput, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw error;
+      setOrganizationLocation(organizationLocationInput);
+      toast.success('Konum bilgisi başarıyla güncellendi');
+    } catch (err: any) {
+      toast.error('Konum güncellenemedi: ' + err.message);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -373,6 +410,26 @@ const AdminSettings = () => {
             <div className="flex items-end">
               <Button onClick={handleMapEmbedChange} className="w-full">Kaydet</Button>
             </div>
+          </div>
+        </div>
+
+        {/* Kuruluş Konumu */}
+        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">Kuruluş Konumu</h2>
+          <p className="text-sm text-muted-foreground mb-4">İletişim sayfasında gösterilecek adres bilgisini güncelleyin.</p>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Adres Bilgisi</label>
+              <textarea
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                rows={3}
+                value={organizationLocationInput}
+                onChange={(e) => setOrganizationLocationInput(e.target.value)}
+                placeholder="Atatürk Bulvarı No: 123&#10;Çankaya, Ankara 06100"
+              />
+              <p className="text-xs text-muted-foreground mt-2">Her satıra bir satır adres bilgisi yazın.</p>
+            </div>
+            <Button onClick={handleOrganizationLocationChange} className="w-full">Konumu Kaydet</Button>
           </div>
         </div>
 

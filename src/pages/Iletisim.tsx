@@ -17,18 +17,29 @@ const Iletisim = () => {
   });
   const [mapUrl, setMapUrl] = useState("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.7881754813!2d32.8597!3d39.9334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU2JzAwLjIiTiAzMsKwNTEnMzQuOSJF!5e0!3m2!1str!2str!4v1234567890");
   const [loadingMap, setLoadingMap] = useState(false);
+  const [organizationLocation, setOrganizationLocation] = useState("");
 
   useEffect(() => {
     const loadMap = async () => {
       try {
         setLoadingMap(true);
-        const { data, error } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'contact_map_embed')
-          .single();
-        if (!error && data?.value) {
-          setMapUrl(data.value);
+        const [mapRes, locRes] = await Promise.all([
+          supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'contact_map_embed')
+            .single(),
+          supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'organization_location')
+            .single()
+        ]);
+        if (!mapRes.error && mapRes.data?.value) {
+          setMapUrl(mapRes.data.value);
+        }
+        if (!locRes.error && locRes.data?.value) {
+          setOrganizationLocation(locRes.data.value);
         }
       } catch (err) {
         console.error('Harita ayarı okunamadı', err);
@@ -90,8 +101,8 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Adres</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Atatürk Bulvarı No: 123<br />Çankaya, Ankara 06100
+                      <p className="text-muted-foreground text-sm whitespace-pre-line">
+                        {organizationLocation || "Atatürk Bulvarı No: 123\nÇankaya, Ankara 06100"}
                       </p>
                     </div>
                   </div>
