@@ -12,7 +12,7 @@ interface SlideItem {
   tarih: string;
   kategori: string;
   sliderda_goster?: boolean;
-  contentType: 'event' | 'news' | 'project';
+  contentType: 'event' | 'news' | 'project' | 'blog';
   link: string;
 }
 
@@ -62,16 +62,44 @@ const HeroSlider = () => {
         // Projeler
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
-          .eq('sliderda_goster', true)
-          .eq('yayin_durumu', 'yayinlandi')
+          .select('id, title, description, image, start_date, category, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
           .order('created_at', { ascending: false });
         
         if (!projectsError && projects) {
           allSlides.push(...projects.map(p => ({
-            ...p,
+            id: p.id,
+            baslik: p.title,
+            ozet: p.description,
+            gorsel: p.image,
+            tarih: p.start_date,
+            kategori: p.category,
+            sliderda_goster: p.showInSlider,
             contentType: 'project' as const,
             link: `/proje/${p.id}`
+          })));
+        }
+
+        // Blog
+        const { data: blogs, error: blogsError } = await supabase
+          .from('blog')
+          .select('id, title, excerpt, image, date, category, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
+          .order('created_at', { ascending: false });
+        
+        if (!blogsError && blogs) {
+          allSlides.push(...blogs.map(b => ({
+            id: b.id,
+            baslik: b.title,
+            ozet: b.excerpt,
+            gorsel: b.image,
+            tarih: b.date,
+            kategori: b.category,
+            sliderda_goster: b.showInSlider,
+            contentType: 'blog' as const,
+            link: `/blog/${b.id}`
           })));
         }
 
