@@ -9,14 +9,15 @@ const Search = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
 
-  // Arama sonuçlarını filtrele
+  // Arama sonuçlarını filtrele - sadece gerçek içerikler
   const results = query
     ? allContent.filter(
         (item) =>
-          item.title.toLowerCase().includes(query) ||
+          (item.title.toLowerCase().includes(query) ||
           item.excerpt.toLowerCase().includes(query) ||
           item.content.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query)
+          item.category.toLowerCase().includes(query)) &&
+          (item.link && !item.link.includes('/search'))
       )
     : [];
 

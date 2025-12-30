@@ -34,7 +34,6 @@ const getTypeColor = (type: string) => {
 
 const Yayinlar = () => {
   const [publications, setPublications] = useState<Publication[]>([]);
-  const [activeFilter, setActiveFilter] = useState("Tümü");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,9 +73,7 @@ const Yayinlar = () => {
     }
   };
 
-  const filteredPublications = activeFilter === "Tümü" 
-    ? publications 
-    : publications.filter(pub => pub.category === activeFilter);
+  const filteredPublications = publications;
 
   const formatFileSize = (bytes: number) => {
     if (!bytes) return "0 KB";
@@ -243,44 +240,6 @@ const Yayinlar = () => {
           </p>
         </div>
       </section>
-
-      {/* Filter Tabs */}
-      {!loading && (
-        <section className="py-8 border-b border-border">
-          <div className="container-custom mx-auto px-4">
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={activeFilter === "Tümü" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Tümü")}
-              >
-                Tümü
-              </Button>
-              <Button 
-                variant={activeFilter === "Rapor" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Rapor")}
-              >
-                Raporlar
-              </Button>
-              <Button 
-                variant={activeFilter === "Araştırma" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Araştırma")}
-              >
-                Araştırmalar
-              </Button>
-              <Button 
-                variant={activeFilter === "Politika Belgesi" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Politika Belgesi")}
-              >
-                Politika Belgeleri
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Loading State */}
       {loading && (

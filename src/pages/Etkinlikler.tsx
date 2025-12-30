@@ -22,6 +22,7 @@ interface Event {
 
 const Etkinlikler = () => {
   const [events, setEvents] = useState<Event[]>([]);
+  const [activeFilter, setActiveFilter] = useState("Tümü");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,26 @@ const Etkinlikler = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterEvents = () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    if (activeFilter === "Tümü") return events;
+    if (activeFilter === "Devam Eden") {
+      return events.filter(event => {
+        const eventDate = event.tarih;
+        return eventDate >= today && event.durum !== "Tamamlandı";
+      });
+    }
+    if (activeFilter === "Süresi Geçen") {
+      return events.filter(event => {
+        const eventDate = event.tarih;
+        return eventDate < today || event.durum === "Tamamlandı";
+      });
+    }
+    return events;
   };
 
   return (
@@ -84,12 +105,43 @@ const Etkinlikler = () => {
           </section>
         )}
 
+        {/* Filter Buttons */}
+        {!loading && events.length > 0 && (
+          <section className="py-8">
+            <div className="container-custom mx-auto">
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Button
+                  variant={activeFilter === "Tümü" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Tümü")}
+                >
+                  Tümü
+                </Button>
+                <Button
+                  variant={activeFilter === "Devam Eden" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Devam Eden")}
+                >
+                  Devam Eden
+                </Button>
+                <Button
+                  variant={activeFilter === "Süresi Geçen" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Süresi Geçen")}
+                >
+                  Süresi Geçen
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Events Grid */}
         {!loading && events.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
               <div className="space-y-8">
-                {events.map((event) => (
+                {filterEvents().map((event) => (
                 <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover">
                   <div className="flex flex-col md:flex-row">
                     {/* Date Box */}

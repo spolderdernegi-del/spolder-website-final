@@ -85,13 +85,31 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-bold text-lg mb-6">Faaliyetlerimiz</h4>
             <ul className="space-y-3">
-              {["Araştırma & Analiz", "Eğitim Programları", "Politika Önerileri", "Spor Danışmanlığı", "Uluslararası İşbirlikleri"].map((item) => (
-                <li key={item}>
-                  <Link to={`/search?q=${encodeURIComponent(item)}`} className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                  Araştırma & Analiz
+                </Link>
+              </li>
+              <li>
+                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                  Eğitim Programları
+                </Link>
+              </li>
+              <li>
+                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                  Politika Önerileri
+                </Link>
+              </li>
+              <li>
+                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                  Spor Danışmanlığı
+                </Link>
+              </li>
+              <li>
+                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                  Uluslararası İşbirlikleri
+                </Link>
+              </li>
             </ul>
           </div>
 
