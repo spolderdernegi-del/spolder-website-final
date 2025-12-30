@@ -2,9 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Calendar, MapPin, Clock, ArrowLeft, Users, Loader } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowLeft, Users, Loader, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Leaflet marker icon ayarlarını düzelt
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface Event {
   id: number;
@@ -14,6 +25,8 @@ interface Event {
   tarih: string;
   saat: string;
   konum: string;
+  konum_lat?: number;
+  konum_lng?: number;
   gorsel: string;
   kategori: string;
   kapasite: string;
@@ -235,29 +248,46 @@ const EtkinlikDetay = () => {
       </main>
       <Footer />
       {/* Map modal */}
-      {showMapModal && (
+      {showMapModal && etkinlik && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMapModal(false)} />
           <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg w-full max-w-4xl z-70 overflow-hidden">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-lg font-bold">{etkinlik.location}</h3>
+              <h3 className="text-lg font-bold">{etkinlik.konum}</h3>
               <button
                 onClick={() => setShowMapModal(false)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                ✕
+                <X className="w-6 h-6" />
               </button>
             </div>
             <div className="w-full h-96 md:h-[500px]">
-              <iframe
-                title="Etkinlik Konumu"
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                style={{ border: 0 }}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(etkinlik.location)}&output=embed`}
-                allowFullScreen
-              ></iframe>
+              {etkinlik.konum_lat && etkinlik.konum_lng ? (
+                <MapContainer
+                  center={[etkinlik.konum_lat, etkinlik.konum_lng]}
+                  zoom={15}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[etkinlik.konum_lat, etkinlik.konum_lng]}>
+                    <Popup>
+                      <div className="text-sm">
+                        <p className="font-semibold">{etkinlik.konum}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {etkinlik.konum_lat.toFixed(4)}, {etkinlik.konum_lng.toFixed(4)}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                  <p className="text-muted-foreground">Konum bilgisi bulunamadı</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
