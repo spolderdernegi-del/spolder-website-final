@@ -52,21 +52,43 @@ const Etkinlikler = () => {
 
   const filterEvents = () => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
     
     if (activeFilter === "Tümü") return events;
+    
     if (activeFilter === "Devam Eden") {
       return events.filter(event => {
-        const eventDate = event.tarih;
-        return eventDate >= today && event.durum !== "Tamamlandı";
+        // Durum kontrolü
+        if (event.durum === "Tamamlandı") return false;
+        
+        // Tarih ve saat kontrolü
+        try {
+          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
+          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
+          return eventDateTime >= now;
+        } catch (error) {
+          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
+          return event.tarih >= now.toISOString().split('T')[0];
+        }
       });
     }
+    
     if (activeFilter === "Süresi Geçen") {
       return events.filter(event => {
-        const eventDate = event.tarih;
-        return eventDate < today || event.durum === "Tamamlandı";
+        // Durum kontrolü
+        if (event.durum === "Tamamlandı") return true;
+        
+        // Tarih ve saat kontrolü
+        try {
+          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
+          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
+          return eventDateTime < now;
+        } catch (error) {
+          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
+          return event.tarih < now.toISOString().split('T')[0];
+        }
       });
     }
+    
     return events;
   };
 
