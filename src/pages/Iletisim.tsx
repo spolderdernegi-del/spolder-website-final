@@ -7,6 +7,17 @@ import { MapPin, Phone, Mail, Clock, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Leaflet marker icon ayarlarını düzelt
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const Iletisim = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +29,8 @@ const Iletisim = () => {
   const [mapUrl, setMapUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [organizationLocation, setOrganizationLocation] = useState("");
+  const [organizationLat, setOrganizationLat] = useState(39.9334);
+  const [organizationLng, setOrganizationLng] = useState(32.8597);
   const [contactInfo, setContactInfo] = useState({
     phone: "+90 (312) 123 45 67",
     email: "info@spolder.org.tr",
@@ -33,6 +46,8 @@ const Iletisim = () => {
         const keys = [
           'contact_map_embed',
           'organization_location',
+          'organization_lat',
+          'organization_lng',
           'contact_phone',
           'contact_email',
           'contact_working_hours',
@@ -51,6 +66,8 @@ const Iletisim = () => {
           data.forEach((item: any) => {
             if (item.key === 'contact_map_embed') setMapUrl(item.value);
             if (item.key === 'organization_location') setOrganizationLocation(item.value);
+            if (item.key === 'organization_lat') setOrganizationLat(parseFloat(item.value) || 39.9334);
+            if (item.key === 'organization_lng') setOrganizationLng(parseFloat(item.value) || 32.8597);
             if (item.key === 'contact_phone') newContactInfo.phone = item.value;
             if (item.key === 'contact_email') newContactInfo.email = item.value;
             if (item.key === 'contact_working_hours') newContactInfo.working_hours = item.value;
@@ -261,18 +278,26 @@ const Iletisim = () => {
 
             {/* Map */}
             <div className="mt-12 rounded-lg overflow-hidden shadow-card h-[400px]">
-              {mapUrl && (
-                <iframe
-                  src={mapUrl}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="SPOlDER Konum"
+              <MapContainer
+                center={[organizationLat, organizationLng]}
+                zoom={13}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-              )}
+                <Marker position={[organizationLat, organizationLng]}>
+                  <Popup>
+                    <div className="text-sm">
+                      <p className="font-semibold">{organizationLocation || 'SPOlDER Merkezi'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {organizationLat.toFixed(4)}, {organizationLng.toFixed(4)}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </div>
         </section>
