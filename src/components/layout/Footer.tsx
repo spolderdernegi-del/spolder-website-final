@@ -86,17 +86,17 @@ const Footer = () => {
             <h4 className="font-display font-bold text-lg mb-6">Faaliyetlerimiz</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/yayinlar?kategori=Araştırma" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Araştırma & Analiz
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/yayinlar?kategori=Rapor" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Eğitim Programları
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/yayinlar?kategori=Politika Belgesi" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Politika Önerileri
                 </Link>
               </li>

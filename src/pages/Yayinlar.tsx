@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { FileText, Download, Calendar, ExternalLink, Loader } from "lucide-react";
@@ -33,6 +34,9 @@ const getTypeColor = (type: string) => {
 };
 
 const Yayinlar = () => {
+  const [searchParams] = useSearchParams();
+  const kategoriParam = searchParams.get("kategori");
+  
   const [publications, setPublications] = useState<Publication[]>([]);
   const [activeFilter, setActiveFilter] = useState("Tümü");
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,12 @@ const Yayinlar = () => {
   useEffect(() => {
     fetchPublications();
   }, []);
+
+  useEffect(() => {
+    if (kategoriParam) {
+      setActiveFilter(kategoriParam);
+    }
+  }, [kategoriParam]);
 
   const fetchPublications = async () => {
     try {

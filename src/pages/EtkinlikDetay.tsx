@@ -179,27 +179,6 @@ const EtkinlikDetay = () => {
                   <div className="bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-lg p-6 border border-primary/20 mb-6">
                   <h3 className="font-display text-xl font-bold text-foreground mb-4">Katılım</h3>
 
-                  {/* Capacity */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary" />
-                        Kapasite
-                      </span>
-                      <span className="text-sm font-semibold text-primary">
-                        {etkinlik.kayitli}/{etkinlik.kapasite}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-primary rounded-full h-2 transition-all"
-                        style={{
-                          width: `${(parseInt(etkinlik.kayitli) / parseInt(etkinlik.kapasite)) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
                   {/* Status */}
                   <div className="mb-6">
                     <span
