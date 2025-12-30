@@ -22,6 +22,20 @@ const AdminSettings = () => {
   const [mapEmbedInput, setMapEmbedInput] = useState("");
   const [organizationLocation, setOrganizationLocation] = useState("");
   const [organizationLocationInput, setOrganizationLocationInput] = useState("");
+  const [contactInfo, setContactInfo] = useState({
+    phone: "",
+    email: "",
+    working_hours: "",
+    iban_tl: "",
+    iban_eur: ""
+  });
+  const [contactInfoInput, setContactInfoInput] = useState({
+    phone: "",
+    email: "",
+    working_hours: "",
+    iban_tl: "",
+    iban_eur: ""
+  });
 
   useEffect(() => {
     checkAuth();
@@ -30,6 +44,7 @@ const AdminSettings = () => {
     loadCurrentEmail();
     loadMapEmbed();
     loadOrganizationLocation();
+    loadContactInfo();
   }, []);
 
   const loadCounts = async () => {
@@ -242,6 +257,63 @@ const AdminSettings = () => {
     }
   };
 
+  const loadContactInfo = async () => {
+    try {
+      const keys = ['contact_phone', 'contact_email', 'contact_working_hours', 'contact_iban_tl', 'contact_iban_eur'];
+      const { data, error } = await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', keys);
+      
+      if (!error && data) {
+        const contactData: any = {
+          phone: "",
+          email: "",
+          working_hours: "",
+          iban_tl: "",
+          iban_eur: ""
+        };
+        
+        data.forEach((item: any) => {
+          if (item.key === 'contact_phone') contactData.phone = item.value;
+          if (item.key === 'contact_email') contactData.email = item.value;
+          if (item.key === 'contact_working_hours') contactData.working_hours = item.value;
+          if (item.key === 'contact_iban_tl') contactData.iban_tl = item.value;
+          if (item.key === 'contact_iban_eur') contactData.iban_eur = item.value;
+        });
+        
+        setContactInfo(contactData);
+        setContactInfoInput(contactData);
+      }
+    } catch (err) {
+      console.error("İletişim bilgileri yüklenemedi:", err);
+    }
+  };
+
+  const handleContactInfoChange = async () => {
+    try {
+      const updates = [
+        { key: 'contact_phone', value: contactInfoInput.phone },
+        { key: 'contact_email', value: contactInfoInput.email },
+        { key: 'contact_working_hours', value: contactInfoInput.working_hours },
+        { key: 'contact_iban_tl', value: contactInfoInput.iban_tl },
+        { key: 'contact_iban_eur', value: contactInfoInput.iban_eur }
+      ];
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('settings')
+          .upsert({ key: update.key, value: update.value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        if (error) throw error;
+      }
+
+      setContactInfo(contactInfoInput);
+      toast.success('İletişim bilgileri başarıyla güncellendi');
+    } catch (err: any) {
+      toast.error('İletişim bilgileri güncellenemedi: ' + err.message);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -431,6 +503,67 @@ const AdminSettings = () => {
             </div>
             <Button onClick={handleOrganizationLocationChange} className="w-full">Konumu Kaydet</Button>
           </div>
+        </div>
+
+        {/* İletişim Bilgileri */}
+        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">İletişim Bilgileri</h2>
+          <p className="text-sm text-muted-foreground mb-4">İletişim sayfasında gösterilecek tüm iletişim bilgilerini düzenleyin.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Telefon</label>
+              <Input
+                type="tel"
+                value={contactInfoInput.phone}
+                onChange={(e) => setContactInfoInput({ ...contactInfoInput, phone: e.target.value })}
+                placeholder="+90 (312) 123 45 67"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">E-posta</label>
+              <Input
+                type="email"
+                value={contactInfoInput.email}
+                onChange={(e) => setContactInfoInput({ ...contactInfoInput, email: e.target.value })}
+                placeholder="info@spolder.org.tr"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-foreground mb-2">Çalışma Saatleri</label>
+            <textarea
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={2}
+              value={contactInfoInput.working_hours}
+              onChange={(e) => setContactInfoInput({ ...contactInfoInput, working_hours: e.target.value })}
+              placeholder="Pazartesi - Cuma: 09:00 - 18:00&#10;Cumartesi - Pazar: Kapalı"
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">IBAN (TL)</label>
+              <Input
+                value={contactInfoInput.iban_tl}
+                onChange={(e) => setContactInfoInput({ ...contactInfoInput, iban_tl: e.target.value })}
+                placeholder="TR00 0000 0000 0000 0000 00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">IBAN (EUR)</label>
+              <Input
+                value={contactInfoInput.iban_eur}
+                onChange={(e) => setContactInfoInput({ ...contactInfoInput, iban_eur: e.target.value })}
+                placeholder="TR00 0000 0000 0000 0000 01"
+              />
+            </div>
+          </div>
+
+          <Button onClick={handleContactInfoChange} className="w-full mt-4">İletişim Bilgilerini Kaydet</Button>
         </div>
 
         {/* Aktivite Logu */}

@@ -18,31 +18,50 @@ const Iletisim = () => {
   const [mapUrl, setMapUrl] = useState("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.7881754813!2d32.8597!3d39.9334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU2JzAwLjIiTiAzMsKwNTEnMzQuOSJF!5e0!3m2!1str!2str!4v1234567890");
   const [loadingMap, setLoadingMap] = useState(false);
   const [organizationLocation, setOrganizationLocation] = useState("");
+  const [contactInfo, setContactInfo] = useState({
+    phone: "+90 (312) 123 45 67",
+    email: "info@spolder.org.tr",
+    working_hours: "Pazartesi - Cuma: 09:00 - 18:00\nCumartesi - Pazar: Kapalı",
+    iban_tl: "TR00 0000 0000 0000 0000 00",
+    iban_eur: "TR00 0000 0000 0000 0000 01"
+  });
 
   useEffect(() => {
     const loadMap = async () => {
       try {
         setLoadingMap(true);
-        const [mapRes, locRes] = await Promise.all([
-          supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'contact_map_embed')
-            .single(),
-          supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'organization_location')
-            .single()
-        ]);
-        if (!mapRes.error && mapRes.data?.value) {
-          setMapUrl(mapRes.data.value);
-        }
-        if (!locRes.error && locRes.data?.value) {
-          setOrganizationLocation(locRes.data.value);
+        const keys = [
+          'contact_map_embed',
+          'organization_location',
+          'contact_phone',
+          'contact_email',
+          'contact_working_hours',
+          'contact_iban_tl',
+          'contact_iban_eur'
+        ];
+
+        const { data } = await supabase
+          .from('settings')
+          .select('key, value')
+          .in('key', keys);
+
+        if (data) {
+          const newContactInfo = { ...contactInfo };
+          
+          data.forEach((item: any) => {
+            if (item.key === 'contact_map_embed') setMapUrl(item.value);
+            if (item.key === 'organization_location') setOrganizationLocation(item.value);
+            if (item.key === 'contact_phone') newContactInfo.phone = item.value;
+            if (item.key === 'contact_email') newContactInfo.email = item.value;
+            if (item.key === 'contact_working_hours') newContactInfo.working_hours = item.value;
+            if (item.key === 'contact_iban_tl') newContactInfo.iban_tl = item.value;
+            if (item.key === 'contact_iban_eur') newContactInfo.iban_eur = item.value;
+          });
+
+          setContactInfo(newContactInfo);
         }
       } catch (err) {
-        console.error('Harita ayarı okunamadı', err);
+        console.error('İletişim bilgileri okunamadı', err);
       } finally {
         setLoadingMap(false);
       }
@@ -57,8 +76,8 @@ const Iletisim = () => {
     setFormData({ name: "", email: "", subject: "", message: "" });
   };
 
-  const donationIbanTL = "TR00 0000 0000 0000 0000 00"; // REPLACE with real IBAN
-  const donationIbanEUR = "TR00 0000 0000 0000 0000 01"; // optional
+  const donationIbanTL = contactInfo.iban_tl;
+  const donationIbanEUR = contactInfo.iban_eur;
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -145,7 +164,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Telefon</h3>
-                      <p className="text-muted-foreground text-sm">+90 (312) 123 45 67</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.phone}</p>
                     </div>
                   </div>
 
@@ -155,7 +174,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">E-posta</h3>
-                      <p className="text-muted-foreground text-sm">info@spolider.org.tr</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.email}</p>
                     </div>
                   </div>
 
@@ -165,9 +184,8 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Çalışma Saatleri</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Pazartesi - Cuma: 09:00 - 18:00<br />
-                        Cumartesi - Pazar: Kapalı
+                      <p className="text-muted-foreground text-sm whitespace-pre-line">
+                        {contactInfo.working_hours}
                       </p>
                     </div>
                   </div>
