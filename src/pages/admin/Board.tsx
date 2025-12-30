@@ -66,10 +66,9 @@ const AdminBoard = () => {
       if (data && data.length > 0) {
         setMembers(data);
       } else {
-        // Varsayılan yönetim kurulu - ilk kez oluştur
-        const defaultMembers: BoardMember[] = [
+        // Varsayılan yönetim kurulu - ilk kez oluştur (id'leri supabase belirlesin)
+        const defaultMembers: Omit<BoardMember, "id">[] = [
           {
-            id: 1,
             name: "Prof. Dr. Ahmet Yılmaz",
             position: "Başkan",
             bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
@@ -77,7 +76,6 @@ const AdminBoard = () => {
             order: 1,
           },
           {
-            id: 2,
             name: "Doç. Dr. Ayşe Demir",
             position: "Başkan Yardımcısı",
             bio: "Spor politikaları ve toplumsal cinsiyet eşitliği uzmanı.",
@@ -85,7 +83,6 @@ const AdminBoard = () => {
             order: 2,
           },
           {
-            id: 3,
             name: "Dr. Mehmet Kaya",
             position: "Genel Sekreter",
             bio: "Uluslararası spor organizasyonları deneyimi.",
@@ -95,14 +92,15 @@ const AdminBoard = () => {
         ];
 
         // İlk kez ekle
-        const { error: insertError } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from('board')
-          .insert(defaultMembers);
+          .insert(defaultMembers)
+          .select('*');
         
         if (insertError) {
           console.error("Insert error:", insertError);
-        } else {
-          setMembers(defaultMembers);
+        } else if (inserted) {
+          setMembers(inserted as BoardMember[]);
         }
       }
     } catch (error) {
