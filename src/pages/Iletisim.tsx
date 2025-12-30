@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Phone, Mail, Clock, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Iletisim = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,30 @@ const Iletisim = () => {
     subject: "",
     message: "",
   });
+  const [mapUrl, setMapUrl] = useState("https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.7881754813!2d32.8597!3d39.9334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU2JzAwLjIiTiAzMsKwNTEnMzQuOSJF!5e0!3m2!1str!2str!4v1234567890");
+  const [loadingMap, setLoadingMap] = useState(false);
+
+  useEffect(() => {
+    const loadMap = async () => {
+      try {
+        setLoadingMap(true);
+        const { data, error } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'contact_map_embed')
+          .single();
+        if (!error && data?.value) {
+          setMapUrl(data.value);
+        }
+      } catch (err) {
+        console.error('Harita ayarı okunamadı', err);
+      } finally {
+        setLoadingMap(false);
+      }
+    };
+
+    loadMap();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,16 +232,18 @@ const Iletisim = () => {
 
             {/* Map */}
             <div className="mt-12 rounded-lg overflow-hidden shadow-card h-[400px]">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.7881754813!2d32.8597!3d39.9334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU2JzAwLjIiTiAzMsKwNTEnMzQuOSJF!5e0!3m2!1str!2str!4v1234567890"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="SPOlDER Konum"
-              />
+              {!loadingMap && (
+                <iframe
+                  src={mapUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="SPOlDER Konum"
+                />
+              )}
             </div>
           </div>
         </section>

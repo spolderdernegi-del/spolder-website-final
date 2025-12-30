@@ -18,12 +18,15 @@ const AdminSettings = () => {
   const [newEmail, setNewEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
   const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
+  const [mapEmbed, setMapEmbed] = useState("");
+  const [mapEmbedInput, setMapEmbedInput] = useState("");
 
   useEffect(() => {
     checkAuth();
     loadActivityLogs();
     loadCounts();
     loadCurrentEmail();
+    loadMapEmbed();
   }, []);
 
   const loadCounts = async () => {
@@ -76,6 +79,22 @@ const AdminSettings = () => {
     } catch (err) {
       console.error("Email yüklenemedi:", err);
       setCurrentEmail('admin@spolder.org');
+    }
+  };
+
+  const loadMapEmbed = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'contact_map_embed')
+        .single();
+      if (!error && data?.value) {
+        setMapEmbed(data.value);
+        setMapEmbedInput(data.value);
+      }
+    } catch (err) {
+      console.error("Harita ayarı yüklenemedi:", err);
     }
   };
 
@@ -165,6 +184,24 @@ const AdminSettings = () => {
       localStorage.setItem("adminEmail", newEmail);
     } catch (err: any) {
       toast.error('E-posta güncellenemedi: ' + err.message);
+    }
+  };
+
+  const handleMapEmbedChange = async () => {
+    if (!mapEmbedInput) {
+      toast.warning('Lütfen harita yerleşim (embed) URL bilgisini girin');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'contact_map_embed', value: mapEmbedInput, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw error;
+      setMapEmbed(mapEmbedInput);
+      toast.success('Harita konumu güncellendi');
+    } catch (err: any) {
+      toast.error('Harita bilgisi güncellenemedi: ' + err.message);
     }
   };
 
@@ -316,6 +353,26 @@ const AdminSettings = () => {
             >
               Şifreyi Güncelle
             </Button>
+          </div>
+        </div>
+
+        {/* İletişim Haritası */}
+        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">İletişim Haritası</h2>
+          <p className="text-sm text-muted-foreground mb-4">İletişim sayfasında görünen Google Maps yerleşim (embed) URL'sini güncelleyin.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-foreground mb-2">Harita Embed URL</label>
+              <Input
+                value={mapEmbedInput}
+                onChange={(e) => setMapEmbedInput(e.target.value)}
+                placeholder="https://www.google.com/maps/embed?..."
+              />
+              <p className="text-xs text-muted-foreground mt-2">Mevcut: {mapEmbed || 'Henüz kaydedilmedi'}</p>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleMapEmbedChange} className="w-full">Kaydet</Button>
+            </div>
           </div>
         </div>
 

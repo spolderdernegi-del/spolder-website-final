@@ -1,72 +1,66 @@
+import { useEffect, useState } from "react";
 import { Calendar, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-const news = [
-  {
-    id: 1,
-    title: "Spor Ekonomisi Raporu 2024 Yayınlandı",
-    excerpt: "Türkiye'nin spor ekonomisine ilişkin kapsamlı raporumuz kamuoyuyla paylaşıldı.",
-    date: "12 Ara 2024",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=80",
-    category: "Haber",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler ve Spor Forumu",
-    excerpt: "Belediyelerin spor politikalarını ele aldığımız forum büyük ilgi gördü.",
-    date: "8 Ara 2024",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    category: "Haber",
-  },
-];
+interface NewsItem {
+  id: number;
+  baslik: string;
+  ozet: string;
+  gorsel: string;
+  tarih: string;
+  kategori: string;
+}
 
-const events = [
-  {
-    id: 1,
-    title: "Uluslararası Spor Hukuku Konferansı",
-    date: "25",
-    month: "Ara",
-    location: "Ankara",
-  },
-  {
-    id: 2,
-    title: "Spor Yönetimi Eğitim Programı",
-    date: "10",
-    month: "Oca",
-    location: "İstanbul",
-  },
-  {
-    id: 3,
-    title: "Kadın ve Spor Sempozyumu",
-    date: "18",
-    month: "Oca",
-    location: "İzmir",
-  },
-];
-
-const announcements = [
-  {
-    id: 1,
-    title: "2025 Yılı Üyelik Başvuruları Başladı",
-    date: "10 Ara 2024",
-    link: "/uyelik",
-  },
-  {
-    id: 2,
-    title: "Yeni Yayınımız: Spor ve Medya",
-    date: "5 Ara 2024",
-    link: "/yayinlar",
-  },
-  {
-    id: 3,
-    title: "Staj Başvuruları Açıldı",
-    date: "1 Ara 2024",
-    link: "/iletisim",
-  },
-];
+interface EventItem {
+  id: number;
+  baslik: string;
+  tarih: string;
+  konum: string;
+}
 
 const NewsEventsSection = () => {
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const [{ data: newsData }, { data: eventData }] = await Promise.all([
+          supabase
+            .from('news')
+            .select('id, baslik, ozet, gorsel, tarih, kategori')
+            .eq('yayin_durumu', 'yayinlandi')
+            .order('created_at', { ascending: false })
+            .limit(4),
+          supabase
+            .from('events')
+            .select('id, baslik, tarih, konum')
+            .eq('yayin_durumu', 'yayinlandi')
+            .order('created_at', { ascending: false })
+            .limit(4),
+        ]);
+
+        setNews(newsData || []);
+        setEvents(eventData || []);
+      } catch (error) {
+        console.error('Error loading news/events', error);
+        setNews([]);
+        setEvents([]);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
+  const announcements = news.slice(0, 4).map((n) => ({
+    id: n.id,
+    title: n.baslik,
+    date: n.tarih,
+    link: `/haber/${n.id}`,
+  }));
+
   return (
     <section className="section-padding bg-muted">
       <div className="container-custom mx-auto">
@@ -142,15 +136,15 @@ const NewsEventsSection = () => {
                     className="flex gap-4 bg-card rounded-lg p-4 shadow-soft card-hover"
                   >
                     <div className="w-16 h-16 rounded-lg bg-gradient-green flex flex-col items-center justify-center text-primary-foreground shrink-0">
-                      <span className="text-xl font-bold">{event.date}</span>
-                      <span className="text-xs uppercase">{event.month}</span>
+                      <span className="text-xl font-bold">{new Date(event.tarih).getDate()}</span>
+                      <span className="text-xs uppercase">{new Date(event.tarih).toLocaleString('tr-TR', { month: 'short' })}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-foreground text-sm line-clamp-2 hover:text-primary transition-colors">
-                        {event.title}
+                        {event.baslik}
                       </h4>
                       <p className="text-muted-foreground text-xs mt-1">
-                        📍 {event.location}
+                        📍 {event.konum}
                       </p>
                     </div>
                   </Link>

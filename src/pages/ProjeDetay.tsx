@@ -1,8 +1,6 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { Calendar, User, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader } from "lucide-react";
 
 interface Project {
   id: number;
@@ -13,90 +11,47 @@ interface Project {
   category: string;
   status: string;
   start_date: string;
-  author: string;
-  date: string;
 }
-
-const projectsDatabase: Project[] = [
-  {
-    id: 1,
-    title: "Spor ve Toplum Araştırması",
-    description: "Türkiye genelinde spor alışkanlıklarını ve spor tesislerine erişimi inceleyen kapsamlı araştırma projesi.",
-    content: "Türkiye genelinde spor alışkanlıklarını ve spor tesislerine erişimi inceleyen kapsamlı araştırma projesi. Bu proje, toplumun spor yapma alışkanlıklarını, spor tesislerine erişim durumunu ve sporun toplumsal etkilerini analiz etmektedir.\n\nAraştırma kapsamında 81 ilde anket çalışmaları yürütülmekte, spor tesislerinin dağılımı haritalanmakta ve farklı demografik grupların spor alışkanlıkları karşılaştırılmaktadır. Proje sonuçları, spor politikalarının geliştirilmesine katkı sağlayacaktır.",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    category: "Araştırma",
-    start_date: "2024-01-15",
-    author: "SPOLDER Araştırma Ekibi",
-    date: "15 Ocak 2024",
-  },
-  {
-    id: 2,
-    title: "Yerel Spor Politikaları Rehberi",
-    description: "Belediyelere yönelik spor politikası geliştirme rehberi hazırlama projesi.",
-    content: "Belediyelere yönelik spor politikası geliştirme rehberi hazırlama projesi. Yerel yönetimlerin spor alanlarındaki rolü ve sorumlulukları gün geçtikçe artmaktadır.\n\nBu proje kapsamında, belediyelerin spor politikası oluşturması, tesis yönetimi, bütçe planlaması ve toplumsal spor programları geliştirmesi için kapsamlı bir rehber hazırlanmıştır. Rehber, en iyi uygulamalar ve örnek vaka çalışmaları içermektedir.",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    status: "Tamamlandı",
-    category: "Eğitim",
-    start_date: "2023-06-01",
-    author: "SPOLDER Politika Ekibi",
-    date: "1 Haziran 2023",
-  },
-  {
-    id: 3,
-    title: "Spor Ekonomisi İzleme Sistemi",
-    description: "Türkiye'nin spor ekonomisini takip eden dijital platform geliştirme projesi.",
-    content: "Türkiye'nin spor ekonomisini takip eden dijital platform geliştirme projesi. Spor sektörünün ekonomik katkılarını düzenli olarak izlemek ve raporlamak amacıyla bir dijital platform geliştirilmektedir.\n\nPlatform, spor sektörünün GSYH'ye katkısı, istihdam rakamları, yatırım verileri ve uluslararası karşılaştırmaları içerecektir. Veriler, politika yapıcılar, araştırmacılar ve sektör akterleri tarafından kullanılabilecektir.",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    category: "Teknoloji",
-    start_date: "2024-03-01",
-    author: "SPOLDER Teknoloji Ekibi",
-    date: "1 Mart 2024",
-  },
-  {
-    id: 4,
-    title: "Kadın Sporcu Destek Programı",
-    description: "Kadın sporcuların kariyer gelişimini destekleyen mentorluk ve eğitim programı.",
-    content: "Kadın sporcuların kariyer gelişimini destekleyen mentorluk ve eğitim programı. Kadın sporcuların karşılaştığı zorlukları aşmak ve başarılı kariyer yolları oluşturmaları için kapsamlı bir destek programı yürütülmektedir.\n\nProgram kapsamında mentorluk, liderlik eğitimi, kariyer danışmanlığı ve ağ oluşturma fırsatları sunulmaktadır. Başarılı kadın sporcular, genç sporculara rehberlik etmektedir.",
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=80",
-    status: "Devam Ediyor",
-    category: "Sosyal",
-    start_date: "2024-02-01",
-    author: "SPOLDER Sosyal Etki Ekibi",
-    date: "1 Şubat 2024",
-  },
-  {
-    id: 5,
-    title: "Okul Sporları Analiz Raporu",
-    description: "Türkiye'deki okul sporları sisteminin kapsamlı analizi ve politika önerileri.",
-    content: "Türkiye'deki okul sporları sisteminin kapsamlı analizi ve politika önerileri. Okul sporları, gençlerin spor alışkanlıkları kazanması ve yetenekli sporcuların keşfedilmesi açısından kritik öneme sahiptir.\n\nBu projede, okul sporlarının mevcut durumu, karşılaşılan sorunlar ve geliştirilmesi gereken alanlar analiz edilmiştir. Rapor, politika yapıcılar ve eğitim kurumları için somut öneriler içermektedir.",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600&auto=format&fit=crop&q=80",
-    status: "Tamamlandı",
-    category: "Araştırma",
-    start_date: "2023-09-01",
-    author: "SPOLDER Eğitim Ekibi",
-    date: "1 Eylül 2023",
-  },
-  {
-    id: 6,
-    title: "Engelli Sporları Erişilebilirlik Projesi",
-    description: "Engelli bireylerin spora erişimini artırmaya yönelik kapsamlı araştırma ve savunuculuk projesi.",
-    content: "Engelli bireylerin spora erişimini artırmaya yönelik kapsamlı araştırma ve savunuculuk projesi. Tüm bireylerin spor yapma hakkına sahip olması ilkesinden hareketle, engelli bireylerin karşılaştığı engellerin tespit edilmesi ve çözüm önerileri geliştirilmesi hedeflenmektedir.\n\nProje kapsamında tesis erişilebilirliği denetimi, engelli sporcu eğitim programları ve farkındalık kampanyaları yürütülecektir.",
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&auto=format&fit=crop&q=80",
-    status: "Planlanıyor",
-    category: "Sosyal",
-    start_date: "2025-01-01",
-    author: "SPOLDER Erişilebilirlik Ekibi",
-    date: "1 Ocak 2025",
-  },
-];
 
 const ProjeDetay = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const proje = projectsDatabase.find((p) => p.id === parseInt(id || "0"));
+  const [proje, setProje] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, title, description, content, image, category, status, start_date')
+          .eq('id', parseInt(id || "0"))
+          .eq('publishStatus', 'published')
+          .single();
+        if (error) throw error;
+        setProje(data);
+      } catch (err) {
+        console.error('Project load error', err);
+        setProje(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProject();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-20">
+          <Loader className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!proje) {
     return (
