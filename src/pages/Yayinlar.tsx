@@ -85,6 +85,20 @@ const Yayinlar = () => {
     return `${(bytes / 1024).toFixed(2)} KB`;
   };
 
+  const getFileExtension = (fileType: string) => {
+    if (fileType.includes('pdf')) return 'PDF';
+    if (fileType.includes('word') || fileType.includes('document')) return 'DOCX';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'XLSX';
+    if (fileType.includes('powerpoint') || fileType.includes('presentation')) return 'PPTX';
+    if (fileType.includes('jpeg') || fileType.includes('jpg')) return 'JPG';
+    if (fileType.includes('png')) return 'PNG';
+    if (fileType.includes('gif')) return 'GIF';
+    if (fileType.includes('webp')) return 'WEBP';
+    if (fileType.includes('svg')) return 'SVG';
+    if (fileType.includes('text')) return 'TXT';
+    return 'FILE';
+  };
+
   const handleDownload = (fileUrl: string, fileName: string, fileType: string) => {
     try {
       // Dosya uzantısını belirle
@@ -99,6 +113,21 @@ const Yayinlar = () => {
         extension = '.pptx';
       } else if (fileType.includes('text')) {
         extension = '.txt';
+      } else if (fileType.includes('image')) {
+        // Resim dosyaları için uzantıyı mime type'dan al
+        if (fileType.includes('jpeg') || fileType.includes('jpg')) {
+          extension = '.jpg';
+        } else if (fileType.includes('png')) {
+          extension = '.png';
+        } else if (fileType.includes('gif')) {
+          extension = '.gif';
+        } else if (fileType.includes('webp')) {
+          extension = '.webp';
+        } else if (fileType.includes('svg')) {
+          extension = '.svg';
+        } else {
+          extension = '.jpg'; // varsayılan
+        }
       }
 
       // Dosya adını hazırla
@@ -143,31 +172,51 @@ const Yayinlar = () => {
     try {
       if (fileUrl.startsWith('data:')) {
         // Base64 dosyası - dosya tipine göre işlem yap
-        if (fileType.includes('pdf') || fileType.includes('word') || fileType.includes('document')) {
-          // PDF ve Word için yeni sekmede aç
-          const newWindow = window.open();
-          if (newWindow) {
-            if (fileType.includes('pdf')) {
-              // PDF için iframe kullan
-              newWindow.document.write(`
-                <html>
-                  <head>
-                    <title>PDF Önizleme</title>
-                    <style>body{margin:0;overflow:hidden}</style>
-                  </head>
-                  <body>
-                    <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
-                  </body>
-                </html>
-              `);
-            } else {
-              // Word dosyaları için direkt indirmeye yönlendir
-              newWindow.location.href = fileUrl;
-            }
+        const newWindow = window.open();
+        if (newWindow) {
+          if (fileType.includes('pdf')) {
+            // PDF için iframe kullan
+            newWindow.document.write(`
+              <html>
+                <head>
+                  <title>PDF Önizleme</title>
+                  <style>body{margin:0;overflow:hidden}</style>
+                </head>
+                <body>
+                  <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
+                </body>
+              </html>
+            `);
+          } else if (fileType.includes('image')) {
+            // Resimler için yeni sekmede göster
+            newWindow.document.write(`
+              <html>
+                <head>
+                  <title>Resim Önizleme</title>
+                  <style>
+                    body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#000}
+                    img{max-width:100%;max-height:100vh;object-fit:contain}
+                  </style>
+                </head>
+                <body>
+                  <img src="${fileUrl}" alt="Önizleme" />
+                </body>
+              </html>
+            `);
+          } else if (fileType.includes('word') || fileType.includes('document')) {
+            // Word dosyaları için direkt indirmeye yönlendir
+            newWindow.location.href = fileUrl;
+          } else {
+            // Diğer dosyalar için yeni sekmede aç
+            newWindow.document.write(`
+              <html>
+                <head><title>Dosya Önizleme</title></head>
+                <body style="margin:0">
+                  <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
+                </body>
+              </html>
+            `);
           }
-        } else {
-          // Diğer dosyalar için yeni sekmede aç
-          window.open(fileUrl, '_blank');
         }
       } else {
         // Normal URL - yeni sekmede aç
@@ -269,9 +318,12 @@ const Yayinlar = () => {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(pub.category)}`}>
                         {pub.category || 'Genel'}
+                      </span>
+                      <span className="inline-block px-2 py-0.5 text-xs font-bold rounded bg-primary/10 text-primary">
+                        {getFileExtension(pub.file_type)}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
