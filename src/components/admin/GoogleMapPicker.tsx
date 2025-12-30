@@ -40,7 +40,7 @@ const GoogleMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: Googl
   }, [onLocationChange]);
 
   return (
-    <LoadScript googleMapsApiKey="AIzaSyDtb3Kn3XOl_Hv6hSc0rwKdPd1fGVWXKjY">
+    <LoadScript googleMapsApiKey="AIzaSyDlqZEVFKrJQAyTSmJmqOHv1XkGGCjLO5w">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={markerPosition.lat !== 0 ? markerPosition : center}
