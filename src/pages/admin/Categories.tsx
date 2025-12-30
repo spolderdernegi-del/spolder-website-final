@@ -14,6 +14,13 @@ interface Category {
   created_at: string;
 }
 
+// Yayınlar için sabit kategoriler (silinemez/düzenlenemez)
+const FIXED_CATEGORIES = [
+  { name: 'Rapor', type: 'files' as const },
+  { name: 'Araştırma', type: 'files' as const },
+  { name: 'Politika Belgesi', type: 'files' as const }
+];
+
 const AdminCategories = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -94,6 +101,15 @@ const AdminCategories = () => {
   };
 
   const handleEdit = (category: Category) => {
+    // Sabit kategorileri düzenlemeyi engelle
+    const isFixed = FIXED_CATEGORIES.some(
+      fc => fc.name === category.name && fc.type === category.type
+    );
+    if (isFixed) {
+      toast.warning('Bu kategori sabit kategoridir, düzenlenemez.');
+      return;
+    }
+    
     setEditingCategory(category);
     setFormData({
       name: category.name,
@@ -104,6 +120,18 @@ const AdminCategories = () => {
   };
 
   const handleDelete = async (id: number) => {
+    const category = categories.find(c => c.id === id);
+    if (!category) return;
+    
+    // Sabit kategorileri silmeyi engelle
+    const isFixed = FIXED_CATEGORIES.some(
+      fc => fc.name === category.name && fc.type === category.type
+    );
+    if (isFixed) {
+      toast.warning('Bu kategori sabit kategoridir, silinemez.');
+      return;
+    }
+
     if (!confirm("Bu kategoriyi silmek istediğinizden emin misiniz?")) return;
 
     try {
@@ -253,7 +281,12 @@ const AdminCategories = () => {
                 <p className="text-sm text-muted-foreground">Henüz kategori eklenmemiş</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {getCategoriesByType(type).map((category) => (
+                  {getCategoriesByType(type).map((category) => {
+                    const isFixed = FIXED_CATEGORIES.some(
+                      fc => fc.name === category.name && fc.type === category.type
+                    );
+                    
+                    return (
                     <div
                       key={category.id}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900"
@@ -264,26 +297,32 @@ const AdminCategories = () => {
                           style={{ backgroundColor: category.color }}
                         />
                         <span className="font-medium text-sm">{category.name}</span>
+                        {isFixed && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">Sabit</span>
+                        )}
                       </div>
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(category.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                      {!isFixed && (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(category)}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(category.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
