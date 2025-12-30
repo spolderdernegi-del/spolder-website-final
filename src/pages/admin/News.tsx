@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 interface News {
   id: number;
@@ -32,8 +33,6 @@ const AdminNews = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingNews, setEditingNews] = useState<News | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -108,33 +107,6 @@ const AdminNews = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return formData.gorsel;
-
-    setUploading(true);
-    try {
-      // Base64'e çevir ve imagePreview'i kullan (zaten base64 olarak var)
-      return imagePreview;
-    } catch (error) {
-      console.error('Görsel yükleme hatası:', error);
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -153,10 +125,7 @@ const AdminNews = () => {
     setLoading(true);
 
     try {
-      let imageUrl = formData.gorsel;
-      if (imageFile) {
-        imageUrl = await uploadImage();
-      }
+      const imageUrl = formData.gorsel;
 
       // Slug oluştur
       const slug = formData.slug || formData.baslik
@@ -317,8 +286,6 @@ const AdminNews = () => {
   const resetForm = () => {
     setShowForm(false);
     setEditingNews(null);
-    setImageFile(null);
-    setImagePreview("");
     setFormData({
       baslik: "",
       ozet: "",
@@ -418,27 +385,13 @@ const AdminNews = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Görsel</label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="mb-2"
+                  <ImageUploadField
+                    label="Görsel"
+                    value={formData.gorsel}
+                    onChange={(value) => setFormData({ ...formData, gorsel: value })}
+                    required
+                    aspectRatio={16 / 9}
                   />
-                  {imagePreview && (
-                    <div className="mt-3 border rounded-lg p-2">
-                      <img 
-                        src={imagePreview} 
-                        alt="Önizleme" 
-                        className="max-w-full h-48 object-cover rounded"
-                      />
-                      {imageFile && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Boyut: {(imageFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 

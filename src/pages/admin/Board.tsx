@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +23,7 @@ import {
 import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/lib/toast";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 interface BoardMember {
   id: number;
@@ -278,30 +278,28 @@ const AdminBoard = () => {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Ad Soyad *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Ad Soyad *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="position">Görev *</Label>
-                  <Input
-                    id="position"
-                    value={formData.position}
-                    onChange={(e) =>
-                      setFormData({ ...formData, position: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Görev *</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={(e) =>
+                    setFormData({ ...formData, position: e.target.value })
+                  }
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -317,32 +315,25 @@ const AdminBoard = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="image">Fotoğraf URL *</Label>
-                  <Input
-                    id="image"
-                    value={formData.image}
-                    onChange={(e) =>
-                      setFormData({ ...formData, image: e.target.value })
-                    }
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+              <ImageUploadField
+                label="Fotoğraf"
+                value={formData.image}
+                onChange={(value) => setFormData({ ...formData, image: value })}
+                required
+                aspectRatio={1}
+              />
 
-                <div className="space-y-2">
-                  <Label htmlFor="order">Sıra *</Label>
-                  <Input
-                    id="order"
-                    type="number"
-                    value={formData.order}
-                    onChange={(e) =>
-                      setFormData({ ...formData, order: parseInt(e.target.value) })
-                    }
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="order">Sıra *</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) =>
+                    setFormData({ ...formData, order: parseInt(e.target.value) })
+                  }
+                  required
+                />
               </div>
 
               <DialogFooter>

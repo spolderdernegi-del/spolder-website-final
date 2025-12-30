@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 interface BlogPost {
   id: number;
@@ -32,8 +33,6 @@ const AdminBlog = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -110,32 +109,6 @@ const AdminBlog = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return formData.image;
-
-    setUploading(true);
-    try {
-      return imagePreview;
-    } catch (error) {
-      console.error('Görsel yükleme hatası:', error);
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -154,10 +127,7 @@ const AdminBlog = () => {
     setLoading(true);
 
     try {
-      let imageUrl = formData.image;
-      if (imageFile) {
-        imageUrl = await uploadImage();
-      }
+      const imageUrl = formData.image;
 
       const slug = formData.slug || formData.title
         .toLowerCase()
@@ -229,8 +199,6 @@ const AdminBlog = () => {
       metaDescription: post.metaDescription || '',
       showInSlider: post.showInSlider || false,
     });
-    setImagePreview(post.image || "");
-    setImageFile(null);
     setShowForm(true);
   };
 
@@ -317,8 +285,6 @@ const AdminBlog = () => {
   const resetForm = () => {
     setShowForm(false);
     setEditingPost(null);
-    setImageFile(null);
-    setImagePreview("");
     setFormData({
       title: "",
       excerpt: "",
@@ -421,27 +387,13 @@ const AdminBlog = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Görsel</label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="mb-2"
+                  <ImageUploadField
+                    label="Kapak Görseli"
+                    value={formData.image}
+                    onChange={(value) => setFormData({ ...formData, image: value })}
+                    required
+                    aspectRatio={16 / 9}
                   />
-                  {imagePreview && (
-                    <div className="mt-3 border rounded-lg p-2">
-                      <img 
-                        src={imagePreview} 
-                        alt="Önizleme" 
-                        className="max-w-full h-48 object-cover rounded"
-                      />
-                      {imageFile && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Boyut: {(imageFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -557,9 +509,9 @@ const AdminBlog = () => {
             <div className="mt-8 pt-8 border-t">
               <h3 className="text-lg font-semibold text-foreground mb-4">Önizleme</h3>
               <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-                {imagePreview && (
+                {formData.image && (
                   <img 
-                    src={imagePreview} 
+                    src={formData.image} 
                     alt="Blog görseli" 
                     className="w-full h-64 object-cover rounded-lg mb-4"
                   />
