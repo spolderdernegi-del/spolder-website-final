@@ -451,15 +451,20 @@ const AdminEvents = () => {
                         placeholder="Konum adı (örn: İstanbul Kongre Merkezi)"
                         className="mb-2"
                       />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Google Haritasında tıklayarak konum seçiniz</p>
                       <div 
-                        className="relative w-full h-80 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden cursor-crosshair border-2 border-slate-200 dark:border-slate-700"
+                        className="relative w-full h-96 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden cursor-crosshair border-2 border-slate-200 dark:border-slate-700"
                         onClick={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = e.clientX - rect.left;
                           const y = e.clientY - rect.top;
                           
-                          const lat = 41.0082 + (y / rect.height - 0.5) * 0.1;
-                          const lng = 28.9784 + (x / rect.width - 0.5) * 0.1;
+                          const centerLat = 39.9334;
+                          const centerLng = 32.8597;
+                          const zoomLevel = 0.05;
+                          
+                          const lat = centerLat + (y / rect.height - 0.5) * zoomLevel * 2;
+                          const lng = centerLng + (x / rect.width - 0.5) * zoomLevel * 2;
                           
                           setFormData({ 
                             ...formData, 
@@ -468,31 +473,35 @@ const AdminEvents = () => {
                           });
                         }}
                         style={{
-                          backgroundImage: 'url(https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/28.9784,41.0082,12,0/800x600@2x?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw)',
+                          backgroundImage: `url('https://maps.googleapis.com/maps/api/staticmap?center=${formData.konum_lat || 39.9334},${formData.konum_lng || 32.8597}&zoom=11&size=800x600&style=feature:all|element:labels|visibility:off&style=feature:water|color:0xb3d9ff&style=feature:land|color:0xf3f3f3&style=feature:road|color:0xffffff&style=feature:administrative|element:geometry.stroke|color:0xcccccc&key=AIzaSyDtb3Kn3XOl_Hv6hSc0rwKdPd1fGVWXKjY')`,
                           backgroundSize: 'cover',
                           backgroundPosition: 'center'
                         }}
                       >
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="text-center text-slate-600 dark:text-slate-400 bg-white/80 dark:bg-slate-900/80 px-4 py-2 rounded">
+                            <p className="text-sm font-medium">📍 Konum Seçmek İçin Tıkla</p>
+                          </div>
+                        </div>
                         {formData.konum_lat !== 0 && formData.konum_lng !== 0 && (
                           <div 
-                            className="absolute w-8 h-8 -ml-4 -mt-8 pointer-events-none"
+                            className="absolute w-10 h-10 -ml-5 -mt-5 pointer-events-none animate-bounce"
                             style={{
-                              left: `${((formData.konum_lng - 28.9784) / 0.1 + 0.5) * 100}%`,
-                              top: `${((formData.konum_lat - 41.0082) / 0.1 + 0.5) * 100}%`
+                              left: `${((formData.konum_lng - (32.8597 - 0.25)) / 0.5 + 0.5) * 100}%`,
+                              top: `${((formData.konum_lat - (39.9334 - 0.25)) / 0.5 + 0.5) * 100}%`
                             }}
                           >
-                            <MapPin className="w-8 h-8 text-red-500 drop-shadow-lg" fill="currentColor" />
+                            <MapPin className="w-10 h-10 text-red-600 drop-shadow-lg" fill="currentColor" />
                           </div>
                         )}
                       </div>
                       {formData.konum_lat !== 0 && formData.konum_lng !== 0 && (
-                        <div className="text-sm text-slate-600 dark:text-slate-400">
-                          Seçili Koordinatlar: {formData.konum_lat.toFixed(6)}, {formData.konum_lng.toFixed(6)}
+                        <div className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-3 rounded">
+                          <strong>Seçili Konum:</strong> {formData.konum_lat.toFixed(6)}, {formData.konum_lng.toFixed(6)}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  )}\n                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Kapasite</label>
