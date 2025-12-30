@@ -453,7 +453,7 @@ const AdminEvents = () => {
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400">Google Haritasında tıklayarak konum seçiniz</p>
                       <div 
-                        className="relative w-full h-96 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden cursor-crosshair border-2 border-slate-200 dark:border-slate-700"
+                        className="relative w-full h-96 bg-gradient-to-br from-blue-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden cursor-crosshair border-2 border-slate-300 dark:border-slate-600"
                         onClick={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
                           const x = e.clientX - rect.left;
@@ -473,9 +473,8 @@ const AdminEvents = () => {
                           });
                         }}
                         style={{
-                          backgroundImage: `url('https://maps.googleapis.com/maps/api/staticmap?center=${formData.konum_lat || 39.9334},${formData.konum_lng || 32.8597}&zoom=11&size=800x600&style=feature:all|element:labels|visibility:off&style=feature:water|color:0xb3d9ff&style=feature:land|color:0xf3f3f3&style=feature:road|color:0xffffff&style=feature:administrative|element:geometry.stroke|color:0xcccccc&key=AIzaSyDtb3Kn3XOl_Hv6hSc0rwKdPd1fGVWXKjY')`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
+                          backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(59, 130, 246, 0.05) 25%, rgba(59, 130, 246, 0.05) 26%, transparent 27%, transparent 74%, rgba(59, 130, 246, 0.05) 75%, rgba(59, 130, 246, 0.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(59, 130, 246, 0.05) 25%, rgba(59, 130, 246, 0.05) 26%, transparent 27%, transparent 74%, rgba(59, 130, 246, 0.05) 75%, rgba(59, 130, 246, 0.05) 76%, transparent 77%, transparent)',
+                          backgroundSize: '40px 40px'
                         }}
                       >
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
