@@ -92,6 +92,19 @@ const Etkinlikler = () => {
     return events;
   };
 
+  const formatEventDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const monthNames = ["OCA", "ŞUB", "MAR", "NİS", "MAY", "HAZ", "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA"];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      return { day, month, year };
+    } catch (error) {
+      return { day: dateStr, month: "", year: "" };
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -163,14 +176,16 @@ const Etkinlikler = () => {
           <section className="section-padding">
             <div className="container-custom mx-auto">
               <div className="space-y-8">
-                {filterEvents().map((event) => (
+                {filterEvents().map((event) => {
+                  const { day, month, year } = formatEventDate(event.tarih);
+                  return (
                 <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover">
                   <div className="flex flex-col md:flex-row">
                     {/* Date Box */}
                     <div className="md:w-32 shrink-0 bg-gradient-green p-6 flex flex-row md:flex-col items-center justify-center text-primary-foreground">
-                      <span className="text-4xl font-bold">{event.tarih}</span>
-                      <span className="text-lg uppercase ml-2 md:ml-0">TEM</span>
-                      <span className="text-sm ml-2 md:ml-0 md:mt-1">2025</span>
+                      <span className="text-4xl font-bold">{day}</span>
+                      <span className="text-lg uppercase ml-2 md:ml-0">{month}</span>
+                      <span className="text-sm ml-2 md:ml-0 md:mt-1">{year}</span>
                     </div>
                     
                     {/* Image */}
@@ -215,7 +230,8 @@ const Etkinlikler = () => {
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
