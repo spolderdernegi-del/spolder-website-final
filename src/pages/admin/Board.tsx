@@ -35,6 +35,9 @@ interface BoardMember {
 }
 
 const AdminBoard = () => {
+  const PRESIDENT_POSITION = "Başkan";
+  const isPresident = (member: BoardMember) => member.position === PRESIDENT_POSITION;
+
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<BoardMember | null>(null);
@@ -66,35 +69,18 @@ const AdminBoard = () => {
       if (data && data.length > 0) {
         setMembers(data);
       } else {
-        // Varsayılan yönetim kurulu - ilk kez oluştur (id'leri supabase belirlesin)
-        const defaultMembers: Omit<BoardMember, "id">[] = [
-          {
-            name: "Prof. Dr. Ahmet Yılmaz",
-            position: "Başkan",
-            bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
-            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-            order: 1,
-          },
-          {
-            name: "Doç. Dr. Ayşe Demir",
-            position: "Başkan Yardımcısı",
-            bio: "Spor politikaları ve toplumsal cinsiyet eşitliği uzmanı.",
-            image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop",
-            order: 2,
-          },
-          {
-            name: "Dr. Mehmet Kaya",
-            position: "Genel Sekreter",
-            bio: "Uluslararası spor organizasyonları deneyimi.",
-            image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop",
-            order: 3,
-          },
-        ];
+        // Sadece başkan kaydını oluştur, diğer üyeler admin tarafından eklenecek
+        const defaultPresident: Omit<BoardMember, "id"> = {
+          name: "Prof. Dr. Ahmet Yılmaz",
+          position: PRESIDENT_POSITION,
+          bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
+          image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+          order: 1,
+        };
 
-        // İlk kez ekle
         const { data: inserted, error: insertError } = await supabase
           .from('board')
-          .insert(defaultMembers)
+          .insert([defaultPresident])
           .select('*');
         
         if (insertError) {
@@ -159,6 +145,12 @@ const AdminBoard = () => {
   };
 
   const handleDelete = async (id: number) => {
+    const member = members.find((m) => m.id === id);
+    if (member && isPresident(member)) {
+      toast.warning('Başkan silinemez, sadece düzenlenebilir.');
+      return;
+    }
+
     if (confirm("Bu üyeyi silmek istediğinizden emin misiniz?")) {
       try {
         const { error } = await supabase
@@ -254,6 +246,8 @@ const AdminBoard = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(member.id)}
+                        disabled={isPresident(member)}
+                        title={isPresident(member) ? "Başkan silinemez" : "Sil"}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
