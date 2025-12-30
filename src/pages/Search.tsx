@@ -86,11 +86,18 @@ const Search = () => {
                   </Link>
                 ))}
               </div>
+            ) : query ? (
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-bold text-foreground mb-2">İçerik Bulunamadı</h2>
+                <p className="text-muted-foreground mb-6">
+                  "{query}" ile ilgili içerik bulunamadı. Lütfen farklı bir arama terimi deneyin.
+                </p>
+              </div>
             ) : (
               <div className="text-center py-12">
-                <h2 className="text-2xl font-bold text-foreground mb-2">Sonuç Bulunamadı</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Arama Yapın</h2>
                 <p className="text-muted-foreground mb-6">
-                  "{query}" için uygun içerik bulunamadı. Lütfen arama teriminizi değiştirip tekrar deneyin.
+                  Lütfen bir arama terimi girin.
                 </p>
               </div>
             )}

@@ -86,27 +86,27 @@ const Footer = () => {
             <h4 className="font-display font-bold text-lg mb-6">Faaliyetlerimiz</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/yayinlar?kategori=Araştırma" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/search?q=araştırma analiz" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Araştırma & Analiz
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar?kategori=Rapor" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/search?q=eğitim programları" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Eğitim Programları
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar?kategori=Politika Belgesi" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/search?q=politika önerileri" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Politika Önerileri
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/search?q=spor danışmanlığı" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Spor Danışmanlığı
                 </Link>
               </li>
               <li>
-                <Link to="/yayinlar" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
+                <Link to="/search?q=uluslararası işbirlikleri" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
                   Uluslararası İşbirlikleri
                 </Link>
               </li>
