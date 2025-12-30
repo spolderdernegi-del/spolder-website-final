@@ -8,12 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 interface Publication {
   id: number;
   title: string;
-  type: string;
-  year: string;
+  category: string;
   description: string;
-  pages: number;
-  downloadUrl: string;
-  previewUrl: string;
+  file_url: string;
+  file_type: string;
+  file_size: number;
   created_at: string;
 }
 
@@ -76,7 +75,19 @@ const Yayinlar = () => {
 
   const filteredPublications = activeFilter === "Tümü" 
     ? publications 
-    : publications.filter(pub => pub.type === activeFilter);
+    : publications.filter(pub => pub.category === activeFilter);
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return "0 KB";
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1) return `${mb.toFixed(2)} MB`;
+    return `${(bytes / 1024).toFixed(2)} KB`;
+  };
+
+  const handleDownload = (fileUrl: string, fileName: string) => {
+    // Dosyayı yeni sekmede aç (bu da indirir)
+    window.open(fileUrl, '_blank');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -169,12 +180,12 @@ const Yayinlar = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(pub.type)}`}>
-                        {pub.type}
+                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(pub.category)}`}>
+                        {pub.category || 'Genel'}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {pub.year}
+                        {new Date(pub.created_at).toLocaleDateString('tr-TR')}
                       </span>
                     </div>
                     <h3 className="font-display text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
@@ -185,28 +196,23 @@ const Yayinlar = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {pub.pages} sayfa
+                        {formatFileSize(pub.file_size)}
                       </span>
                       <div className="flex gap-2">
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => window.open(pub.previewUrl, '_blank')}
+                          onClick={() => window.open(pub.file_url, '_blank')}
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
-                          Önizle
+                          Aç
                         </Button>
                         <Button 
                           variant="gradient" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = pub.downloadUrl;
-                            link.download = `${pub.title}.pdf`;
-                            link.click();
-                          }}
+                          onClick={() => handleDownload(pub.file_url, pub.title)}
                         >
                           <Download className="w-3 h-3 mr-1" />
                           İndir
