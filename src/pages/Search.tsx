@@ -1,25 +1,144 @@
 import { useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Calendar, User } from "lucide-react";
+import { Calendar, User, Loader } from "lucide-react";
 import { Link } from "react-router-dom";
-import { allContent } from "@/lib/searchIndex";
+import { supabase } from "@/integrations/supabase/client";
+
+interface SearchResult {
+  id: string;
+  type: string;
+  title: string;
+  excerpt: string;
+  author: string;
+  image: string;
+  category: string;
+  link: string;
+  date: string;
+}
 
 const Search = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Arama sonuçlarını filtrele - sadece gerçek içerikler
-  const results = query
-    ? allContent.filter(
-        (item) =>
-          (item.title.toLowerCase().includes(query) ||
-          item.excerpt.toLowerCase().includes(query) ||
-          item.content.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query)) &&
-          (item.link && !item.link.includes('/search'))
-      )
-    : [];
+  useEffect(() => {
+    searchAllContent();
+  }, [query]);
+
+  const searchAllContent = async () => {
+    if (!query) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const allResults: SearchResult[] = [];
+
+      // Haberler
+      const { data: news } = await supabase
+        .from("news")
+        .select("*")
+        .eq("yayin_durumu", "yayinlandi")
+        .or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      
+      if (news) {
+        news.forEach((item) => {
+          allResults.push({
+            id: `news-${item.id}`,
+            type: "Haber",
+            title: item.baslik,
+            excerpt: item.ozet || "",
+            author: item.yazar || "SPOLDER",
+            image: item.gorsel || "",
+            category: item.kategori || "",
+            link: `/haber/${item.id}`,
+            date: item.tarih || new Date(item.created_at).toLocaleDateString("tr-TR"),
+          });
+        });
+      }
+
+      // Etkinlikler
+      const { data: events } = await supabase
+        .from("events")
+        .select("*")
+        .eq("yayin_durumu", "yayinlandi")
+        .or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      
+      if (events) {
+        events.forEach((item) => {
+          allResults.push({
+            id: `event-${item.id}`,
+            type: "Etkinlik",
+            title: item.baslik,
+            excerpt: item.ozet || "",
+            author: "SPOLDER",
+            image: item.gorsel || "",
+            category: item.kategori || "",
+            link: `/etkinlik/${item.id}`,
+            date: item.tarih || new Date(item.created_at).toLocaleDateString("tr-TR"),
+          });
+        });
+      }
+
+      // Projeler
+      const { data: projects } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("publishStatus", "published")
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      
+      if (projects) {
+        projects.forEach((item) => {
+          allResults.push({
+            id: `project-${item.id}`,
+            type: "Proje",
+            title: item.title,
+            excerpt: item.description || "",
+            author: "SPOLDER",
+            image: item.image || "",
+            category: item.category || "",
+            link: `/proje/${item.id}`,
+            date: item.start_date || new Date(item.created_at).toLocaleDateString("tr-TR"),
+          });
+        });
+      }
+
+      // Blog
+      const { data: blogs } = await supabase
+        .from("blog")
+        .select("*")
+        .eq("publishStatus", "published")
+        .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      
+      if (blogs) {
+        blogs.forEach((item) => {
+          allResults.push({
+            id: `blog-${item.id}`,
+            type: "Blog",
+            title: item.title,
+            excerpt: item.excerpt || "",
+            author: item.author || "SPOLDER",
+            image: item.image || "",
+            category: item.category || "",
+            link: `/blog/${item.id}`,
+            date: item.date || new Date(item.created_at).toLocaleDateString("tr-TR"),
+          });
+        });
+      }
+
+      setResults(allResults);
+    } catch (error) {
+      console.error("Arama hatası:", error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,7 +159,11 @@ const Search = () => {
         {/* Results */}
         <section className="section-padding">
           <div className="container-custom mx-auto">
-            {results.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center min-h-96">
+                <Loader className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : results.length > 0 ? (
               <div className="space-y-6">
                 {results.map((item) => (
                   <Link
