@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 interface Project {
   id: number;
@@ -33,9 +34,6 @@ const AdminProjects = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -110,33 +108,6 @@ const AdminProjects = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return formData.image;
-
-    setUploading(true);
-    try {
-      // Base64'e çevir ve imagePreview'i kullan (zaten base64 olarak var)
-      return imagePreview;
-    } catch (error) {
-      console.error('Görsel yükleme hatası:', error);
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -155,10 +126,7 @@ const AdminProjects = () => {
     setLoading(true);
 
     try {
-      let imageUrl = formData.image;
-      if (imageFile) {
-        imageUrl = await uploadImage();
-      }
+      const imageUrl = formData.image;
 
       const slug = formData.slug || formData.title
         .toLowerCase()
@@ -231,8 +199,6 @@ const AdminProjects = () => {
       metaDescription: project.metaDescription || '',
       showInSlider: project.showInSlider || false,
     });
-    setImagePreview(project.image || "");
-    setImageFile(null);
     setShowForm(true);
   };
 
@@ -319,8 +285,6 @@ const AdminProjects = () => {
   const resetForm = () => {
     setShowForm(false);
     setEditingProject(null);
-    setImageFile(null);
-    setImagePreview("");
     setFormData({
       title: "",
       description: "",
@@ -434,27 +398,13 @@ const AdminProjects = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Görsel</label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="mb-2"
+                  <ImageUploadField
+                    label="Görsel"
+                    value={formData.image}
+                    onChange={(value) => setFormData({ ...formData, image: value })}
+                    required
+                    aspectRatio={16 / 9}
                   />
-                  {imagePreview && (
-                    <div className="mt-3 border rounded-lg p-2">
-                      <img 
-                        src={imagePreview} 
-                        alt="Önizleme" 
-                        className="max-w-full h-48 object-cover rounded"
-                      />
-                      {imageFile && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Boyut: {(imageFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -556,9 +506,9 @@ const AdminProjects = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" disabled={loading || uploading} className="flex items-center gap-2">
+                <Button type="submit" disabled={loading} className="flex items-center gap-2">
                   <Save className="w-4 h-4" />
-                  {loading || uploading ? "Kaydediliyor..." : "Kaydet"}
+                  {loading ? "Kaydediliyor..." : "Kaydet"}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   İptal
@@ -570,9 +520,9 @@ const AdminProjects = () => {
             <div className="mt-8 pt-8 border-t">
               <h3 className="text-lg font-semibold text-foreground mb-4">Önizleme</h3>
               <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-                {imagePreview && (
+                {formData.image && (
                   <img 
-                    src={imagePreview} 
+                    src={formData.image} 
                     alt="Proje görseli" 
                     className="w-full h-64 object-cover rounded-lg mb-4"
                   />

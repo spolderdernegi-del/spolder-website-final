@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, MapPin, Search, Filter } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
+import ImageUploadField from "@/components/admin/ImageUploadField";
 
 interface Event {
   id: number;
@@ -38,8 +39,6 @@ const AdminEvents = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [locationMode, setLocationMode] = useState<'manual' | 'map'>('manual');
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,33 +119,6 @@ const AdminEvents = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return formData.gorsel;
-
-    setUploading(true);
-    try {
-      // Base64'e çevir ve imagePreview'i kullan (zaten base64 olarak var)
-      return imagePreview;
-    } catch (error) {
-      console.error('Görsel yükleme hatası:', error);
-      throw error;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -165,10 +137,7 @@ const AdminEvents = () => {
     setLoading(true);
 
     try {
-      let imageUrl = formData.gorsel;
-      if (imageFile) {
-        imageUrl = await uploadImage();
-      }
+      const imageUrl = formData.gorsel;
 
       // Slug oluştur
       const slug = formData.slug || formData.baslik.toLowerCase()
@@ -231,8 +200,6 @@ const AdminEvents = () => {
       sliderda_goster: event.sliderda_goster || false,
       google_form_link: event.google_form_link || '',
     });
-    setImagePreview(event.gorsel || "");
-    setImageFile(null);
     if (event.konum_lat && event.konum_lng) {
       setLocationMode('map');
     }
@@ -332,8 +299,6 @@ const AdminEvents = () => {
   const resetForm = () => {
     setShowForm(false);
     setEditingEvent(null);
-    setImageFile(null);
-    setImagePreview("");
     setLocationMode('manual');
     setFormData({
       baslik: "",
@@ -577,27 +542,13 @@ const AdminEvents = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Görsel</label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="mb-2"
+                  <ImageUploadField
+                    label="Görsel"
+                    value={formData.gorsel}
+                    onChange={(value) => setFormData({ ...formData, gorsel: value })}
+                    required
+                    aspectRatio={16 / 9}
                   />
-                  {imagePreview && (
-                    <div className="mt-3 border rounded-lg p-2">
-                      <img 
-                        src={imagePreview} 
-                        alt="Önizleme" 
-                        className="max-w-full h-48 object-cover rounded"
-                      />
-                      {imageFile && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Boyut: {(imageFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -722,9 +673,9 @@ const AdminEvents = () => {
             <div className="mt-8 pt-8 border-t">
               <h3 className="text-lg font-semibold text-foreground mb-4">Önizleme</h3>
               <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-                {imagePreview && (
+                {formData.gorsel && (
                   <img 
-                    src={imagePreview} 
+                    src={formData.gorsel} 
                     alt="Etkinlik görseli" 
                     className="w-full h-64 object-cover rounded-lg mb-4"
                   />

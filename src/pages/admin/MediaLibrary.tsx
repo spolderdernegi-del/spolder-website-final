@@ -245,10 +245,6 @@ const AdminMediaLibrary = () => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const filteredMedia = media.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
