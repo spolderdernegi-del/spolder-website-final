@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Save, X, MapPin, Search, Filter } from "
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
+import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
 
 interface Event {
   id: number;
@@ -451,49 +452,21 @@ const AdminEvents = () => {
                         placeholder="Konum adı (örn: İstanbul Kongre Merkezi)"
                         className="mb-2"
                       />
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Google Haritasında tıklayarak konum seçiniz</p>
-                      <div 
-                        className="relative w-full h-96 bg-gradient-to-br from-blue-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-lg overflow-hidden cursor-crosshair border-2 border-slate-300 dark:border-slate-600"
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const x = e.clientX - rect.left;
-                          const y = e.clientY - rect.top;
-                          
-                          const centerLat = 39.9334;
-                          const centerLng = 32.8597;
-                          const zoomLevel = 0.05;
-                          
-                          const lat = centerLat + (y / rect.height - 0.5) * zoomLevel * 2;
-                          const lng = centerLng + (x / rect.width - 0.5) * zoomLevel * 2;
-                          
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                        Google Haritasında işaretçiyi sürükleyin veya haritaya tıklayarak konum seçin
+                      </p>
+                      <GoogleMapPicker
+                        lat={formData.konum_lat}
+                        lng={formData.konum_lng}
+                        onLocationChange={(lat, lng) => {
                           setFormData({ 
                             ...formData, 
                             konum_lat: parseFloat(lat.toFixed(6)),
                             konum_lng: parseFloat(lng.toFixed(6))
                           });
                         }}
-                        style={{
-                          backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(59, 130, 246, 0.05) 25%, rgba(59, 130, 246, 0.05) 26%, transparent 27%, transparent 74%, rgba(59, 130, 246, 0.05) 75%, rgba(59, 130, 246, 0.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(59, 130, 246, 0.05) 25%, rgba(59, 130, 246, 0.05) 26%, transparent 27%, transparent 74%, rgba(59, 130, 246, 0.05) 75%, rgba(59, 130, 246, 0.05) 76%, transparent 77%, transparent)',
-                          backgroundSize: '40px 40px'
-                        }}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="text-center text-slate-600 dark:text-slate-400 bg-white/80 dark:bg-slate-900/80 px-4 py-2 rounded">
-                            <p className="text-sm font-medium">📍 Konum Seçmek İçin Tıkla</p>
-                          </div>
-                        </div>
-                        {formData.konum_lat !== 0 && formData.konum_lng !== 0 && (
-                          <div 
-                            className="absolute w-10 h-10 -ml-5 -mt-5 pointer-events-none animate-bounce"
-                            style={{
-                              left: `${((formData.konum_lng - (32.8597 - 0.25)) / 0.5 + 0.5) * 100}%`,
-                              top: `${((formData.konum_lat - (39.9334 - 0.25)) / 0.5 + 0.5) * 100}%`
-                            }}
-                          >
-                            <MapPin className="w-10 h-10 text-red-600 drop-shadow-lg" fill="currentColor" />
-                          </div>
-                        )}
-                      </div>
+                        height="400px"
+                      />
                       {formData.konum_lat !== 0 && formData.konum_lng !== 0 && (
                         <div className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-3 rounded">
                           <strong>Seçili Konum:</strong> {formData.konum_lat.toFixed(6)}, {formData.konum_lng.toFixed(6)}

@@ -7,6 +7,7 @@ import { ArrowLeft, Download, Upload, Trash2, Key, Activity } from "lucide-react
 import { exportAllData, importData, clearAllData } from "@/lib/dataManager";
 import { toast } from "@/lib/toast";
 import { getActivityLogs, getActionText, getContentTypeText, type ActivityLog } from "@/lib/activityLog";
+import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
 
 const AdminSettings = () => {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ const AdminSettings = () => {
   const [mapEmbedInput, setMapEmbedInput] = useState("");
   const [organizationLocation, setOrganizationLocation] = useState("");
   const [organizationLocationInput, setOrganizationLocationInput] = useState("");
+  const [organizationLat, setOrganizationLat] = useState(39.9334);
+  const [organizationLng, setOrganizationLng] = useState(32.8597);
   const [contactInfo, setContactInfo] = useState({
     phone: "",
     email: "",
@@ -228,11 +231,19 @@ const AdminSettings = () => {
       const { data, error } = await supabase
         .from('settings')
         .select('value')
-        .eq('key', 'organization_location')
-        .single();
-      if (!error && data?.value) {
-        setOrganizationLocation(data.value);
-        setOrganizationLocationInput(data.value);
+        .in('key', ['organization_location', 'organization_lat', 'organization_lng']);
+      
+      if (!error && data) {
+        data.forEach(item => {
+          if (item.key === 'organization_location') {
+            setOrganizationLocation(item.value);
+            setOrganizationLocationInput(item.value);
+          } else if (item.key === 'organization_lat') {
+            setOrganizationLat(parseFloat(item.value) || 39.9334);
+          } else if (item.key === 'organization_lng') {
+            setOrganizationLng(parseFloat(item.value) || 32.8597);
+          }
+        });
       }
     } catch (err) {
       console.error("Konum ayarı yüklenemedi:", err);
@@ -246,10 +257,14 @@ const AdminSettings = () => {
     }
 
     try {
-      const { error } = await supabase
+      await supabase
         .from('settings')
-        .upsert({ key: 'organization_location', value: organizationLocationInput, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-      if (error) throw error;
+        .upsert([
+          { key: 'organization_location', value: organizationLocationInput, updated_at: new Date().toISOString() },
+          { key: 'organization_lat', value: organizationLat.toString(), updated_at: new Date().toISOString() },
+          { key: 'organization_lng', value: organizationLng.toString(), updated_at: new Date().toISOString() }
+        ], { onConflict: 'key' });
+      
       setOrganizationLocation(organizationLocationInput);
       toast.success('Konum bilgisi başarıyla güncellendi');
     } catch (err: any) {
@@ -488,7 +503,7 @@ const AdminSettings = () => {
         {/* Kuruluş Konumu */}
         <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="text-xl font-bold text-foreground mb-4">Kuruluş Konumu</h2>
-          <p className="text-sm text-muted-foreground mb-4">İletişim sayfasında gösterilecek adres bilgisini güncelleyin.</p>
+          <p className="text-sm text-muted-foreground mb-4">İletişim sayfasında gösterilecek adres ve harita konumunu güncelleyin.</p>
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Adres Bilgisi</label>
@@ -500,6 +515,24 @@ const AdminSettings = () => {
                 placeholder="Atatürk Bulvarı No: 123&#10;Çankaya, Ankara 06100"
               />
               <p className="text-xs text-muted-foreground mt-2">Her satıra bir satır adres bilgisi yazın.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Harita Konumu
+                <span className="text-xs text-muted-foreground ml-2">(İşaretçiyi sürükleyin veya haritaya tıklayın)</span>
+              </label>
+              <GoogleMapPicker
+                lat={organizationLat}
+                lng={organizationLng}
+                onLocationChange={(lat, lng) => {
+                  setOrganizationLat(lat);
+                  setOrganizationLng(lng);
+                }}
+                height="400px"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Seçili Konum: {organizationLat.toFixed(6)}, {organizationLng.toFixed(6)}
+              </p>
             </div>
             <Button onClick={handleOrganizationLocationChange} className="w-full">Konumu Kaydet</Button>
           </div>
