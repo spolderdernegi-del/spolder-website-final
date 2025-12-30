@@ -15,6 +15,7 @@ const Iletisim = () => {
     subject: "",
     message: "",
   });
+  const [mapUrl, setMapUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [organizationLocation, setOrganizationLocation] = useState("");
   const [contactInfo, setContactInfo] = useState({
@@ -30,6 +31,7 @@ const Iletisim = () => {
       try {
         setLoading(true);
         const keys = [
+          'contact_map_embed',
           'organization_location',
           'contact_phone',
           'contact_email',
@@ -47,6 +49,7 @@ const Iletisim = () => {
           const newContactInfo = { ...contactInfo };
           
           data.forEach((item: any) => {
+            if (item.key === 'contact_map_embed') setMapUrl(item.value);
             if (item.key === 'organization_location') setOrganizationLocation(item.value);
             if (item.key === 'contact_phone') newContactInfo.phone = item.value;
             if (item.key === 'contact_email') newContactInfo.email = item.value;
@@ -257,10 +260,19 @@ const Iletisim = () => {
             </div>
 
             {/* Map */}
-            <div className="mt-12 rounded-lg overflow-hidden shadow-card">
-              <p className="text-center text-muted-foreground py-8">
-                Harita yükleniyor...
-              </p>
+            <div className="mt-12 rounded-lg overflow-hidden shadow-card h-[400px]">
+              {mapUrl && (
+                <iframe
+                  src={mapUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="SPOlDER Konum"
+                />
+              )}
             </div>
           </div>
         </section>
