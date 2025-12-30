@@ -3,17 +3,16 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, Trash2, Search, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Download, Image as ImageIcon, Search, Filter, ExternalLink } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { logActivity } from "@/lib/activityLog";
 
 interface MediaItem {
-  id: number;
+  id: string;
   url: string;
-  name: string;
-  size: number;
-  type: string;
-  uploadedAt: string;
+  type: 'event' | 'news' | 'blog' | 'project';
+  title: string;
+  date: string;
+  sourceId: number;
 }
 
 const AdminMediaLibrary = () => {
@@ -21,7 +20,7 @@ const AdminMediaLibrary = () => {
   const [loading, setLoading] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMedia, setSelectedMedia] = useState<number[]>([]);
+  const [filterType, setFilterType] = useState<string>("all");
 
   useEffect(() => {
     checkAuth();
@@ -45,60 +44,152 @@ const AdminMediaLibrary = () => {
   const loadMedia = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('files')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const allMedia: MediaItem[] = [];
 
-      if (error) throw error;
-      const mapped = (data || []).map((row: any) => ({
-        id: row.id,
-        url: row.file_url,
-        name: row.title || 'Dosya',
-        size: row.file_size || 0,
-        type: row.file_type || 'application/octet-stream',
-        uploadedAt: row.created_at,
-      } as MediaItem));
-      setMedia(mapped);
-    } catch (err) {
-      console.error('Error loading media:', err);
+      // Events'ten görselleri al
+      const { data: events } = await supabase
+        .from('events')
+        .select('id, baslik, gorsel, created_at')
+        .not('gorsel', 'is', null)
+        .not('gorsel', 'eq', '');
+      
+      if (events) {
+        events.forEach(event => {
+          if (event.gorsel) {
+            allMedia.push({
+              id: `event-${event.id}`,
+              url: event.gorsel,
+              type: 'event',
+              title: event.baslik,
+              date: event.created_at,
+              sourceId: event.id
+            });
+          }
+        });
+      }
+
+      // News'ten görselleri al
+      const { data: news } = await supabase
+        .from('news')
+        .select('id, baslik, gorsel, created_at')
+        .not('gorsel', 'is', null)
+        .not('gorsel', 'eq', '');
+      
+      if (news) {
+        news.forEach(item => {
+          if (item.gorsel) {
+            allMedia.push({
+              id: `news-${item.id}`,
+              url: item.gorsel,
+              type: 'news',
+              title: item.baslik,
+              date: item.created_at,
+              sourceId: item.id
+            });
+          }
+        });
+      }
+
+      // Blog'dan görselleri al
+      const { data: blogs } = await supabase
+        .from('blog')
+        .select('id, title, image, created_at')
+        .not('image', 'is', null)
+        .not('image', 'eq', '');
+      
+      if (blogs) {
+        blogs.forEach(blog => {
+          if (blog.image) {
+            allMedia.push({
+              id: `blog-${blog.id}`,
+              url: blog.image,
+              type: 'blog',
+              title: blog.title,
+              date: blog.created_at,
+              sourceId: blog.id
+            });
+          }
+        });
+      }
+
+      // Projects'ten görselleri al
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('id, title, image, created_at')
+        .not('image', 'is', null)
+        .not('image', 'eq', '');
+      
+      if (projects) {
+        projects.forEach(project => {
+          if (project.image) {
+            allMedia.push({
+              id: `project-${project.id}`,
+              url: project.image,
+              type: 'project',
+              title: project.title,
+              date: project.created_at,
+              sourceId: project.id
+            });
+          }
+        });
+      }
+
+      // Tarihe göre sırala (en yeni en başta)
+      allMedia.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setMedia(allMedia);
+    } catch (error) {
+      console.error("Error fetching media:", error);
       toast.error('Medya yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const fileUrl = reader.result as string; // Base64 data URL
-          const { error } = await supabase.from('files').insert([
-            {
-              title: file.name,
-              description: null,
-              file_url: fileUrl,
-              file_type: file.type,
-              file_size: file.size,
-              category: 'media',
-            },
-          ]);
-          if (error) throw error;
-          logActivity('create', 'file', file.name);
-          toast.success(`"${file.name}" yüklendi!`);
-          loadMedia();
-        } catch (err: any) {
-          console.error('Upload error:', err);
-          toast.error('Yükleme sırasında hata oluştu: ' + err.message);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'event': return 'Etkinlik';
+      case 'news': return 'Haber';
+      case 'blog': return 'Blog';
+      case 'project': return 'Proje';
+      default: return type;
+    }
   };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'event': return 'bg-blue-100 text-blue-700';
+      case 'news': return 'bg-green-100 text-green-700';
+      case 'blog': return 'bg-purple-100 text-purple-700';
+      case 'project': return 'bg-orange-100 text-orange-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const handleDownload = (url: string, title: string) => {
+    try {
+      if (url.startsWith('data:')) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Görsel indiriliyor...');
+      } else {
+        window.open(url, '_blank');
+        toast.success('Görsel yeni sekmede açıldı');
+      }
+    } catch (error) {
+      toast.error('İndirme hatası');
+    }
+  };
+
+  const filteredMedia = media.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || item.type === filterType;
+    return matchesSearch && matchesType;
+  });
 
   const handleDelete = async (id: number) => {
     const item = media.find(m => m.id === id);
@@ -167,152 +258,138 @@ const AdminMediaLibrary = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <header className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="container-custom mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/admin">
+            <Link to="/admin/dashboard">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Geri
+                Dashboard'a Dön
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold text-foreground">Medya Kütüphanesi</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Medya Kütüphanesi</h1>
+              <p className="text-gray-600">Sitede kullanılan tüm görseller</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            {selectedMedia.length > 0 && (
-              <Button onClick={handleBulkDelete} variant="destructive" size="sm">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Seçilenleri Sil ({selectedMedia.length})
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder="Görsel ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={filterType === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('all')}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Tümü ({media.length})
               </Button>
-            )}
-            <div className="relative">
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <Button className="flex items-center gap-2 pointer-events-none">
-                <Upload className="w-4 h-4" />
-                Görsel Yükle
+              <Button
+                variant={filterType === 'event' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('event')}
+              >
+                Etkinlikler
+              </Button>
+              <Button
+                variant={filterType === 'news' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('news')}
+              >
+                Haberler
+              </Button>
+              <Button
+                variant={filterType === 'blog' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('blog')}
+              >
+                Blog
+              </Button>
+              <Button
+                variant={filterType === 'project' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('project')}
+              >
+                Projeler
               </Button>
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="container-custom mx-auto px-4 py-8">
-        {/* Arama */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Medya ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        {/* Empty State */}
+        {filteredMedia.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <ImageIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Görsel bulunamadı</h3>
+            <p className="text-gray-600">Filtrelerinize uygun görsel yok.</p>
           </div>
-        </div>
+        )}
 
-        {/* Medya Grid */}
-        {filteredMedia.length === 0 ? (
-          <div className="text-center py-12">
-            <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {searchTerm ? 'Medya bulunamadı' : 'Henüz medya yüklenmemiş'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* Media Grid */}
+        {filteredMedia.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filteredMedia.map((item) => (
               <div
                 key={item.id}
-                className="bg-white dark:bg-slate-950 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden group relative"
+                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
               >
-                <div className="absolute top-2 left-2 z-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedMedia.includes(item.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedMedia([...selectedMedia, item.id]);
-                      } else {
-                        setSelectedMedia(selectedMedia.filter(id => id !== item.id));
-                      }
-                    }}
-                    className="w-5 h-5 cursor-pointer"
-                  />
-                </div>
-
-                <div className="aspect-square bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+                <div className="aspect-square relative overflow-hidden bg-gray-100">
                   <img
                     src={item.url}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
-                </div>
-
-                <div className="p-3">
-                  <p className="text-sm font-medium text-foreground truncate" title={item.name}>
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatFileSize(item.size)}
-                  </p>
-                  
-                  <div className="flex gap-2 mt-3">
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => copyToClipboard(item.url)}
-                      className="flex-1 text-xs"
+                      variant="secondary"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => window.open(item.url, '_blank')}
                     >
-                      URL Kopyala
+                      <ExternalLink className="w-4 h-4" />
                     </Button>
                     <Button
                       size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(item.id)}
+                      variant="secondary"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDownload(item.url, item.title)}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Download className="w-4 h-4" />
                     </Button>
                   </div>
+                </div>
+                <div className="p-3">
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mb-2 ${getTypeColor(item.type)}`}>
+                    {getTypeLabel(item.type)}
+                  </span>
+                  <h3 className="text-sm font-medium text-gray-900 truncate" title={item.title}>
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(item.date).toLocaleDateString('tr-TR')}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        {/* İstatistikler */}
-        <div className="mt-8 bg-white dark:bg-slate-950 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-          <h3 className="font-semibold text-foreground mb-4">İstatistikler</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Toplam Medya</p>
-              <p className="text-2xl font-bold text-foreground">{media.length}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Toplam Boyut</p>
-              <p className="text-2xl font-bold text-foreground">
-                {formatFileSize(media.reduce((sum, item) => sum + item.size, 0))}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Seçili</p>
-              <p className="text-2xl font-bold text-foreground">{selectedMedia.length}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Görseller</p>
-              <p className="text-2xl font-bold text-foreground">
-                {media.filter(m => m.type.startsWith('image/')).length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };
