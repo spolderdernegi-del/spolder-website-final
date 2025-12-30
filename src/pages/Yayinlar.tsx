@@ -87,18 +87,51 @@ const Yayinlar = () => {
 
   const handleDownload = (fileUrl: string, fileName: string, fileType: string) => {
     try {
-      // Base64 kontrolü
+      // Dosya uzantısını belirle
+      let extension = '';
+      if (fileType.includes('pdf')) {
+        extension = '.pdf';
+      } else if (fileType.includes('word') || fileType.includes('document')) {
+        extension = '.docx';
+      } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
+        extension = '.xlsx';
+      } else if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
+        extension = '.pptx';
+      } else if (fileType.includes('text')) {
+        extension = '.txt';
+      }
+
+      // Dosya adını hazırla
+      const downloadFileName = fileName + extension;
+
       if (fileUrl.startsWith('data:')) {
         // Base64 dosyayı indir
         const link = document.createElement('a');
         link.href = fileUrl;
-        link.download = fileName;
+        link.download = downloadFileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        toast.success('Dosya indiriliyor...');
       } else {
-        // Normal URL - yeni sekmede aç
-        window.open(fileUrl, '_blank');
+        // Normal URL - fetch ile indir
+        fetch(fileUrl)
+          .then(response => response.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = downloadFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast.success('Dosya indiriliyor...');
+          })
+          .catch(() => {
+            // Fetch başarısız olursa yeni sekmede aç
+            window.open(fileUrl, '_blank');
+          });
       }
     } catch (error) {
       console.error('İndirme hatası:', error);
@@ -106,22 +139,38 @@ const Yayinlar = () => {
     }
   };
 
-  const handleOpen = (fileUrl: string) => {
+  const handleOpen = (fileUrl: string, fileType: string) => {
     try {
       if (fileUrl.startsWith('data:')) {
-        // Base64 dosyayı yeni sekmede aç
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`
-            <html>
-              <head><title>Dosya Önizleme</title></head>
-              <body style="margin:0">
-                <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
-              </body>
-            </html>
-          `);
+        // Base64 dosyası - dosya tipine göre işlem yap
+        if (fileType.includes('pdf') || fileType.includes('word') || fileType.includes('document')) {
+          // PDF ve Word için yeni sekmede aç
+          const newWindow = window.open();
+          if (newWindow) {
+            if (fileType.includes('pdf')) {
+              // PDF için iframe kullan
+              newWindow.document.write(`
+                <html>
+                  <head>
+                    <title>PDF Önizleme</title>
+                    <style>body{margin:0;overflow:hidden}</style>
+                  </head>
+                  <body>
+                    <iframe src="${fileUrl}" style="width:100%;height:100vh;border:none"></iframe>
+                  </body>
+                </html>
+              `);
+            } else {
+              // Word dosyaları için direkt indirmeye yönlendir
+              newWindow.location.href = fileUrl;
+            }
+          }
+        } else {
+          // Diğer dosyalar için yeni sekmede aç
+          window.open(fileUrl, '_blank');
         }
       } else {
+        // Normal URL - yeni sekmede aç
         window.open(fileUrl, '_blank');
       }
     } catch (error) {
@@ -244,7 +293,7 @@ const Yayinlar = () => {
                           variant="outline" 
                           size="sm" 
                           className="text-xs"
-                          onClick={() => handleOpen(pub.file_url)}
+                          onClick={() => handleOpen(pub.file_url, pub.file_type)}
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
                           Aç
