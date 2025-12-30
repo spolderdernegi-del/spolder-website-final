@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface GoogleMapPickerProps {
   lat: number;
@@ -8,55 +10,87 @@ interface GoogleMapPickerProps {
   height?: string;
 }
 
-const GoogleMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: GoogleMapPickerProps) => {
-  const [markerPosition, setMarkerPosition] = useState({ lat, lng });
+// Leaflet marker icon ayarlarını düzelt
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
-  const mapContainerStyle = {
-    width: '100%',
-    height: height
-  };
+// Harita tıklama olaylarını yakalayan iç komponent
+const MapClickHandler = ({ onLocationChange }: { onLocationChange: (lat: number, lng: number) => void }) => {
+  useMapEvents({
+    click(e) {
+      onLocationChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
 
-  const center = {
-    lat: lat || 39.9334,
-    lng: lng || 32.8597
-  };
+// Sürüklenebilir marker komponenti
+const DraggableMarker = ({ 
+  initialLat, 
+  initialLng, 
+  onLocationChange 
+}: { 
+  initialLat: number; 
+  initialLng: number; 
+  onLocationChange: (lat: number, lng: number) => void;
+}) => {
+  const [position, setPosition] = useState({ lat: initialLat, lng: initialLng });
 
-  const onMarkerDragEnd = useCallback((e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const newLat = e.latLng.lat();
-      const newLng = e.latLng.lng();
-      setMarkerPosition({ lat: newLat, lng: newLng });
-      onLocationChange(newLat, newLng);
+  const marker: any = null;
+
+  const handleDragEnd = useCallback(() => {
+    if (marker) {
+      const newPos = marker.getLatLng();
+      setPosition({ lat: newPos.lat, lng: newPos.lng });
+      onLocationChange(newPos.lat, newPos.lng);
     }
-  }, [onLocationChange]);
+  }, [onLocationChange, marker]);
 
-  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const newLat = e.latLng.lat();
-      const newLng = e.latLng.lng();
-      setMarkerPosition({ lat: newLat, lng: newLng });
-      onLocationChange(newLat, newLng);
-    }
+  return position.lat !== 0 && position.lng !== 0 ? (
+    <Marker 
+      position={[position.lat, position.lng]}
+      draggable={true}
+      eventHandlers={{
+        dragend: handleDragEnd,
+      }}
+    >
+      <Popup>Konum seçildi</Popup>
+    </Marker>
+  ) : null;
+};
+
+const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: GoogleMapPickerProps) => {
+  const [markerPos, setMarkerPos] = useState({ lat: lat || 39.9334, lng: lng || 32.8597 });
+
+  const handleLocationChange = useCallback((newLat: number, newLng: number) => {
+    setMarkerPos({ lat: newLat, lng: newLng });
+    onLocationChange(newLat, newLng);
   }, [onLocationChange]);
 
   return (
-    <LoadScript googleMapsApiKey="AIzaSyDtb3Kn3XOl_Hv6hSc0rwKdPd1fGVWXKjY">
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={markerPosition.lat !== 0 ? markerPosition : center}
+    <div style={{ width: '100%', height }} className="rounded-md overflow-hidden border border-slate-200">
+      <MapContainer
+        center={[markerPos.lat, markerPos.lng]}
         zoom={13}
-        onClick={onMapClick}
+        style={{ width: '100%', height: '100%' }}
       >
-        {(markerPosition.lat !== 0 || markerPosition.lng !== 0) && (
-          <Marker
-            position={markerPosition}
-            draggable={true}
-            onDragEnd={onMarkerDragEnd}
-          />
-        )}
-      </GoogleMap>
-    </LoadScript>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapClickHandler onLocationChange={handleLocationChange} />
+        <DraggableMarker 
+          initialLat={markerPos.lat} 
+          initialLng={markerPos.lng}
+          onLocationChange={handleLocationChange}
+        />
+      </MapContainer>
+    </div>
   );
 };
 
-export default GoogleMapPicker;
+export default OpenStreetMapPicker;
