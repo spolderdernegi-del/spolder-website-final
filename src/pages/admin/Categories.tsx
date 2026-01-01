@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ const FIXED_CATEGORIES = [
 const AdminCategories = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({
@@ -32,19 +33,19 @@ const AdminCategories = () => {
     color: "#3B82F6",
   });
 
-  useEffect(() => {
-    checkAuth();
-    fetchCategories();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
       return;
     }
     setLoading(false);
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuth();
+    fetchCategories();
+  }, [checkAuth]);
 
   const fetchCategories = async () => {
     try {

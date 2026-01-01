@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -28,19 +28,19 @@ const AdminWelcomeModal = () => {
     buttonText: "",
   });
 
-  useEffect(() => {
-    checkAuth();
-    loadModalContent();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
       return;
     }
     setLoading(false);
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuth();
+    loadModalContent();
+  }, [checkAuth]);
 
   const loadModalContent = () => {
     const stored = localStorage.getItem('spolder_welcome_modal');

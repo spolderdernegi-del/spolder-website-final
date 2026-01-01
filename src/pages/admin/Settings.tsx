@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,15 @@ const AdminSettings = () => {
     iban_eur: ""
   });
 
+  const checkAuth = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/admin/login");
+      return;
+    }
+    setLoading(false);
+  }, [navigate]);
+
   useEffect(() => {
     checkAuth();
     loadActivityLogs();
@@ -46,7 +55,7 @@ const AdminSettings = () => {
     loadMapEmbed();
     loadOrganizationLocation();
     loadContactInfo();
-  }, []);
+  }, [checkAuth]);
 
   const loadCounts = async () => {
     try {
@@ -66,15 +75,6 @@ const AdminSettings = () => {
     } catch (error) {
       console.error("Error loading counts:", error);
     }
-  };
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
-      return;
-    }
-    setLoading(false);
   };
 
   const loadActivityLogs = () => {
