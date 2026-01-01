@@ -12,6 +12,7 @@ interface ContactMessage {
   subject: string;
   message: string;
   created_at: string;
+  is_read: boolean;
 }
 
 const AdminContactMessages = () => {
@@ -32,6 +33,15 @@ const AdminContactMessages = () => {
         .order('created_at', { ascending: false });
       if (error) throw error;
       setMessages(data || []);
+      
+      // Tüm mesajları okundu olarak işaretle
+      const unreadIds = (data || []).filter((m: ContactMessage) => !m.is_read).map((m: ContactMessage) => m.id);
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('contact_messages')
+          .update({ is_read: true })
+          .in('id', unreadIds);
+      }
     } catch (err: any) {
       toast.error('Mesajlar yüklenemedi: ' + err.message);
     } finally {
@@ -97,10 +107,15 @@ const AdminContactMessages = () => {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {messages.map((msg) => (
-                  <tr key={msg.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                  <tr key={msg.id} className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 ${!msg.is_read ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-foreground">{msg.name}</div>
-                      <div className="text-xs text-muted-foreground">{msg.email}</div>
+                      <div className="flex items-center gap-2">
+                        {!msg.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                        <div>
+                          <div className="font-semibold text-foreground">{msg.name}</div>
+                          <div className="text-xs text-muted-foreground">{msg.email}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-foreground">{msg.subject || '-'} </td>
                     <td className="px-4 py-3 text-sm text-foreground whitespace-pre-wrap max-w-lg">{msg.message}</td>

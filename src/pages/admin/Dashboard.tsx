@@ -15,6 +15,7 @@ const AdminDashboard = () => {
     projects: 0,
     files: 0,
   });
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [recentNews, setRecentNews] = useState<any[]>([]);
 
@@ -22,6 +23,7 @@ const AdminDashboard = () => {
     checkAuth();
     fetchStats();
     fetchRecentContent();
+    fetchUnreadMessages();
   }, []);
 
   const checkAuth = async () => {
@@ -94,6 +96,18 @@ const AdminDashboard = () => {
       setRecentNews(newsData.data || []);
     } catch (error) {
       console.error("Son içerikler yüklenirken hata:", error);
+    }
+  };
+
+  const fetchUnreadMessages = async () => {
+    try {
+      const { count } = await supabase
+        .from('contact_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_read', false);
+      setUnreadMessages(count || 0);
+    } catch (error) {
+      console.error("Okunmamış mesaj sayısı yüklenirken hata:", error);
     }
   };
 
@@ -181,6 +195,7 @@ const AdminDashboard = () => {
       icon: MessageSquare,
       href: "/admin/messages",
       color: "bg-emerald-500",
+      badge: unreadMessages,
     },
     {
       title: "Ayarlar",
@@ -223,13 +238,18 @@ const AdminDashboard = () => {
             <Link
               key={item.href}
               to={item.href}
-              className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 hover:shadow-lg transition-all hover:scale-105"
+              className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 hover:shadow-lg transition-all hover:scale-105 relative"
             >
               <div className={`w-12 h-12 rounded-lg ${item.color} flex items-center justify-center mb-4`}>
                 <item.icon className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.description}</p>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           ))}
         </div>
