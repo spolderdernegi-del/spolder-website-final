@@ -3,8 +3,11 @@
 ALTER TABLE public.contact_messages 
 ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
 
+-- Eski policy varsa sil
+DROP POLICY IF EXISTS update_contact_messages ON public.contact_messages;
+
 -- Update policy ekle
-CREATE POLICY IF NOT EXISTS update_contact_messages 
+CREATE POLICY update_contact_messages 
 ON public.contact_messages 
 FOR UPDATE 
 USING (auth.role() = 'authenticated');
