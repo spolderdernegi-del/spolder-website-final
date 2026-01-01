@@ -157,6 +157,13 @@ const AdminDashboard = () => {
       color: "bg-cyan-500",
     },
     {
+      title: "Gelen Mesajlar",
+      description: "İletişim formu mesajları",
+      icon: MessageSquare,
+      href: "/admin/messages",
+      color: "bg-emerald-500",
+    },
+    {
       title: "Ayarlar",
       description: "Veri yönetimi, aktivite logu, şifre",
       icon: Settings,

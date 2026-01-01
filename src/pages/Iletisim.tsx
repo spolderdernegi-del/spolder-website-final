@@ -87,10 +87,28 @@ const Iletisim = () => {
     loadInfo();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Mesajınız başarıyla gönderildi!");
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('contact_messages').insert([
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Mesajınız başarıyla iletildi!");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      toast.error("Mesaj gönderilemedi: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const donationIbanTL = contactInfo.iban_tl;

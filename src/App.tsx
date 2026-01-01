@@ -34,6 +34,7 @@ import AdminWelcomeModal from "./pages/admin/WelcomeModal";
 import AdminSettings from "./pages/admin/Settings";
 import AdminBoard from "./pages/admin/Board";
 import AdminBankInfo from "./pages/admin/BankInfo";
+import AdminContactMessages from "./pages/admin/ContactMessages";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
           <Route path="/admin/media" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
           <Route path="/admin/board" element={<ProtectedRoute><AdminBoard /></ProtectedRoute>} />
           <Route path="/admin/bank-info" element={<ProtectedRoute><AdminBankInfo /></ProtectedRoute>} />
+          <Route path="/admin/messages" element={<ProtectedRoute><AdminContactMessages /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         {/* WhatsApp Floating Button */}
