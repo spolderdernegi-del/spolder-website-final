@@ -114,14 +114,23 @@ const Hakkimizda = () => {
                     Sporun Gücüne İnanıyoruz
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    "{presidentInfo.bio}"
+                    Spor Politikaları Derneği'nin resmi web sitesine hoş geldiniz. Sporun, toplumu bir araya getiren ve bireylerin yaşam kalitesini artıran en önemli unsurlardan biri olduğuna yürekten inanıyoruz. Dernek olarak, sporun her dalında sürdürülebilir ve kapsayıcı politikalar geliştirmek için çalışıyoruz.
                   </p>
                   <p className="text-muted-foreground leading-relaxed">
-                    "SPOLDER olarak, sporun sadece bir fiziksel aktivite olmadığına, aynı zamanda toplumsal dönüşümün önemli bir aracı olduğuna inanıyoruz. Amacımız, Türkiye'nin spor ekosistemini güçlendirmek ve herkesin spor yapma hakkını savunmaktır."
+                    Derneğimiz aracılığıyla sizlerle projelerimizi, araştırmalarımızı ve etkinliklerimizi paylaşmayı hedefliyoruz. Spor bilimleri, yönetimi ve eğitimine olan katkılarımızla, gençlerimize ve spor dünyasına yeni ufuklar açmak için buradayız. Herkesin spora erişimini kolaylaştırmak ve sporun yaygınlaşmasını sağlamak için çeşitli projeler yürütmekteyiz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Siz değerli Spor paydaşlarının her birinin desteği, bizim için büyük bir motivasyon kaynağı. Sporun gücüne inanan herkesi, bu yolculukta bizimle birlikte olmaya ve katkı sunmaya davet ediyoruz. Görüşleriniz ve önerilerinizle bize yön vereceğinizi ve birlikte daha büyük başarılara imza atacağımızı umuyoruz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed italic">
+                    Spor dolu ve sağlıklı günler dileriz.
                   </p>
                   <p className="font-display font-bold text-foreground">
                     {presidentInfo.name}
                     <span className="font-normal text-muted-foreground block text-sm">SPOLDER Başkanı</span>
+                  </p>
+                  <p className="text-muted-foreground text-sm italic">
+                    Sevgi ve saygılarımızla...
                   </p>
                 </div>
                 <div className="relative">
