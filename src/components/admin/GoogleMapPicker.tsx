@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-interface GoogleMapPickerProps {
+interface OpenStreetMapPickerProps {
   lat: number;
   lng: number;
   onLocationChange: (lat: number, lng: number) => void;
@@ -39,24 +39,27 @@ const DraggableMarker = ({
   onLocationChange: (lat: number, lng: number) => void;
 }) => {
   const [position, setPosition] = useState({ lat: initialLat, lng: initialLng });
+  const markerRef = useRef<L.Marker>(null);
 
-  // Prop değişirse state güncelle
+  // Prop değişirse state ve marker pozisyonunu güncelle
   useEffect(() => {
     setPosition({ lat: initialLat, lng: initialLng });
+    if (markerRef.current) {
+      markerRef.current.setLatLng([initialLat, initialLng]);
+    }
   }, [initialLat, initialLng]);
 
-  const marker: any = null;
-
   const handleDragEnd = useCallback(() => {
-    if (marker) {
-      const newPos = marker.getLatLng();
+    if (markerRef.current) {
+      const newPos = markerRef.current.getLatLng();
       setPosition({ lat: newPos.lat, lng: newPos.lng });
       onLocationChange(newPos.lat, newPos.lng);
     }
-  }, [onLocationChange, marker]);
+  }, [onLocationChange]);
 
   return position.lat !== 0 && position.lng !== 0 ? (
     <Marker 
+      ref={markerRef}
       position={[position.lat, position.lng]}
       draggable={true}
       eventHandlers={{
@@ -68,8 +71,15 @@ const DraggableMarker = ({
   ) : null;
 };
 
-const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: GoogleMapPickerProps) => {
+const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: OpenStreetMapPickerProps) => {
   const [markerPos, setMarkerPos] = useState({ lat: lat || 39.9334, lng: lng || 32.8597 });
+
+  // Props değiştiğinde marker pozisyonunu güncelle
+  useEffect(() => {
+    if (lat !== markerPos.lat || lng !== markerPos.lng) {
+      setMarkerPos({ lat: lat || 39.9334, lng: lng || 32.8597 });
+    }
+  }, [lat, lng]);
 
   const handleLocationChange = useCallback((newLat: number, newLng: number) => {
     setMarkerPos({ lat: newLat, lng: newLng });
@@ -79,7 +89,7 @@ const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: G
   return (
     <div style={{ width: '100%', height }} className="rounded-md overflow-hidden border border-slate-200">
       <MapContainer
-        key={`${lat}-${lng}`}
+        key={`${markerPos.lat}-${markerPos.lng}`}
         center={[markerPos.lat, markerPos.lng]}
         zoom={13}
         style={{ width: '100%', height: '100%' }}
