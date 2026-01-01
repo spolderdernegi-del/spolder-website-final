@@ -202,7 +202,7 @@ const AdminSettings = () => {
     try {
       const { data, error } = await supabase
         .from('settings')
-        .select('value')
+        .select('key, value')
         .in('key', ['organization_location', 'organization_lat', 'organization_lng']);
       
       if (!error && data) {
@@ -211,9 +211,15 @@ const AdminSettings = () => {
             setOrganizationLocation(item.value);
             setOrganizationLocationInput(item.value);
           } else if (item.key === 'organization_lat') {
-            setOrganizationLat(parseFloat(item.value) || 39.9334);
+            const lat = parseFloat(item.value);
+            if (!isNaN(lat)) {
+              setOrganizationLat(lat);
+            }
           } else if (item.key === 'organization_lng') {
-            setOrganizationLng(parseFloat(item.value) || 32.8597);
+            const lng = parseFloat(item.value);
+            if (!isNaN(lng)) {
+              setOrganizationLng(lng);
+            }
           }
         });
       }
