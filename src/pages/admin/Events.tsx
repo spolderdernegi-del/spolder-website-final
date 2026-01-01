@@ -90,16 +90,12 @@ const AdminEvents = () => {
   };
 
   const checkAuth = async () => {
-    // Basit auth kontrolü
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth === "true") {
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
+      return;
     }
+    setLoading(false);
   };
 
   const fetchEvents = async () => {

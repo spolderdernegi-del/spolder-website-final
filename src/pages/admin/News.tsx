@@ -74,15 +74,12 @@ const AdminNews = () => {
   };
 
   const checkAuth = async () => {
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth === "true") {
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
+      return;
     }
+    setLoading(false);
   };
 
   const fetchNews = async () => {

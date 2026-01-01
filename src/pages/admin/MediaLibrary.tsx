@@ -28,11 +28,6 @@ const AdminMediaLibrary = () => {
   }, []);
 
   const checkAuth = async () => {
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth === "true") {
-      setLoading(false);
-      return;
-    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");

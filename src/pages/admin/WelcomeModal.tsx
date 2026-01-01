@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,9 +33,9 @@ const AdminWelcomeModal = () => {
     loadModalContent();
   }, []);
 
-  const checkAuth = () => {
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth !== "true") {
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       navigate("/admin/login");
       return;
     }

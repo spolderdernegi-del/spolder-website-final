@@ -27,33 +27,6 @@ const AdminDashboard = () => {
   }, []);
 
   const checkAuth = async () => {
-    // Basit auth kontrolü
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth === "true") {
-      // Email'i localStorage'dan veya Supabase'den al
-      const savedEmail = localStorage.getItem("adminEmail");
-      if (savedEmail) {
-        setUser({ email: savedEmail });
-      } else {
-        // Supabase'den email'i al
-        try {
-          const { data, error } = await supabase
-            .from('settings')
-            .select('value')
-            .eq('key', 'admin_email')
-            .single();
-          
-          const email = data?.value || 'admin@spolder.org';
-          setUser({ email });
-          localStorage.setItem("adminEmail", email);
-        } catch (err) {
-          setUser({ email: 'admin@spolder.org' });
-        }
-      }
-      setLoading(false);
-      return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");

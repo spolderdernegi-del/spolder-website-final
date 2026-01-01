@@ -60,10 +60,12 @@ const AdminBlog = () => {
   }, []);
 
   const checkAuth = async () => {
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth !== "true") {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       navigate("/admin/login");
+      return;
     }
+    setLoading(false);
   };
 
   const fetchCategories = async () => {
