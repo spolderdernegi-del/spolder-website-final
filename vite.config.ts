@@ -18,4 +18,8 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  esbuild: {
+    // Production'da console.log/error/warn'ları kaldır
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
 }));

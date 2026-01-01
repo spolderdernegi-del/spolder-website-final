@@ -18,43 +18,15 @@ const AdminLogin = () => {
     setError("");
 
     try {
-      let adminEmail = 'admin@spolder.org';
-      let adminPassword = 'spolder2024';
-
-      // Supabase settings tablosundan admin bilgilerini al (varsa)
-      try {
-        const { data: settings, error: settingsError } = await supabase
-          .from('settings')
-          .select('key, value')
-          .in('key', ['admin_email', 'admin_password']);
-
-        if (!settingsError && settings && settings.length > 0) {
-          // Settings varsa, oradan al
-          adminEmail = settings?.find(s => s.key === 'admin_email')?.value || adminEmail;
-          adminPassword = settings?.find(s => s.key === 'admin_password')?.value || adminPassword;
-          console.log("Admin bilgileri Supabase'den alındı");
-        } else {
-          console.log("Settings tablosu bulunamadı, varsayılan bilgiler kullanılıyor");
-        }
-      } catch (settingsErr) {
-        console.warn("Settings okunamadı, varsayılan bilgiler kullanılıyor:", settingsErr);
-      }
-
-      // Girilen bilgileri kontrol et
-      if (email !== adminEmail || password !== adminPassword) {
+      // Supabase Auth ile doğrudan giriş yap
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (authError) {
         throw new Error("E-posta veya şifre hatalı!");
       }
 
-      // Supabase Auth ile session aç (RLS için gerekli)
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) {
-        throw new Error("Supabase giriş hatası: " + authError.message + " (Supabase Auth'ta bu kullanıcıyı oluşturduğunuzdan emin olun)");
-      }
-
-      console.log("Giriş başarılı!");
       navigate("/admin");
     } catch (err: any) {
-      console.error("Giriş hatası:", err);
       setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
     } finally {
       setLoading(false);
