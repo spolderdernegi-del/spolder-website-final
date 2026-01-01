@@ -297,6 +297,7 @@ const Iletisim = () => {
             {/* Map */}
             <div className="mt-12 rounded-lg overflow-hidden shadow-card h-[400px]">
               <MapContainer
+                key={`${organizationLat}-${organizationLng}`}
                 center={[organizationLat, organizationLng]}
                 zoom={13}
                 style={{ width: '100%', height: '100%' }}
