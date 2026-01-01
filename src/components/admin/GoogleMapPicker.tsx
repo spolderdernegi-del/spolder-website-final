@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -40,6 +40,11 @@ const DraggableMarker = ({
 }) => {
   const [position, setPosition] = useState({ lat: initialLat, lng: initialLng });
 
+  // Prop değişirse state güncelle
+  useEffect(() => {
+    setPosition({ lat: initialLat, lng: initialLng });
+  }, [initialLat, initialLng]);
+
   const marker: any = null;
 
   const handleDragEnd = useCallback(() => {
@@ -74,6 +79,7 @@ const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: G
   return (
     <div style={{ width: '100%', height }} className="rounded-md overflow-hidden border border-slate-200">
       <MapContainer
+        key={`${lat}-${lng}`}
         center={[markerPos.lat, markerPos.lng]}
         zoom={13}
         style={{ width: '100%', height: '100%' }}
