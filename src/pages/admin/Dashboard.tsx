@@ -15,10 +15,13 @@ const AdminDashboard = () => {
     projects: 0,
     files: 0,
   });
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
+  const [recentNews, setRecentNews] = useState<any[]>([]);
 
   useEffect(() => {
     checkAuth();
     fetchStats();
+    fetchRecentContent();
   }, []);
 
   const checkAuth = async () => {
@@ -60,21 +63,37 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const eventsData = JSON.parse(localStorage.getItem('spolder_events') || '[]');
-      const newsData = JSON.parse(localStorage.getItem('spolder_news') || '[]');
-      const blogData = JSON.parse(localStorage.getItem('spolder_blog') || '[]');
-      const projectsData = JSON.parse(localStorage.getItem('spolder_projects') || '[]');
-      const filesData = JSON.parse(localStorage.getItem('spolder_files') || '[]');
+      // Supabase'den gerçek sayıları çek
+      const [eventsRes, newsRes, blogRes, projectsRes, filesRes] = await Promise.all([
+        supabase.from('events').select('id', { count: 'exact', head: true }),
+        supabase.from('news').select('id', { count: 'exact', head: true }),
+        supabase.from('blog_posts').select('id', { count: 'exact', head: true }),
+        supabase.from('projects').select('id', { count: 'exact', head: true }),
+        supabase.from('files').select('id', { count: 'exact', head: true }),
+      ]);
 
       setStats({
-        events: eventsData.length,
-        news: newsData.length,
-        blog: blogData.length,
-        projects: projectsData.length,
-        files: filesData.length,
+        events: eventsRes.count || 0,
+        news: newsRes.count || 0,
+        blog: blogRes.count || 0,
+        projects: projectsRes.count || 0,
+        files: filesRes.count || 0,
       });
     } catch (error) {
       console.error("İstatistikler yüklenirken hata:", error);
+    }
+  };
+
+  const fetchRecentContent = async () => {
+    try {
+      const [eventsData, newsData] = await Promise.all([
+        supabase.from('events').select('id, title, date').order('created_at', { ascending: false }).limit(5),
+        supabase.from('news').select('id, title, date').order('created_at', { ascending: false }).limit(5),
+      ]);
+      setRecentEvents(eventsData.data || []);
+      setRecentNews(newsData.data || []);
+    } catch (error) {
+      console.error("Son içerikler yüklenirken hata:", error);
     }
   };
 
@@ -264,8 +283,7 @@ const AdminDashboard = () => {
                 </Link>
               </div>
               <div className="space-y-3">
-                {JSON.parse(localStorage.getItem('spolder_events') || '[]')
-                  .slice(0, 5)
+                {recentEvents
                   .map((event: any) => (
                     <div key={event.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded">
                       <div className="flex-1">
@@ -274,7 +292,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
-                {JSON.parse(localStorage.getItem('spolder_events') || '[]').length === 0 && (
+                {recentEvents.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">Henüz etkinlik eklenmemiş</p>
                 )}
               </div>
@@ -292,8 +310,7 @@ const AdminDashboard = () => {
                 </Link>
               </div>
               <div className="space-y-3">
-                {JSON.parse(localStorage.getItem('spolder_news') || '[]')
-                  .slice(0, 5)
+                {recentNews
                   .map((news: any) => (
                     <div key={news.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded">
                       <div className="flex-1">
@@ -302,7 +319,7 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
-                {JSON.parse(localStorage.getItem('spolder_news') || '[]').length === 0 && (
+                {recentNews.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">Henüz haber eklenmemiş</p>
                 )}
               </div>
