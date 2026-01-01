@@ -222,25 +222,21 @@ const AdminSettings = () => {
     }
   };
 
-  const handleOrganizationLocationChange = async () => {
-    if (!organizationLocationInput.trim()) {
-      toast.warning('Lütfen konum bilgisini girin');
-      return;
-    }
-
+  const handleLocationChangeAuto = async (lat: number, lng: number) => {
     try {
       await supabase
         .from('settings')
         .upsert([
           { key: 'organization_location', value: organizationLocationInput, updated_at: new Date().toISOString() },
-          { key: 'organization_lat', value: organizationLat.toString(), updated_at: new Date().toISOString() },
-          { key: 'organization_lng', value: organizationLng.toString(), updated_at: new Date().toISOString() }
+          { key: 'organization_lat', value: lat.toString(), updated_at: new Date().toISOString() },
+          { key: 'organization_lng', value: lng.toString(), updated_at: new Date().toISOString() }
         ], { onConflict: 'key' });
       
-      setOrganizationLocation(organizationLocationInput);
-      toast.success('Konum bilgisi başarıyla güncellendi');
+      setOrganizationLat(lat);
+      setOrganizationLng(lng);
+      toast.success('Konum otomatik kaydedildi');
     } catch (err: any) {
-      toast.error('Konum güncellenemedi: ' + err.message);
+      toast.error('Konum kaydedilemedi: ' + err.message);
     }
   };
 
@@ -460,17 +456,25 @@ const AdminSettings = () => {
               <GoogleMapPicker
                 lat={organizationLat}
                 lng={organizationLng}
-                onLocationChange={(lat, lng) => {
-                  setOrganizationLat(lat);
-                  setOrganizationLng(lng);
-                }}
+                onLocationChange={handleLocationChangeAuto}
                 height="400px"
               />
               <p className="text-xs text-muted-foreground mt-2">
                 Seçili Konum: {organizationLat.toFixed(6)}, {organizationLng.toFixed(6)}
               </p>
             </div>
-            <Button onClick={handleOrganizationLocationChange} className="w-full">Konumu Kaydet</Button>
+            <Button 
+              onClick={async () => {
+                if (!organizationLocationInput.trim()) {
+                  toast.warning('Lütfen konum bilgisini girin');
+                  return;
+                }
+                await handleLocationChangeAuto(organizationLat, organizationLng);
+              }} 
+              className="w-full"
+            >
+              Konumu Kaydet
+            </Button>
           </div>
         </div>
 
