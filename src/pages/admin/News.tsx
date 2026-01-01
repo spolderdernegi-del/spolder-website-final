@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,24 @@ const AdminNews = () => {
     meta_aciklama: "",
   });
 
+  const checkAuth = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/admin/login");
+      return false;
+    }
+    return true;
+  }, [navigate]);
+
   useEffect(() => {
-    checkAuth();
-    fetchNews();
-    fetchCategories();
-  }, []);
+    const init = async () => {
+      const ok = await checkAuth();
+      if (!ok) return;
+      await Promise.all([fetchCategories(), fetchNews()]);
+      setLoading(false);
+    };
+    init();
+  }, [checkAuth]);
 
   const fetchCategories = async () => {
     try {
@@ -71,15 +84,6 @@ const AdminNews = () => {
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
-  };
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
-      return;
-    }
-    setLoading(false);
   };
 
   const fetchNews = async () => {
