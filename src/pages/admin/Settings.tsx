@@ -169,11 +169,24 @@ const AdminSettings = () => {
     }
 
     try {
+      // Settings tablosuna kaydet
       const { error } = await supabase
         .from('settings')
         .upsert({ key: 'admin_password', value: newPassword, updated_at: new Date().toISOString() }, { onConflict: 'key' });
       if (error) throw error;
-      toast.success('Şifre başarıyla değiştirildi!');
+
+      // Supabase Auth kullanıcısının şifresini de güncelle
+      const { error: authError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (authError) {
+        console.warn('Supabase Auth şifre güncellenemedi:', authError.message);
+        toast.warning('Settings güncellendi ama Auth şifresi güncellenemedi. Lütfen tekrar giriş yapın.');
+      } else {
+        toast.success('Şifre başarıyla değiştirildi!');
+      }
+      
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
