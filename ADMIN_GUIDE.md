@@ -20,7 +20,7 @@
 
 ### Adım 1: Admin Paneline Erişim
 ```
-URL: https://spolder-website-final.vercel.app/admin/login
+URL: https://spolder.org/admin/login
 ```
 
 ### Adım 2: Kimlik Bilgilerini Girin
