@@ -16,18 +16,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   const checkAuth = async () => {
     try {
-      // localStorage kontrolü (fallback)
-      const localAuth = localStorage.getItem("adminAuth");
-      
-      // Supabase session kontrolü
+      // Sadece Supabase session'ını referans al
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Her iki yöntemden biri varsa authenticated
-      if (session || localAuth === "true") {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
+      setIsAuthenticated(!!session);
     } catch (error) {
       console.error("Auth check error:", error);
       setIsAuthenticated(false);

@@ -41,14 +41,18 @@ const AdminLogin = () => {
       }
 
       // Girilen bilgileri kontrol et
-      if (email === adminEmail && password === adminPassword) {
-        console.log("Giriş başarılı!");
-        localStorage.setItem("adminAuth", "true");
-        localStorage.setItem("adminEmail", email);
-        navigate("/admin");
-      } else {
+      if (email !== adminEmail || password !== adminPassword) {
         throw new Error("E-posta veya şifre hatalı!");
       }
+
+      // Supabase Auth ile session aç (RLS için gerekli)
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        throw new Error("Supabase giriş hatası: " + authError.message + " (Supabase Auth'ta bu kullanıcıyı oluşturduğunuzdan emin olun)");
+      }
+
+      console.log("Giriş başarılı!");
+      navigate("/admin");
     } catch (err: any) {
       console.error("Giriş hatası:", err);
       setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
