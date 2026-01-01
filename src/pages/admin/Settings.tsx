@@ -49,13 +49,16 @@ const AdminSettings = () => {
 
   useEffect(() => {
     checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
     loadActivityLogs();
     loadCounts();
     loadCurrentEmail();
     loadMapEmbed();
     loadOrganizationLocation();
     loadContactInfo();
-  }, [checkAuth]);
+  }, []);
 
   const loadCounts = async () => {
     try {
