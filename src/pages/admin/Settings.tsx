@@ -14,8 +14,6 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
   const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
@@ -70,9 +68,9 @@ const AdminSettings = () => {
     }
   };
 
-  const checkAuth = () => {
-    const simpleAuth = localStorage.getItem("adminAuth");
-    if (simpleAuth !== "true") {
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       navigate("/admin/login");
       return;
     }
@@ -149,48 +147,6 @@ const AdminSettings = () => {
     if (success) {
       toast.success('Tüm veriler temizlendi!');
       setTimeout(() => window.location.reload(), 1500);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    if (!newPassword || !confirmPassword) {
-      toast.warning('Lütfen tüm alanları doldurun');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error('Şifreler eşleşmiyor!');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast.warning('Şifre en az 6 karakter olmalıdır');
-      return;
-    }
-
-    try {
-      // Settings tablosuna kaydet
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ key: 'admin_password', value: newPassword, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-      if (error) throw error;
-
-      // Supabase Auth kullanıcısının şifresini de güncelle
-      const { error: authError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (authError) {
-        console.warn('Supabase Auth şifre güncellenemedi:', authError.message);
-        toast.warning('Settings güncellendi ama Auth şifresi güncellenemedi. Lütfen tekrar giriş yapın.');
-      } else {
-        toast.success('Şifre başarıyla değiştirildi!');
-      }
-      
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err: any) {
-      toast.error('Şifre güncellenemedi: ' + err.message);
     }
   };
 
@@ -427,18 +383,19 @@ const AdminSettings = () => {
           </p>
         </div>
 
-        {/* Şifre Değiştirme */}
+        {/* E-posta Güncelleme */}
         <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
             <Key className="w-5 h-5" />
-            Giriş Bilgilerini Güncelle
+            E-posta Adresi Güncelle
           </h2>
           
-          {/* Email Değiştirme */}
-          <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-800">
-            <h3 className="text-lg font-semibold text-foreground mb-3">E-posta Adresi</h3>
+          <div>
             <p className="text-sm text-muted-foreground mb-3">
               Mevcut e-posta: <span className="font-medium text-foreground">{currentEmail}</span>
+            </p>
+            <p className="text-sm text-amber-600 dark:text-amber-500 mb-4">
+              💡 Şifre değiştirmek için Supabase Dashboard → Authentication → Users sayfasını kullanın.
             </p>
             <div className="flex gap-4 max-w-2xl">
               <div className="flex-1">
@@ -453,43 +410,6 @@ const AdminSettings = () => {
                 E-postayı Güncelle
               </Button>
             </div>
-          </div>
-
-          {/* Şifre Değiştirme */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Şifre</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Yeni Şifre
-                </label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="En az 6 karakter"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Şifre Tekrar
-                </label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Şifreyi tekrar girin"
-                />
-              </div>
-            </div>
-
-            <Button 
-              onClick={handlePasswordChange} 
-              className="mt-4"
-            >
-              Şifreyi Güncelle
-            </Button>
           </div>
         </div>
 
