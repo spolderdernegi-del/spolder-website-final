@@ -259,7 +259,7 @@ const AdminMediaLibrary = () => {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/admin/dashboard">
+            <Link to="/admin">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Dashboard'a Dön

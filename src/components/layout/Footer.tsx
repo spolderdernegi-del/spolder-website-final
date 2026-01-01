@@ -1,7 +1,41 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo_disi.webp";
 
+interface ContactInfo {
+  address: string;
+  phone: string;
+  email: string;
+}
+
 const Footer = () => {
+  const [contact, setContact] = useState<ContactInfo>({
+    address: "Atatürk Bulvarı No: 123, Çankaya, Ankara",
+    phone: "+90 (312) 123 45 67",
+    email: "info@spolider.org.tr",
+  });
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("key, value")
+        .in("key", ["organization_location", "contact_phone", "contact_email"]);
+
+      if (error || !data) return;
+
+      const map = Object.fromEntries(data.map((item) => [item.key, item.value]));
+      setContact((prev) => ({
+        address: map.organization_location || prev.address,
+        phone: map.contact_phone || prev.phone,
+        email: map.contact_email || prev.email,
+      }));
+    };
+
+    fetchContact();
+  }, []);
+
   return (
     <footer className="bg-anthracite text-primary-foreground">
       <div className="container-custom mx-auto px-4 md:px-8 py-16">
@@ -118,30 +152,35 @@ const Footer = () => {
             <h4 className="font-display font-bold text-lg mb-6">İletişim</h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <a href="https://www.google.com/maps/search/?api=1&query=Atat%C3%BCrk+Bulvar%C4%B1+No:+123+%C3%87ankaya+Ankara" target="_blank" rel="noreferrer" className="flex items-start gap-3 hover:opacity-80 transition-opacity">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-3 hover:opacity-80 transition-opacity"
+                >
                   <svg className="w-10 h-10 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="24" cy="24" r="24" fill="#EA4335"/>
                     <path d="M24 14C19.58 14 16 17.58 16 22C16 27.25 24 34 24 34C24 34 32 27.25 32 22C32 17.58 28.42 14 24 14ZM24 25C22.34 25 21 23.66 21 22C21 20.34 22.34 19 24 19C25.66 19 27 20.34 27 22C27 23.66 25.66 25 24 25Z" fill="white"/>
                   </svg>
-                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">Atatürk Bulvarı No: 123, Çankaya, Ankara</span>
+                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.address}</span>
                 </a>
               </li>
               <li className="flex items-center gap-3">
-                <a href="tel:+903121234567" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <a href={`tel:${contact.phone}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <svg className="w-10 h-10 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="24" cy="24" r="24" fill="#34A853"/>
                     <path d="M32.5 28.5C31.85 28.5 31.2 28.4 30.6 28.2C30.4 28.13 30.18 28.17 30.03 28.32L28.2 30.82C25.4 29.43 18.58 22.77 17.18 19.82L19.68 17.98C19.83 17.82 19.88 17.6 19.8 17.4C19.6 16.8 19.5 16.15 19.5 15.5C19.5 14.95 19.05 14.5 18.5 14.5H15.5C14.95 14.5 14.5 14.95 14.5 15.5C14.5 24.89 22.11 32.5 31.5 32.5C32.05 32.5 32.5 32.05 32.5 31.5V28.5C33.5 28.5 33.05 28.5 32.5 28.5Z" fill="white"/>
                   </svg>
-                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">+90 (312) 123 45 67</span>
+                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.phone}</span>
                 </a>
               </li>
               <li className="flex items-center gap-3">
-                <a href="mailto:info@spolider.org.tr" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <a href={`mailto:${contact.email}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <svg className="w-10 h-10 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="24" cy="24" r="24" fill="#9333EA"/>
                     <path d="M32 17H16C14.9 17 14 17.9 14 19V29C14 30.1 14.9 31 16 31H32C33.1 31 34 30.1 34 29V19C34 17.9 33.1 17 32 17ZM32 21L24 25.5L16 21V19L24 23.5L32 19V21Z" fill="white"/>
                   </svg>
-                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">info@spolider.org.tr</span>
+                  <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.email}</span>
                 </a>
               </li>
             </ul>
