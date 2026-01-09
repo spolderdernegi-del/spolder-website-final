@@ -257,14 +257,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 ### ⚠️ KRITIK: RLS (Row Level Security) Politikaları
 
-**Dosya:** `supabase/fix_rls_security.sql`
+**Migration Dosyası:** `supabase/migrations/20260105_fix_rls_policies.sql`
 
 **Kurallar:**
-- ✅ Herkes (anonymous) sadece READ yapabilir
-- ✅ Admin (authenticated) INSERT/UPDATE/DELETE yapabilir
-- ✅ Settings tablosu RLS korumalıdır
+- ✅ Herkes (anonymous + authenticated) sadece READ yapabilir
+- ✅ Sadece `role: "admin"` olan kullanıcılar INSERT/UPDATE/DELETE yapabilir
+- ✅ Tüm tablolar RLS korumalıdır (bank_info, blog, board, categories, events, files, news, projects, settings)
+- ✅ İstisna: `contact_messages` tablosu herkesin mesaj göndermesine izin verir (INSERT)
 
-**Çalıştırma:** SQL Editor'da `fix_rls_security.sql` dosyasını çalıştırın
+**Admin Kullanıcı Oluşturma:** Detaylı bilgi için `docs/ADMIN_SETUP.md` dosyasına bakın
+
+**Çalıştırma:** SQL Editor'da migration dosyasını çalıştırın veya Supabase CLI kullanın
 
 ### Hardcoded Credentials
 
