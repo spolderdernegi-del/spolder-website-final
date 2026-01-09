@@ -34,7 +34,7 @@ Supabase'de bir kullanıcıya admin rolü vermek için iki yöntem vardır:
 UPDATE auth.users
 SET raw_app_meta_data = 
   raw_app_meta_data || '{"role": "admin"}'::jsonb
-WHERE email = 'admin@spolder.org';
+WHERE email = 'your-email@example.com';
 ```
 
 5. Query'yi çalıştırın (Run veya F5)
@@ -164,8 +164,8 @@ Her tablo için dört temel politika oluşturulur:
 ## Destek ve İletişim
 
 Herhangi bir sorun yaşarsanız:
-- **E-posta:** admin@spolder.org
-- **Teknik Destek:** dev@spolder.org
+- **GitHub Issues:** Proje repository'sinde issue açabilirsiniz
+- **Teknik Destek:** Sistem yöneticinize başvurun
 
 ---
 

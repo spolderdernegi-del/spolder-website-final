@@ -5,8 +5,9 @@
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN (
-    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
+  RETURN COALESCE(
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin',
+    false
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
