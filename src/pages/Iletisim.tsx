@@ -309,7 +309,7 @@ const Iletisim = () => {
                 <Marker position={[organizationLat, organizationLng]}>
                   <Popup>
                     <div className="text-sm">
-                      <p className="font-semibold">{organizationLocation || 'SPOlDER Merkezi'}</p>
+                      <p className="font-semibold">{organizationLocation || 'SPOLDER Merkezi'}</p>
                       <p className="text-xs text-muted-foreground">
                         {organizationLat.toFixed(4)}, {organizationLng.toFixed(4)}
                       </p>

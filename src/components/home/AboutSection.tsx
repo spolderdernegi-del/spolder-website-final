@@ -19,7 +19,7 @@ const AboutSection = () => {
             <div className="relative rounded-lg overflow-hidden shadow-elevated">
               <img
                 src="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&auto=format&fit=crop&q=80"
-                alt="SPOlDER Dernek Tanıtım"
+                alt="SPOLDER Dernek Tanıtım"
                 className="w-full h-[400px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-anthracite/40 to-transparent" />
@@ -49,7 +49,7 @@ const AboutSection = () => {
               Spor Politikalarında <span className="text-gradient">Öncü Kuruluş</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              SPOlDER Spor Politikaları Derneği, Türkiye'de spor politikalarının geliştirilmesi, 
+              SPOLDER Spor Politikaları Derneği, Türkiye'de spor politikalarının geliştirilmesi, 
               spor kültürünün yaygınlaştırılması ve sporun toplumsal faydalarının artırılması 
               amacıyla kurulmuş bir sivil toplum kuruluşudur.
             </p>
