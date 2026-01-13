@@ -66,7 +66,7 @@ const Haberler = () => {
               Haberler
             </h1>
             <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-              SPOlDER'den en güncel haberler ve gelişmeler
+              SPOLDER'den en güncel haberler ve gelişmeler
             </p>
           </div>
         </section>

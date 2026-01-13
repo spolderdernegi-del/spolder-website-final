@@ -43,7 +43,7 @@ const Footer = () => {
           {/* Logo & About */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <img src={logo} alt="SPOlDER Logo" className="h-16 w-auto brightness-0 invert" />
+              <img src={logo} alt="SPOLDER Logo" className="h-16 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
               Türkiye'de spor politikalarının geliştirilmesi ve spor kültürünün yaygınlaştırılması için çalışıyoruz.
