@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 interface Event {
   id: number;
@@ -540,9 +541,10 @@ const AdminEvents = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <Textarea
+                <RichTextEditor
                   value={formData.icerik}
-                  onChange={(e) => setFormData({ ...formData, icerik: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, icerik: value })}
+                  placeholder="Etkinlik içeriğini buraya yazın..."
                   rows={6}
                 />
               </div>
@@ -628,9 +630,10 @@ const AdminEvents = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <Textarea
+                <RichTextEditor
                   value={formData.icerik}
-                  onChange={(e) => setFormData({ ...formData, icerik: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, icerik: value })}
+                  placeholder="Etkinlik içeriğini buraya yazın..."
                   rows={6}
                 />
               </div>
@@ -679,7 +682,7 @@ const AdminEvents = () => {
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {formData.icerik ? (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{formData.icerik}</div>
+                    <div dangerouslySetInnerHTML={{ __html: formData.icerik }} />
                   ) : (
                     <p className="text-muted-foreground italic">Etkinlik içeriği burada görünecek...</p>
                   )}

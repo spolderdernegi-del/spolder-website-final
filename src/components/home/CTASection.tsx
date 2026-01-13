@@ -21,7 +21,7 @@ const CTASection = () => {
             Spor Politikalarının Geleceğini Birlikte Şekillendirelim
           </h2>
           <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-            SPOlDER ailesine katılarak Türkiye'nin spor politikalarının gelişimine katkı sağlayın. 
+            SPOLDER ailesine katılarak Türkiye'nin spor politikalarının gelişimine katkı sağlayın. 
             Üyelerimize özel etkinlikler, yayınlar ve networking fırsatlarından yararlanın.
           </p>
 
@@ -29,7 +29,7 @@ const CTASection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
             <Link to="/iletisim">
               <Button variant="hero" size="xl" className="group">
-                Hemen Üye Ol
+                Gönüllü Ol
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

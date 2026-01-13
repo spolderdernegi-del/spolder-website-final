@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-r
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 interface BlogPost {
   id: number;
@@ -401,9 +402,10 @@ const AdminBlog = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <Textarea
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, content: value })}
+                  placeholder="Blog içeriğini buraya yazın..."
                   rows={10}
                 />
               </div>
@@ -489,9 +491,10 @@ const AdminBlog = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <Textarea
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, content: value })}
+                  placeholder="Blog içeriğini buraya yazın..."
                   rows={10}
                 />
               </div>
@@ -535,7 +538,7 @@ const AdminBlog = () => {
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {formData.content ? (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{formData.content}</div>
+                    <div dangerouslySetInnerHTML={{ __html: formData.content }} />
                   ) : (
                     <p className="text-muted-foreground italic">Blog içeriği burada görünecek...</p>
                   )}
