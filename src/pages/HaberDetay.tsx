@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import { Calendar, User, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 
 interface News {
   id: number;
@@ -145,7 +146,7 @@ const HaberDetay = () => {
                 <div className="prose prose-lg dark:prose-invert max-w-none">
                   <div 
                     className="text-foreground/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: haber.icerik || '' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(haber.icerik || '') }}
                   />
                 </div>
 
