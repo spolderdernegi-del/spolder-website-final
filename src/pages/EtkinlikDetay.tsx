@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import { Calendar, Clock, MapPin, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 
 interface Event {
   id: number;
@@ -151,11 +152,11 @@ const EtkinlikDetay = () => {
                   </p>
                 )}
 
-                {/* Article Content - Fixed HTML rendering */}
+                {/* Article Content - Fixed HTML rendering with sanitization */}
                 <article className="prose prose-invert max-w-none mb-8">
                   <div 
                     className="text-foreground/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: etkinlik.icerik || '' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(etkinlik.icerik || '') }}
                   />
                 </article>
 
