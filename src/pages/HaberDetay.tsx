@@ -142,13 +142,12 @@ const HaberDetay = () => {
                 )}
 
                 {/* Article Content */}
-                <article className="prose prose-invert max-w-none mb-8">
-                  {haber.icerik.split("\n").map((paragraph, index) => (
-                    <p key={index} className="text-foreground/90 text-lg leading-relaxed mb-6">
-                      {paragraph}
-                    </p>
-                  ))}
-                </article>
+                <div className="prose prose-lg dark:prose-invert max-w-none">
+                  <div 
+                    className="text-foreground/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: haber.icerik || '' }}
+                  />
+                </div>
 
                 {/* Share & Back */}
                 <div className="flex gap-4 py-8 border-t border-border">
