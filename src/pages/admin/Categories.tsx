@@ -18,7 +18,8 @@ interface Category {
 const FIXED_CATEGORIES = [
   { name: 'Rapor', type: 'files' as const },
   { name: 'Araştırma', type: 'files' as const },
-  { name: 'Politika Belgesi', type: 'files' as const }
+  { name: 'Politika Belgesi', type: 'files' as const },
+  { name: 'Bültenler', type: 'files' as const }
 ];
 
 const AdminCategories = () => {
