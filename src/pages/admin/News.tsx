@@ -12,19 +12,19 @@ import RichTextEditor from "@/components/admin/RichTextEditor";
 
 interface News {
   id: number;
-  title: string;
-  excerpt: string;
-  content: string;
-  image: string;
-  category: string;
-  author: string;
-  date: string;
+  baslik: string;
+  ozet: string;
+  icerik: string;
+  gorsel: string;
+  kategori: string;
+  yazar: string;
+  tarih: string;
   created_at: string;
-  publishStatus?: 'draft' | 'published';
+  yayin_durumu?: 'taslak' | 'yayinlandi';
   slug?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  showInSlider?: boolean;
+  meta_baslik?: string;
+  meta_aciklama?: string;
+  sliderda_goster?: boolean;
 }
 
 const AdminNews = () => {
@@ -144,10 +144,18 @@ const AdminNews = () => {
         .replace(/(^-|-$)/g, '');
 
       const dataToSave = { 
-        ...formData, 
-        image: imageUrl,
+        baslik: formData.title,
+        ozet: formData.excerpt,
+        icerik: formData.content,
+        gorsel: imageUrl,
+        kategori: formData.category,
+        yazar: formData.author,
+        tarih: formData.date,
+        yayin_durumu: formData.publishStatus === 'draft' ? 'taslak' : 'yayinlandi',
         slug,
-        publishStatus: formData.publishStatus || 'draft'
+        sliderda_goster: formData.showInSlider,
+        meta_baslik: formData.metaTitle,
+        meta_aciklama: formData.metaDescription,
       };
 
       if (editingNews) {
@@ -189,20 +197,20 @@ const AdminNews = () => {
   const handleEdit = (newsItem: News) => {
     setEditingNews(newsItem);
     setFormData({
-      title: newsItem.title,
-      excerpt: newsItem.excerpt,
-      content: newsItem.content,
-      image: newsItem.image,
-      category: newsItem.category,
-      author: newsItem.author,
-      date: newsItem.date,
-      publishStatus: newsItem.publishStatus || 'draft',
+      title: newsItem.baslik,
+      excerpt: newsItem.ozet,
+      content: newsItem.icerik,
+      image: newsItem.gorsel,
+      category: newsItem.kategori,
+      author: newsItem.yazar,
+      date: newsItem.tarih,
+      publishStatus: newsItem.yayin_durumu === 'yayinlandi' ? 'published' : 'draft',
       slug: newsItem.slug || '',
-      metaTitle: newsItem.metaTitle || '',
-      metaDescription: newsItem.metaDescription || '',
-      showInSlider: newsItem.showInSlider || false,
+      metaTitle: newsItem.meta_baslik || '',
+      metaDescription: newsItem.meta_aciklama || '',
+      showInSlider: newsItem.sliderda_goster || false,
     });
-    setImagePreview(newsItem.image || "");
+    setImagePreview(newsItem.gorsel || "");
     setImageFile(null);
     setShowForm(true);
   };
@@ -221,7 +229,7 @@ const AdminNews = () => {
         throw error;
       }
       
-      logActivity('delete', 'news', newsItem?.title || 'Haber');
+      logActivity('delete', 'news', newsItem?.baslik || 'Haber');
       toast.success('Haber silindi!');
       fetchNews();
     } catch (error: any) {
@@ -257,22 +265,22 @@ const AdminNews = () => {
     }
   };
 
-  const togglePublishStatus = async (id: number, currentStatus?: 'draft' | 'published') => {
+  const togglePublishStatus = async (id: number, currentStatus?: 'taslak' | 'yayinlandi') => {
     try {
-      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      const newStatus = currentStatus === 'yayinlandi' ? 'taslak' : 'yayinlandi';
       const newsItem = news.find(n => n.id === id);
       
       const { error } = await supabase
         .from('news')
-        .update({ publishStatus: newStatus })
+        .update({ yayin_durumu: newStatus })
         .eq('id', id);
       
       if (error) {
         throw error;
       }
       
-      logActivity(newStatus === 'published' ? 'publish' : 'unpublish', 'news', newsItem?.title || 'Haber');
-      toast.success(newStatus === 'published' ? 'Haber yayınlandı!' : 'Haber taslağa alındı!');
+      logActivity(newStatus === 'yayinlandi' ? 'publish' : 'unpublish', 'news', newsItem?.baslik || 'Haber');
+      toast.success(newStatus === 'yayinlandi' ? 'Haber yayınlandı!' : 'Haber taslağa alındı!');
       fetchNews();
     } catch (error: any) {
       toast.error("Hata: " + error.message);
@@ -280,10 +288,10 @@ const AdminNews = () => {
   };
 
   const filteredNews = news.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || item.category === filterCategory;
-    const matchesStatus = !filterStatus || item.publishStatus === filterStatus;
+    const matchesSearch = item.baslik.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.ozet.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !filterCategory || item.kategori === filterCategory;
+    const matchesStatus = !filterStatus || item.yayin_durumu === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
@@ -577,8 +585,8 @@ const AdminNews = () => {
                 className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-950 text-foreground"
               >
                 <option value="">Tüm Durumlar</option>
-                <option value="draft">Taslak</option>
-                <option value="published">Yayınlanmış</option>
+                <option value="taslak">Taslak</option>
+                <option value="yayinlandi">Yayınlanmış</option>
               </select>
             </div>
             {selectedNews.length > 0 && (
@@ -622,17 +630,17 @@ const AdminNews = () => {
                     className="mt-1.5 w-5 h-5 cursor-pointer"
                   />
                   <div className="flex gap-4 flex-1">
-                    {newsItem.image && (
+                    {newsItem.gorsel && (
                       <img 
-                        src={newsItem.image} 
-                        alt={newsItem.title}
+                        src={newsItem.gorsel} 
+                        alt={newsItem.baslik}
                         className="w-24 h-24 object-cover rounded"
                       />
                     )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold text-foreground">{newsItem.title}</h3>
-                        {newsItem.publishStatus === 'draft' ? (
+                        <h3 className="text-lg font-semibold text-foreground">{newsItem.baslik}</h3>
+                        {newsItem.yayin_durumu === 'taslak' ? (
                           <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
                             Taslak
                           </span>
@@ -642,13 +650,13 @@ const AdminNews = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">{newsItem.excerpt}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{newsItem.ozet}</p>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>📅 {newsItem.date}</span>
-                        <span>✍️ {newsItem.author}</span>
-                        {newsItem.category && (
+                        <span>📅 {newsItem.tarih}</span>
+                        <span>✍️ {newsItem.yazar}</span>
+                        {newsItem.kategori && (
                           <span className="px-2 py-0.5 bg-primary/10 text-primary rounded">
-                            {newsItem.category}
+                            {newsItem.kategori}
                           </span>
                         )}
                       </div>
@@ -657,11 +665,11 @@ const AdminNews = () => {
                   <div className="flex gap-2 ml-4 flex-shrink-0">
                     <Button
                       size="sm"
-                      variant={newsItem.publishStatus === 'published' ? 'default' : 'outline'}
-                      onClick={() => togglePublishStatus(newsItem.id, newsItem.publishStatus)}
-                      title={newsItem.publishStatus === 'published' ? 'Taslağa Al' : 'Yayınla'}
+                      variant={newsItem.yayin_durumu === 'yayinlandi' ? 'default' : 'outline'}
+                      onClick={() => togglePublishStatus(newsItem.id, newsItem.yayin_durumu)}
+                      title={newsItem.yayin_durumu === 'yayinlandi' ? 'Taslağa Al' : 'Yayınla'}
                     >
-                      {newsItem.publishStatus === 'published' ? '👁️' : '📝'}
+                      {newsItem.yayin_durumu === 'yayinlandi' ? '👁️' : '📝'}
                     </Button>
                     <Button
                       size="sm"
