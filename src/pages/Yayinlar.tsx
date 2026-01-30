@@ -11,6 +11,7 @@ interface Publication {
   id: number;
   title: string;
   category: string;
+  categories?: string[];
   description: string;
   file_url: string;
   file_type: string;
@@ -86,7 +87,9 @@ const Yayinlar = () => {
 
   const filteredPublications = activeFilter === "Tümü" 
     ? publications 
-    : publications.filter(pub => pub.category === activeFilter);
+    : publications.filter(pub => 
+        pub.categories?.includes(activeFilter) || pub.category === activeFilter
+      );
 
   const formatFileSize = (bytes: number) => {
     if (!bytes) return "0 KB";
@@ -331,9 +334,14 @@ const Yayinlar = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(pub.category)}`}>
-                        {pub.category || 'Genel'}
-                      </span>
+                      {(pub.categories && pub.categories.length > 0 ? pub.categories : pub.category ? [pub.category] : ['Genel']).map((cat, idx) => (
+                        <span 
+                          key={idx}
+                          className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(cat)}`}
+                        >
+                          {cat}
+                        </span>
+                      ))}
                       <span className="inline-block px-2 py-0.5 text-xs font-bold rounded bg-primary/10 text-primary">
                         {getFileExtension(pub.file_type)}
                       </span>
