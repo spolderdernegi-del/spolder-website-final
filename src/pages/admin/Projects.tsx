@@ -17,6 +17,7 @@ interface Project {
   content: string;
   image: string;
   category: string;
+  categories?: string[];
   status: string;
   start_date: string;
   end_date: string;
@@ -45,6 +46,7 @@ const AdminProjects = () => {
     content: "",
     image: "",
     category: "",
+    categories: [] as string[],
     status: "Devam Ediyor",
     start_date: "",
     end_date: "",
@@ -109,9 +111,9 @@ const AdminProjects = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Kategori kontrolü
-    if (!formData.category || formData.category.trim() === "") {
-      toast.error("Lütfen bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
+    // Kategori kontrolü - en az bir kategori seçili olmalı
+    if (!formData.categories || formData.categories.length === 0) {
+      toast.error("Lütfen en az bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
       return;
     }
 
@@ -140,6 +142,8 @@ const AdminProjects = () => {
       const dataToSave = { 
         ...formData, 
         image: imageUrl,
+        category: formData.categories[0] || '',
+        categories: formData.categories,
         slug,
         publishStatus: formData.publishStatus || 'draft'
       };
@@ -188,6 +192,7 @@ const AdminProjects = () => {
       content: project.content,
       image: project.image,
       category: project.category,
+      categories: project.categories || (project.category ? [project.category] : []),
       status: project.status,
       start_date: project.start_date,
       end_date: project.end_date,
@@ -275,7 +280,9 @@ const AdminProjects = () => {
   const filteredProjects = projects.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || item.category === filterCategory;
+    const matchesCategory = !filterCategory || 
+                           item.categories?.includes(filterCategory) || 
+                           item.category === filterCategory;
     const matchesStatus = !filterStatus || item.publishStatus === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -289,6 +296,7 @@ const AdminProjects = () => {
       content: "",
       image: "",
       category: "",
+      categories: [],
       status: "Devam Ediyor",
       start_date: "",
       end_date: "",
@@ -344,23 +352,35 @@ const AdminProjects = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategori *</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kategoriler * (Birden fazla seçebilirsiniz)</label>
                   {categories.length === 0 ? (
                     <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
                       ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip proje kategorisi ekleyin.
                     </div>
                   ) : (
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full p-2 border rounded-md"
-                      required
-                    >
-                      <option value="">Kategori seçin...</option>
+                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto bg-white dark:bg-slate-950">
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        <label key={cat.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={formData.categories?.includes(cat.name) || false}
+                            onChange={(e) => {
+                              const currentCategories = formData.categories || [];
+                              if (e.target.checked) {
+                                setFormData({ ...formData, categories: [...currentCategories, cat.name] });
+                              } else {
+                                setFormData({ 
+                                  ...formData, 
+                                  categories: currentCategories.filter(c => c !== cat.name) 
+                                });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{cat.name}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   )}
                 </div>
 
@@ -520,10 +540,14 @@ const AdminProjects = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-2">
                   {formData.title || "Proje Başlığı"}
                 </h2>
-                {formData.category && (
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full mb-3">
-                    {formData.category}
-                  </span>
+                {formData.categories && formData.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.categories.map((cat, idx) => (
+                      <span key={idx} className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {formData.start_date && <span>📅 Başlangıç: {formData.start_date}</span>}
@@ -647,11 +671,14 @@ const AdminProjects = () => {
                         <span className="px-2 py-0.5 bg-primary/10 text-primary rounded">
                           {project.status}
                         </span>
-                        {project.category && (
-                          <span className="px-2 py-0.5 bg-secondary/10 text-secondary rounded">
-                            {project.category}
-                          </span>
-                        )}
+                        {(() => {
+                          const displayCategories = project.categories?.length > 0 ? project.categories : project.category ? [project.category] : [];
+                          return displayCategories.map((cat, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-secondary/10 text-secondary rounded">
+                              {cat}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>
