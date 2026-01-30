@@ -179,7 +179,15 @@ const Etkinlikler = () => {
                 {filterEvents().map((event) => {
                   const { day, month, year } = formatEventDate(event.tarih);
                   return (
-                <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover">
+                <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover relative">
+                  {/* Status Badge */}
+                  {event.durum && (
+                    <span className={`absolute top-4 right-4 px-3 py-1 text-xs font-medium rounded-full ${
+                      event.durum === 'Tamamlandı' ? 'bg-slate-700 text-white' : 'bg-primary text-primary-foreground'
+                    }`}>
+                      {event.durum}
+                    </span>
+                  )}
                   <div className="flex flex-col md:flex-row">
                     {/* Date Box */}
                     <div className="md:w-32 shrink-0 bg-gradient-green p-6 flex flex-row md:flex-col items-center justify-center text-primary-foreground">

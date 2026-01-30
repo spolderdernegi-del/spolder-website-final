@@ -104,7 +104,7 @@ const EtkinlikDetay = () => {
               <div className="flex items-center gap-2 mb-4">
                 <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                   etkinlik.durum === "Tamamlandı" 
-                    ? "bg-gray-500/20 text-gray-300" 
+                    ? "bg-slate-700 text-white" 
                     : "bg-secondary text-primary-foreground"
                 }`}>
                   {etkinlik.durum}
@@ -203,7 +203,7 @@ const EtkinlikDetay = () => {
                         <p className="font-medium text-foreground mb-1">Durum</p>
                         <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                           etkinlik.durum === "Tamamlandı" 
-                            ? "bg-gray-500/20 text-gray-300" 
+                            ? "bg-slate-700 text-white" 
                             : "bg-secondary text-primary-foreground"
                         }`}>
                           {etkinlik.durum}

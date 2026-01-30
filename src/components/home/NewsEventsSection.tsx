@@ -23,6 +23,7 @@ interface EventItem {
   baslik: string;
   tarih: string;
   konum: string;
+  kategori?: string;
 }
 
 const NewsEventsSection = () => {
@@ -41,7 +42,7 @@ const NewsEventsSection = () => {
             .limit(4),
           supabase
             .from('events')
-            .select('id, baslik, tarih, konum')
+            .select('id, baslik, tarih, konum, kategori')
             .eq('yayin_durumu', 'yayinlandi')
             .order('created_at', { ascending: false })
             .limit(4),
@@ -147,6 +148,11 @@ const NewsEventsSection = () => {
                       <span className="text-xs uppercase">{new Date(event.tarih).toLocaleString('tr-TR', { month: 'short' })}</span>
                     </div>
                     <div className="flex-1 min-w-0">
+                      {event.kategori && (
+                        <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full mb-2">
+                          {event.kategori}
+                        </span>
+                      )}
                       <h4 className="font-semibold text-foreground text-sm line-clamp-2 hover:text-primary transition-colors">
                         {event.baslik}
                       </h4>
