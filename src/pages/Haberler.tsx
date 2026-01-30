@@ -14,6 +14,7 @@ interface NewsItem {
   tarih: string;
   gorsel: string;
   kategori: string;
+  categories?: string[];
   yazar: string;
   created_at: string;
 }
@@ -103,11 +104,18 @@ const Haberler = () => {
                   >
                     <div className="relative h-52">
                       <img src={item.gorsel} alt={item.baslik} className="w-full h-full object-cover" />
-                      <span className="absolute top-4 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        {item.kategori}
-                      </span>
                     </div>
                     <div className="p-6">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {(item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).map((cat, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
                         {item.baslik}
                       </h3>
