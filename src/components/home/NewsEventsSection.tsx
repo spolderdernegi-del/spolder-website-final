@@ -11,6 +11,7 @@ interface NewsItem {
   gorsel: string;
   tarih: string;
   kategori: string;
+  categories?: string[];
   image?: string;
   title?: string;
   excerpt?: string;
@@ -100,11 +101,20 @@ const NewsEventsSection = () => {
                           className="w-full h-full object-cover"
                         />
                       )}
-                      <span className="absolute top-4 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        {item.kategori}
-                      </span>
                     </div>
                     <div className="p-6">
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {(item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).slice(0, 2).map((cat, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                            {cat}
+                          </span>
+                        ))}
+                        {((item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).length > 2) && (
+                          <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded">
+                            +{(item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).length - 2}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
                         {item.baslik}
                       </h3>
