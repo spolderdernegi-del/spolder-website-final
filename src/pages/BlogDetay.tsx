@@ -15,6 +15,7 @@ interface BlogPost {
   author: string;
   image: string;
   category: string;
+  categories?: string[];
 }
 
 const BlogDetay = () => {
@@ -28,7 +29,7 @@ const BlogDetay = () => {
       try {
         const { data, error } = await supabase
           .from('blog')
-          .select('id, title, excerpt, content, date, author, image, category')
+          .select('id, title, excerpt, content, date, author, image, category, categories')
           .eq('id', parseInt(id || "0"))
           .eq('publishStatus', 'published')
           .single();
@@ -92,9 +93,16 @@ const BlogDetay = () => {
           )}
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="container-custom mx-auto">
-              <span className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full mb-4">
-                {post.category}
-              </span>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(post.categories && post.categories.length > 0 ? post.categories : post.category ? [post.category] : []).map((cat, idx) => (
+                  <span 
+                    key={idx}
+                    className="inline-block px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
               <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground">
                 {post.title}
               </h1>
