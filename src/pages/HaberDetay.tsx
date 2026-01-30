@@ -14,6 +14,7 @@ interface News {
   icerik: string;
   gorsel: string;
   kategori: string;
+  categories?: string[];
   yazar: string;
   tarih: string;
 }
@@ -108,9 +109,16 @@ const HaberDetay = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-anthracite/90 via-anthracite/70 to-transparent" />
           <div className="relative container-custom mx-auto px-4 md:px-8 h-full flex flex-col justify-end pb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium mb-4 w-fit">
-              {haber.kategori}
-            </span>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(haber.categories && haber.categories.length > 0 ? haber.categories : haber.kategori ? [haber.kategori] : []).map((cat, idx) => (
+                <span 
+                  key={idx}
+                  className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full"
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground">
               {haber.baslik}
             </h1>
