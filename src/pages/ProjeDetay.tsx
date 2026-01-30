@@ -120,7 +120,7 @@ const ProjeDetay = () => {
             <div className="max-w-3xl">
               <article className="prose prose-lg dark:prose-invert max-w-none mb-8">
                 <div 
-                  className="text-foreground/90 leading-relaxed"
+                  className="text-foreground/80 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proje.content || '') }}
                 />
               </article>
