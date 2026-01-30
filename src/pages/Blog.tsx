@@ -14,6 +14,7 @@ interface BlogPost {
   author: string;
   date: string;
   category: string;
+  categories?: string[];
   content: string;
   created_at: string;
 }
@@ -96,9 +97,16 @@ const Blog = () => {
                   />
                 </div>
                 <div className="p-8 flex flex-col justify-center">
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4 w-fit">
-                    {posts[0].category}
-                  </span>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {(posts[0].categories && posts[0].categories.length > 0 ? posts[0].categories : posts[0].category ? [posts[0].category] : []).map((cat, idx) => (
+                      <span 
+                        key={idx}
+                        className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
+                      >
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
                   <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
                     {posts[0].title}
                   </h2>
@@ -146,9 +154,16 @@ const Blog = () => {
                     />
                   </div>
                   <div className="p-6">
-                    <span className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded-full mb-3">
-                      {post.category}
-                    </span>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {(post.categories && post.categories.length > 0 ? post.categories : post.category ? [post.category] : []).map((cat, idx) => (
+                        <span 
+                          key={idx}
+                          className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded-full"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
                     <h3 className="font-display text-lg font-bold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-2">
                       {post.title}
                     </h3>
