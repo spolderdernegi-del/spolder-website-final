@@ -14,6 +14,7 @@ interface Project {
   content: string;
   image: string;
   category: string;
+  categories?: string[];
   status: string;
   start_date: string;
 }
@@ -89,10 +90,15 @@ const ProjeDetay = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-anthracite/80 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="container-custom mx-auto">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full">
-                  {proje.category}
-                </span>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {(proje.categories && proje.categories.length > 0 ? proje.categories : proje.category ? [proje.category] : []).map((cat, idx) => (
+                  <span 
+                    key={idx}
+                    className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full"
+                  >
+                    {cat}
+                  </span>
+                ))}
                 <span className="inline-block px-3 py-1 bg-accent/20 text-accent text-xs font-medium rounded-full">
                   {proje.status}
                 </span>
