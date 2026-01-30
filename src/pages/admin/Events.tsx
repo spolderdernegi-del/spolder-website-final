@@ -833,11 +833,14 @@ const AdminEvents = () => {
                       <span>📅 {event.tarih}</span>
                       <span>🕐 {event.saat}</span>
                       <span>📍 {event.konum}</span>
-                      {(event.categories && event.categories.length > 0 ? event.categories : event.kategori ? [event.kategori] : []).map((cat, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
-                          {cat}
-                        </span>
-                      ))}
+                      {(() => {
+                        const displayCategories = event.categories?.length > 0 ? event.categories : event.kategori ? [event.kategori] : [];
+                        return displayCategories.map((cat, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                            {cat}
+                          </span>
+                        ));
+                      })()}
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded">
                         {event.durum}
                       </span>

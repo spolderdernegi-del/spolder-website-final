@@ -677,11 +677,14 @@ const AdminNews = () => {
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>📅 {newsItem.tarih}</span>
                         <span>✍️ {newsItem.yazar}</span>
-                        {(newsItem.categories && newsItem.categories.length > 0 ? newsItem.categories : newsItem.kategori ? [newsItem.kategori] : []).map((cat, idx) => (
-                          <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
-                            {cat}
-                          </span>
-                        ))}
+                        {(() => {
+                          const displayCategories = newsItem.categories?.length > 0 ? newsItem.categories : newsItem.kategori ? [newsItem.kategori] : [];
+                          return displayCategories.map((cat, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                              {cat}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>
