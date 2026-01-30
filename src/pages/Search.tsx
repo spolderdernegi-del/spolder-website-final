@@ -14,6 +14,7 @@ interface SearchResult {
   author: string;
   image: string;
   category: string;
+  categories?: string[];
   link: string;
   date: string;
 }
@@ -56,6 +57,7 @@ const Search = () => {
             author: item.yazar || "SPOLDER",
             image: item.gorsel || "",
             category: item.kategori || "",
+            categories: item.categories,
             link: `/haber/${item.id}`,
             date: item.tarih || new Date(item.created_at).toLocaleDateString("tr-TR"),
           });
@@ -79,6 +81,7 @@ const Search = () => {
             author: "SPOLDER",
             image: item.gorsel || "",
             category: item.kategori || "",
+            categories: item.categories,
             link: `/etkinlik/${item.id}`,
             date: item.tarih || new Date(item.created_at).toLocaleDateString("tr-TR"),
           });
@@ -102,6 +105,7 @@ const Search = () => {
             author: "SPOLDER",
             image: item.image || "",
             category: item.category || "",
+            categories: item.categories,
             link: `/proje/${item.id}`,
             date: item.start_date || new Date(item.created_at).toLocaleDateString("tr-TR"),
           });
@@ -125,6 +129,7 @@ const Search = () => {
             author: item.author || "SPOLDER",
             image: item.image || "",
             category: item.category || "",
+            categories: item.categories,
             link: `/blog/${item.id}`,
             date: item.date || new Date(item.created_at).toLocaleDateString("tr-TR"),
           });
@@ -180,13 +185,21 @@ const Search = () => {
                         />
                       )}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
                             {item.type}
                           </span>
-                          <span className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded">
-                            {item.category}
-                          </span>
+                          {item.categories && item.categories.length > 0 ? (
+                            item.categories.map((cat, index) => (
+                              <span key={index} className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded">
+                                {cat}
+                              </span>
+                            ))
+                          ) : item.category ? (
+                            <span className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded">
+                              {item.category}
+                            </span>
+                          ) : null}
                         </div>
                         <h3 className="font-display text-lg font-bold text-foreground mb-2 hover:text-primary transition-colors">
                           {item.title}

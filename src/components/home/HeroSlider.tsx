@@ -11,6 +11,7 @@ interface SlideItem {
   gorsel: string;
   tarih: string;
   kategori: string;
+  categories?: string[];
   sliderda_goster?: boolean;
   contentType: 'event' | 'news' | 'project' | 'blog';
   link: string;
@@ -30,7 +31,7 @@ const HeroSlider = () => {
         // Etkinlikler
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('created_at', { ascending: false });
@@ -46,7 +47,7 @@ const HeroSlider = () => {
         // Haberler
         const { data: news, error: newsError } = await supabase
           .from('news')
-          .select('id, baslik, ozet, gorsel, tarih, kategori, sliderda_goster')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('created_at', { ascending: false });
@@ -62,7 +63,7 @@ const HeroSlider = () => {
         // Projeler
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, title, description, image, start_date, category, "showInSlider"')
+          .select('id, title, description, image, start_date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
           .order('created_at', { ascending: false });
@@ -75,6 +76,7 @@ const HeroSlider = () => {
             gorsel: p.image,
             tarih: p.start_date,
             kategori: p.category,
+            categories: p.categories,
             sliderda_goster: p.showInSlider,
             contentType: 'project' as const,
             link: `/proje/${p.id}`
@@ -84,7 +86,7 @@ const HeroSlider = () => {
         // Blog
         const { data: blogs, error: blogsError } = await supabase
           .from('blog')
-          .select('id, title, excerpt, image, date, category, "showInSlider"')
+          .select('id, title, excerpt, image, date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
           .order('created_at', { ascending: false });
@@ -97,6 +99,7 @@ const HeroSlider = () => {
             gorsel: b.image,
             tarih: b.date,
             kategori: b.category,
+            categories: b.categories,
             sliderda_goster: b.showInSlider,
             contentType: 'blog' as const,
             link: `/blog/${b.id}`
@@ -157,10 +160,20 @@ const HeroSlider = () => {
       {/* Content */}
       <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
         <div className="max-w-2xl space-y-6 animate-fade-up">
-          {/* Category Badge */}
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {slides[currentSlide].kategori}
-          </span>
+          {/* Category Badges */}
+          <div className="flex flex-wrap gap-2">
+            {slides[currentSlide].categories && slides[currentSlide].categories.length > 0 ? (
+              slides[currentSlide].categories.slice(0, 3).map((cat, idx) => (
+                <span key={idx} className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  {cat}
+                </span>
+              ))
+            ) : (
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                {slides[currentSlide].kategori}
+              </span>
+            )}
+          </div>
 
           {/* Title */}
           <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">

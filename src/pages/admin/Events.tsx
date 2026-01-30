@@ -23,6 +23,7 @@ interface Event {
   konum_lng?: number;
   gorsel: string;
   kategori: string;
+  categories?: string[];
   kapasite: string;
   kayitli: string;
   durum: string;
@@ -58,6 +59,7 @@ const AdminEvents = () => {
     konum_lng: 0,
     gorsel: "",
     kategori: "",
+    categories: [] as string[],
     kapasite: "",
     kayitli: "0",
     durum: "Açık",
@@ -120,9 +122,9 @@ const AdminEvents = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Kategori kontrolü
-    if (!formData.kategori || formData.kategori.trim() === "") {
-      toast.error("Lütfen bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
+    // Kategori kontrolü - en az bir kategori seçili olmalı
+    if (!formData.categories || formData.categories.length === 0) {
+      toast.error("Lütfen en az bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
       return;
     }
 
@@ -143,7 +145,13 @@ const AdminEvents = () => {
         .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-      const dataToSave = { ...formData, gorsel: imageUrl, slug };
+      const dataToSave = { 
+        ...formData, 
+        gorsel: imageUrl, 
+        slug,
+        kategori: formData.categories[0] || '', // Backward compatibility
+        categories: formData.categories
+      };
 
       if (editingEvent) {
         // Update existing event
@@ -188,6 +196,7 @@ const AdminEvents = () => {
       konum_lng: event.konum_lng || 0,
       gorsel: event.gorsel,
       kategori: event.kategori,
+      categories: event.categories || (event.kategori ? [event.kategori] : []),
       kapasite: event.kapasite,
       kayitli: event.kayitli,
       durum: event.durum,
@@ -309,6 +318,7 @@ const AdminEvents = () => {
       konum_lng: 0,
       gorsel: "",
       kategori: "",
+      categories: [],
       kapasite: "",
       kayitli: "0",
       durum: "Açık",
@@ -325,7 +335,9 @@ const AdminEvents = () => {
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.baslik.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.ozet.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || event.kategori === filterCategory;
+    const matchesCategory = !filterCategory || 
+                           event.categories?.includes(filterCategory) || 
+                           event.kategori === filterCategory;
     const matchesStatus = !filterStatus || event.durum === filterStatus;
     
     return matchesSearch && matchesCategory && matchesStatus;
@@ -375,23 +387,35 @@ const AdminEvents = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategori *</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kategoriler * (Birden fazla seçebilirsiniz)</label>
                   {categories.length === 0 ? (
                     <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
                       ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip etkinlik kategorisi ekleyin.
                     </div>
                   ) : (
-                    <select
-                      value={formData.kategori}
-                      onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-                      className="w-full p-2 border rounded-md"
-                      required
-                    >
-                      <option value="">Kategori seçin...</option>
+                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto bg-white dark:bg-slate-950">
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        <label key={cat.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={formData.categories?.includes(cat.name) || false}
+                            onChange={(e) => {
+                              const currentCategories = formData.categories || [];
+                              if (e.target.checked) {
+                                setFormData({ ...formData, categories: [...currentCategories, cat.name] });
+                              } else {
+                                setFormData({ 
+                                  ...formData, 
+                                  categories: currentCategories.filter(c => c !== cat.name) 
+                                });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{cat.name}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   )}
                 </div>
 
@@ -663,10 +687,14 @@ const AdminEvents = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-2">
                   {formData.baslik || "Etkinlik Başlığı"}
                 </h2>
-                {formData.kategori && (
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full mb-3">
-                    {formData.kategori}
-                  </span>
+                {formData.categories && formData.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.categories.map((cat, idx) => (
+                      <span key={idx} className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {formData.tarih && <span>📅 {formData.tarih}</span>}
@@ -715,7 +743,7 @@ const AdminEvents = () => {
               >
                 <option value="">Tüm Kategoriler</option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id.toString()}>
+                  <option key={cat.id} value={cat.name}>
                     {cat.name}
                   </option>
                 ))}
@@ -805,7 +833,15 @@ const AdminEvents = () => {
                       <span>📅 {event.tarih}</span>
                       <span>🕐 {event.saat}</span>
                       <span>📍 {event.konum}</span>
-                      <span className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                      {(() => {
+                        const displayCategories = event.categories?.length > 0 ? event.categories : event.kategori ? [event.kategori] : [];
+                        return displayCategories.map((cat, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                            {cat}
+                          </span>
+                        ));
+                      })()}
+                      <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded">
                         {event.durum}
                       </span>
                     </div>

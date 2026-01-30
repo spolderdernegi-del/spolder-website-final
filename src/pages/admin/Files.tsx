@@ -16,6 +16,7 @@ interface File {
   file_type: string;
   file_size: number;
   category: string;
+  categories?: string[];
   created_at: string;
 }
 
@@ -35,6 +36,7 @@ const AdminFiles = () => {
     title: "",
     description: "",
     category: "",
+    categories: [] as string[],
   });
 
   useEffect(() => {
@@ -117,6 +119,13 @@ const AdminFiles = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Kategori kontrolü - en az bir kategori seçili olmalı
+    if (!formData.categories || formData.categories.length === 0) {
+      toast.error("Lütfen en az bir kategori seçin!");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -129,7 +138,8 @@ const AdminFiles = () => {
       const dataToSave: any = {
         title: formData.title,
         description: formData.description,
-        category: formData.category,
+        category: formData.categories[0],
+        categories: formData.categories,
         file_url: fileData?.url ?? editingFile?.file_url ?? "",
         file_type: fileData?.type ?? editingFile?.file_type ?? "",
         file_size: fileData?.size ?? editingFile?.file_size ?? 0,
@@ -167,6 +177,7 @@ const AdminFiles = () => {
       title: file.title,
       description: file.description,
       category: file.category,
+      categories: file.categories || (file.category ? [file.category] : []),
     });
     setUploadFile(null);
     setShowForm(true);
@@ -219,7 +230,9 @@ const AdminFiles = () => {
   const filteredFiles = files.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || item.category === filterCategory;
+    const matchesCategory = !filterCategory || 
+                           item.categories?.includes(filterCategory) || 
+                           item.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -231,6 +244,7 @@ const AdminFiles = () => {
       title: "",
       description: "",
       category: "",
+      categories: [],
     });
   };
 
@@ -286,17 +300,36 @@ const AdminFiles = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategori</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Kategori seçin...</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kategoriler * (Birden fazla seçebilirsiniz)</label>
+                  {categories.length === 0 ? (
+                    <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
+                      ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip dosya kategorisi ekleyin.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto bg-white dark:bg-slate-950">
+                      {categories.map((cat) => (
+                        <label key={cat.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={formData.categories?.includes(cat.name) || false}
+                            onChange={(e) => {
+                              const currentCategories = formData.categories || [];
+                              if (e.target.checked) {
+                                setFormData({ ...formData, categories: [...currentCategories, cat.name] });
+                              } else {
+                                setFormData({ 
+                                  ...formData, 
+                                  categories: currentCategories.filter(c => c !== cat.name) 
+                                });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{cat.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
@@ -357,10 +390,14 @@ const AdminFiles = () => {
                     <h2 className="text-xl font-bold text-foreground mb-2">
                       {formData.title || "Dosya Başlığı"}
                     </h2>
-                    {formData.category && (
-                      <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full mb-3">
-                        {formData.category}
-                      </span>
+                    {formData.categories && formData.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {formData.categories.map((cat, idx) => (
+                          <span key={idx} className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
                     )}
                     {uploadFile && (
                       <div className="space-y-2 mb-3">
@@ -455,11 +492,14 @@ const AdminFiles = () => {
                       <p className="text-sm text-muted-foreground mb-2">{file.description}</p>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>📦 {formatFileSize(file.file_size)}</span>
-                        {file.category && (
-                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded">
-                            {file.category}
-                          </span>
-                        )}
+                        {(() => {
+                          const displayCategories = file.categories?.length > 0 ? file.categories : file.category ? [file.category] : [];
+                          return displayCategories.map((cat, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                              {cat}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

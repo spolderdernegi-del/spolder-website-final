@@ -17,6 +17,7 @@ interface News {
   icerik: string;
   gorsel: string;
   kategori: string;
+  categories?: string[];
   yazar: string;
   tarih: string;
   created_at: string;
@@ -47,6 +48,7 @@ const AdminNews = () => {
     content: "",
     image: "",
     category: "",
+    categories: [] as string[],
     author: "",
     date: "",
     publishStatus: 'draft' as 'draft' | 'published',
@@ -114,9 +116,9 @@ const AdminNews = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Kategori kontrolü
-    if (!formData.category || formData.category.trim() === "") {
-      toast.error("Lütfen bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
+    // Kategori kontrolü - en az bir kategori seçili olmalı
+    if (!formData.categories || formData.categories.length === 0) {
+      toast.error("Lütfen en az bir kategori seçin! Kategori oluşturmak için Kategoriler sayfasına gidin.");
       return;
     }
 
@@ -148,7 +150,8 @@ const AdminNews = () => {
         ozet: formData.excerpt,
         icerik: formData.content,
         gorsel: imageUrl,
-        kategori: formData.category,
+        kategori: formData.categories[0] || '', // Backward compatibility
+        categories: formData.categories,
         yazar: formData.author,
         tarih: formData.date,
         yayin_durumu: formData.publishStatus === 'draft' ? 'taslak' : 'yayinlandi',
@@ -202,6 +205,7 @@ const AdminNews = () => {
       content: newsItem.icerik,
       image: newsItem.gorsel,
       category: newsItem.kategori,
+      categories: newsItem.categories || (newsItem.kategori ? [newsItem.kategori] : []),
       author: newsItem.yazar,
       date: newsItem.tarih,
       publishStatus: newsItem.yayin_durumu === 'yayinlandi' ? 'published' : 'draft',
@@ -290,7 +294,9 @@ const AdminNews = () => {
   const filteredNews = news.filter(item => {
     const matchesSearch = item.baslik.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.ozet.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !filterCategory || item.kategori === filterCategory;
+    const matchesCategory = !filterCategory || 
+                           item.categories?.includes(filterCategory) || 
+                           item.kategori === filterCategory;
     const matchesStatus = !filterStatus || item.yayin_durumu === filterStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -304,6 +310,7 @@ const AdminNews = () => {
       content: "",
       image: "",
       category: "",
+      categories: [],
       author: "",
       date: "",
       publishStatus: 'draft',
@@ -360,23 +367,35 @@ const AdminNews = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategori *</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kategoriler * (Birden fazla seçebilirsiniz)</label>
                   {categories.length === 0 ? (
                     <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
                       ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip haber kategorisi ekleyin.
                     </div>
                   ) : (
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full p-2 border rounded-md"
-                      required
-                    >
-                      <option value="">Kategori seçin...</option>
+                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto bg-white dark:bg-slate-950">
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        <label key={cat.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={formData.categories?.includes(cat.name) || false}
+                            onChange={(e) => {
+                              const currentCategories = formData.categories || [];
+                              if (e.target.checked) {
+                                setFormData({ ...formData, categories: [...currentCategories, cat.name] });
+                              } else {
+                                setFormData({ 
+                                  ...formData, 
+                                  categories: currentCategories.filter(c => c !== cat.name) 
+                                });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm">{cat.name}</span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
                   )}
                 </div>
 
@@ -532,10 +551,14 @@ const AdminNews = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-2">
                   {formData.title || "Haber Başlığı"}
                 </h2>
-                {formData.category && (
-                  <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full mb-3">
-                    {formData.category}
-                  </span>
+                {formData.categories && formData.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.categories.map((cat, idx) => (
+                      <span key={idx} className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
                   {formData.date && <span>📅 {formData.date}</span>}
@@ -654,11 +677,14 @@ const AdminNews = () => {
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>📅 {newsItem.tarih}</span>
                         <span>✍️ {newsItem.yazar}</span>
-                        {newsItem.kategori && (
-                          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded">
-                            {newsItem.kategori}
-                          </span>
-                        )}
+                        {(() => {
+                          const displayCategories = newsItem.categories?.length > 0 ? newsItem.categories : newsItem.kategori ? [newsItem.kategori] : [];
+                          return displayCategories.map((cat, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded">
+                              {cat}
+                            </span>
+                          ));
+                        })()}
                       </div>
                     </div>
                   </div>

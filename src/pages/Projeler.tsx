@@ -12,6 +12,7 @@ interface Project {
   description: string;
   image: string;
   status: string;
+  categories?: string[];
   content: string;
   author: string;
   created_at: string;
@@ -100,6 +101,18 @@ const Projeler = () => {
                     </span>
                   </div>
                   <div className="p-6">
+                    {project.categories && project.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {project.categories.map((cat, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <Link to={`/proje/${project.id}`}>
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 group-hover:text-primary transition-colors">
                         {project.title}
