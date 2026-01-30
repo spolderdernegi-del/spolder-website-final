@@ -406,15 +406,6 @@ const AdminProjects = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Detaylı Açıklama</label>
-                <Textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={8}
-                />
-              </div>
-
               {/* SEO Metadata Bölümü */}
               <div className="border-t pt-4 mt-4">
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
