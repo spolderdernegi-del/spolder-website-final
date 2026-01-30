@@ -162,7 +162,7 @@ Haberler ile benzer şekilde, blog yazıları ekleyebilirsiniz:
 |------|----------|
 | **Başlık** | Dosya adı |
 | **Açıklama** | Dosya açıklaması |
-| **Kategori** | Rapor / Araştırma / Politika Belgesi |
+| **Kategori** | Rapor / Araştırma / Politika Belgesi / Bültenler |
 | **Dosya** | PDF, DOCX, ZIP vb. dosya yükleyin |
 
 ### Dosya Silme
