@@ -5,6 +5,7 @@ import { Loader, Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import DOMPurify from "dompurify";
 
 interface Project {
   id: number;
@@ -117,12 +118,11 @@ const ProjeDetay = () => {
         <section className="section-padding">
           <div className="container-custom mx-auto">
             <div className="max-w-3xl">
-              <article className="prose prose-invert max-w-none mb-8">
-                {proje.content.split("\n\n").map((paragraph, index) => (
-                  <p key={index} className="text-foreground/90 text-lg leading-relaxed mb-6">
-                    {paragraph}
-                  </p>
-                ))}
+              <article className="prose prose-lg dark:prose-invert max-w-none mb-8">
+                <div 
+                  className="text-foreground/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proje.content || '') }}
+                />
               </article>
 
               <div className="py-8 border-t border-border">
