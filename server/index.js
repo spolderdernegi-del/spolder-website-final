@@ -49,17 +49,17 @@ const sanitizeField = (field) => {
   return field;
 };
 
-const parseOrExpression = (expression) => {
+const parseOrExpression = (expression, startIndex = 0) => {
   const clauses = expression.split(",").map((part) => part.trim()).filter(Boolean);
   const conditions = [];
   const params = [];
 
   for (const clause of clauses) {
-    const match = clause.match(/^([a-zA-Z0-9_]+)\.ilike\.%(.*)%$/i);
+    const match = clause.match(/^([a-zA-Z0-9_]+)\.ilike\.%(.+)%$/i);
     if (!match) continue;
     const field = sanitizeField(match[1]);
     const value = match[2];
-    conditions.push(`\"${field}\" ILIKE $${params.length + 1}`);
+    conditions.push(`"${field}" ILIKE $${params.length + startIndex + 1}`);
     params.push(`%${value}%`);
   }
 
@@ -93,7 +93,7 @@ const buildWhereClause = (query) => {
   }
 
   if (query.or) {
-    const orResult = parseOrExpression(String(query.or));
+    const orResult = parseOrExpression(String(query.or), params.length);
     if (orResult.sql) {
       conditions.push(orResult.sql);
       params.push(...orResult.params);
