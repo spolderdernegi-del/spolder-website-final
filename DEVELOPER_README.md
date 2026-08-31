@@ -5,7 +5,7 @@
 2. [Teknoloji Stack](#teknoloji-stack)
 3. [Kurulum](#kurulum)
 4. [Proje Yapısı](#proje-yapısı)
-5. [Supabase Kurulumu](#supabase-kurulumu)
+5. [Backend Kurulumu (Natro VPS)](#backend-kurulumu-natro-vps)
 6. [Önemli Dosyalar](#önemli-dosyalar)
 7. [Güvenlik Bilgileri](#güvenlik-bilgileri)
 8. [API Endpoints](#api-endpoints)
@@ -19,10 +19,15 @@
 
 **SPOLDER** - Spor Politikaları Derneği'nin resmi web sitesidir.
 
+> **Not:** Bu site 2026 başında Vercel + Supabase'ten tamamen ayrılıp Natro
+> XCloud VPS üzerinde self-hosted bir Node/Express + PostgreSQL backend'e
+> taşındı. Vercel ve Supabase artık hiçbir şekilde kullanılmıyor. Bu README
+> güncel mimariyi anlatır.
+
 ### Özellikler
 - ✅ Responsive Admin Dashboard
 - ✅ Haber, Etkinlik, Proje, Blog Yönetimi
-- ✅ İletişim Formu + Supabase Storage
+- ✅ İletişim Formu
 - ✅ Harita İntegrasyonu (OpenStreetMap/Leaflet)
 - ✅ SEO Optimizasyonu
 - ✅ Activity Logging
@@ -37,11 +42,11 @@
 | **Frontend** | React + TypeScript | 18.x |
 | **Build** | Vite | 7.x |
 | **UI Framework** | Shadcn/UI + Tailwind CSS | Latest |
-| **Backend** | Supabase (PostgreSQL) | Latest |
-| **Auth** | Supabase Auth | Session-based |
+| **Backend** | Node.js + Express + PostgreSQL (self-hosted) | Latest |
+| **Auth** | Kendi JWT tabanlı oturum sistemi (`admin_users` tablosu) | Session cookie |
 | **Maps** | Leaflet + React-Leaflet + OpenStreetMap | 4.x |
-| **Deployment** | Vercel | - |
-| **Package Manager** | Bun | Latest |
+| **Hosting** | Natro XCloud VPS + Nginx + PM2 | - |
+| **Package Manager** | npm | Latest |
 
 ---
 
@@ -50,9 +55,9 @@
 ### Ön Gereksinimler
 ```bash
 - Node.js 18+
-- Bun (veya npm/yarn)
+- npm
 - Git
-- Supabase hesabı
+- Erişimi olan bir PostgreSQL veritabanı (yerelde geliştirme için de gerekir)
 ```
 
 ### 1. Repository'i Clone Edin
@@ -63,40 +68,47 @@ cd spolder-website-final
 
 ### 2. Bağımlılıkları Yükleyin
 ```bash
-bun install
-# veya
 npm install
+cd server && npm install && cd ..
 ```
 
-### 3. Environment Variables Ayarlayın
+### 3. Backend Environment Variables Ayarlayın
+Frontend'in build zamanında ihtiyaç duyduğu bir env değişkeni yok — her şey
+aynı origin'den relative path'lerle backend'e gidiyor. Sadece backend'in
+kendi `.env` dosyası gerekiyor:
+
 ```bash
-cp env.example .env.local
+cp env.example server/.env
 ```
 
-`.env.local` dosyasını düzenleyin:
-```env
-VITE_SUPABASE_PROJECT_ID="YOUR_PROJECT_ID"
-VITE_SUPABASE_URL="https://YOUR_PROJECT_ID.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="YOUR_ANON_KEY"
-```
+`server/.env` dosyasını doldurun (bkz. `env.example` içindeki açıklamalar):
+`DATABASE_URL`, `SESSION_SECRET`, `ALLOWED_ORIGINS`, `NODE_ENV`, `PORT`.
 
-> **Not:** Keys'i Supabase Dashboard → Settings → API'den alın
-
-### 4. Development Server'ı Başlatın
+### 4. Veritabanını Hazırlayın
+`admin_users` tablosu ve diğer tablolar için bir migration/şema betiği
+elle uygulanmalı (bkz. Backend Kurulumu bölümü). Sonra ilk admin kullanıcıyı
+oluşturun:
 ```bash
-bun run dev
-# veya
+cd server
+ADMIN_EMAIL="admin@spolder.org" ADMIN_PASSWORD="güçlü_bir_şifre" npm run seed:admin
+```
+
+### 5. Development Server'ı Başlatın
+```bash
+# Terminal 1: backend
+cd server && npm start
+
+# Terminal 2: frontend (Vite dev server, backend'e proxy ayarı gerekebilir)
 npm run dev
 ```
 
-Server açılacaktır: `http://localhost:8080`
-
-### 5. Build Yapın
+### 6. Build Yapın
 ```bash
-bun run build
-# veya
 npm run build
 ```
+Backend, `dist/` klasörünü statik olarak servis eder ve API dışındaki tüm
+yolları SPA fallback ile `index.html`'e yönlendirir (bkz. `server/index.js`
+sonundaki static/fallback bloğu).
 
 ---
 
@@ -125,9 +137,9 @@ spolder-website-final/
 │   │   ├── Search.tsx       # Search page
 │   │   ├── Iletisim.tsx     # Contact page (form + map)
 │   │   └── admin/           # Admin pages
-│   │       ├── Login.tsx    # Login page (Supabase Auth)
+│   │       ├── Login.tsx    # Login page (kendi JWT session sistemi)
 │   │       ├── Dashboard.tsx # Main dashboard
-│   │       ├── Settings.tsx # Site settings
+│   │       ├── Settings.tsx # Site settings + şifre değiştirme
 │   │       ├── News.tsx     # News management
 │   │       ├── Events.tsx   # Events management
 │   │       ├── Projects.tsx # Projects management
@@ -140,7 +152,10 @@ spolder-website-final/
 │   │
 │   ├── integrations/
 │   │   └── supabase/
-│   │       ├── client.ts    # Supabase client
+│   │       ├── client.ts    # ⚠️ İsmine rağmen Supabase DEĞİL — kendi
+│   │       │                #    backend'imize istek atan bir uyum
+│   │       │                #    ("shim") katmanı. Bkz. dosyanın başındaki
+│   │       │                #    açıklama.
 │   │       └── types.ts     # TypeScript types
 │   │
 │   ├── lib/
@@ -159,56 +174,55 @@ spolder-website-final/
 │   ├── main.tsx             # Entry point
 │   └── index.css            # Global styles
 │
-├── supabase/
-│   ├── supabase-tables.sql  # Database schema
-│   ├── create_contact_messages_table.sql
-│   ├── add_is_read_to_contact_messages.sql
-│   ├── fix_rls_security.sql # ⚠️ GÜVENLIK: RLS policies
-│   └── view_all_data.sql    # Debug query
+├── server/                   # Self-hosted backend (Natro VPS'te çalışır)
+│   ├── index.js              # Express app: /api/auth/*, /api/db/*, static+SPA
+│   ├── seed-admin.js         # İlk admin kullanıcıyı oluşturur/sıfırlar
+│   ├── reset-password.js     # Acil durum şifre sıfırlama (SSH erişimi gerekir)
+│   └── package.json
 │
 ├── public/                   # Static assets
-├── dist/                     # Build output
+├── dist/                     # Build output (backend tarafından servis edilir)
 ├── .gitignore               # Git ignore rules
 ├── vite.config.ts           # Vite configuration
 ├── tsconfig.json            # TypeScript config
 ├── tailwind.config.ts       # Tailwind config
-├── package.json             # Dependencies
-└── env.example              # Environment template
+├── package.json             # Frontend dependencies
+└── env.example              # Backend .env şablonu
 ```
 
 ---
 
-## 🔌 Supabase Kurulumu
+## 🔌 Backend Kurulumu (Natro VPS)
 
-### 1. Supabase Projesini Oluşturun
+Bu bölüm, sıfırdan yeni bir sunucuda backend'i ayağa kaldırmak için gereken
+adımları özetler (mevcut production sunucusu zaten kurulu).
+
+### 1. PostgreSQL Veritabanı Oluşturun
+Sunucuda (veya yönetilen bir PostgreSQL servisinde) boş bir veritabanı
+oluşturun ve `DATABASE_URL`'i buna göre ayarlayın.
+
+### 2. Tabloları Oluşturun
+`server/index.js` içindeki `PUBLIC_READ_TABLES` / `ALL_TABLES` listesi
+uygulamanın kullandığı tabloları gösterir: `categories`, `board`,
+`bank_info`, `events`, `news`, `blog`, `projects`, `files`, `settings`,
+`contact_messages`, ayrıca girişler için `admin_users`. Bu projenin geçmişi
+Supabase'ten geldiği için tabloların ilk şeması eski `supabase/*.sql`
+dosyalarından türetilmiştir, ancak artık RLS (Row Level Security) veya
+Supabase'e özgü hiçbir şey kullanılmıyor — tüm erişim kontrolü doğrudan
+`server/index.js` içindeki Express middleware'lerinde yapılıyor.
+
+### 3. İlk Admin Kullanıcıyı Oluşturun
+```bash
+cd server
+ADMIN_EMAIL="admin@spolder.org" ADMIN_PASSWORD="güçlü_bir_şifre" npm run seed:admin
 ```
-supabase.com/dashboard → New Project
-```
 
-### 2. SQL Scripts'i Çalıştırın
-Supabase Dashboard → SQL Editor'da:
-
-1. **supabase-tables.sql** çalıştırın (ana tabloları oluşturur)
-2. **create_contact_messages_table.sql** çalıştırın (iletişim mesajları)
-3. **add_is_read_to_contact_messages.sql** çalıştırın (okunma durumu)
-4. **fix_rls_security.sql** çalıştırın ⚠️ (RLS politikaları - ÖNEMLI!)
-
-### 3. Supabase Auth User Oluşturun
-```
-Supabase Dashboard → Authentication → Manage Users → Add User
-Email: admin@spolder.org
-Password: güçlü_bir_şifre
-```
-
-### 4. Admin Settings Ekleyin
-SQL Editor'da:
-```sql
-INSERT INTO public.settings (key, value, updated_at)
-VALUES
-    ('admin_email', 'admin@spolder.org', NOW()),
-    ('contact_phone', '+90 212 XXX XXXX', NOW()),
-    ('contact_email', 'info@spolder.org', NOW())
-ON CONFLICT (key) DO NOTHING;
+### 4. Şifremi unuttum / erişimi kaybettim
+Panelden "Şifre Değiştir" mevcut şifreyi bilmeyi gerektirir. Hiç giriş
+yapılamıyorsa, sunucuya SSH ile bağlanıp doğrudan çalıştırın:
+```bash
+cd /var/www/spolder
+node server/reset-password.js admin@spolder.org YeniGucluSifre123
 ```
 
 ---
@@ -217,9 +231,10 @@ ON CONFLICT (key) DO NOTHING;
 
 ### src/integrations/supabase/client.ts
 ```typescript
-// Supabase client tanımı
-// Tüm database operasyonları buradan yapılır
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {...});
+// Adı yanıltıcı: bu dosya artık Supabase SDK'sını İÇERMİYOR.
+// Supabase JS istemcisinin API yüzeyini (.from(table).select()... vb.)
+// taklit eden küçük bir "shim" — gerçek istekler kendi backend'imizin
+// /api/db/* ve /api/auth/* uçlarına relative path'lerle gidiyor.
 ```
 
 ### src/App.tsx
@@ -239,61 +254,95 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 ### src/pages/admin/Login.tsx
 ```typescript
-// Supabase Auth kullanır
-// localStorage artık kullanılmıyor (güvenlik)
-// Session-based authentication
+// Kendi backend'imizin /api/auth/login uç noktasını çağırır.
+// Sunucu, httpOnly + secure çerezde bir JWT (spolder_session) döner.
+// localStorage kullanılmıyor.
+```
+
+### server/index.js
+```javascript
+// Tüm backend burada: helmet + CORS + rate limiting, JWT tabanlı
+// /api/auth/* uçları, whitelist'li tablolar üzerinde generic /api/db/*
+// CRUD uçları, ve son olarak dist/ için statik dosya servisi + SPA fallback.
 ```
 
 ### src/components/admin/GoogleMapPicker.tsx
 ```typescript
-// OpenStreetMap/Leaflet entegrasyonu
-// Location picker for events and settings
-// Marker drag-and-drop + click-to-place
+// İsmine rağmen Google Maps KULLANMIYOR — OpenStreetMap/Leaflet
+// entegrasyonu. Location picker for events and settings.
+// Marker drag-and-drop + click-to-place.
 ```
 
 ---
 
 ## 🔒 Güvenlik Bilgileri
 
-### ⚠️ KRITIK: RLS (Row Level Security) Politikaları
-
-**Migration Dosyası:** `supabase/migrations/20260105_fix_rls_policies.sql`
-
-**Kurallar:**
-- ✅ Herkes (anonymous + authenticated) sadece READ yapabilir
-- ✅ Sadece `role: "admin"` olan kullanıcılar INSERT/UPDATE/DELETE yapabilir
-- ✅ Tüm tablolar RLS korumalıdır (bank_info, blog, board, categories, events, files, news, projects, settings)
-- ✅ İstisna: `contact_messages` tablosu herkesin mesaj göndermesine izin verir (INSERT)
-
-**Admin Kullanıcı Oluşturma:** Detaylı bilgi için `docs/ADMIN_SETUP.md` dosyasına bakın
-
-**Çalıştırma:** SQL Editor'da migration dosyasını çalıştırın veya Supabase CLI kullanın
+### Erişim kontrolü
+- Tüm yazma uçları (`POST`/`PUT`/`DELETE` — `contact_messages`'a public
+  form gönderimi hariç) `requireAdmin` middleware'i ile korunur: geçerli bir
+  `spolder_session` JWT çerezi olmayan istekler 401 alır.
+- Okuma (`GET /api/db/:table`) `PUBLIC_READ_TABLES` listesindeki tablolar
+  için herkese açıktır (eski Supabase RLS "herkes okuyabilir" politikasının
+  karşılığı) — `contact_messages` hariç, o sadece admin'e açık.
+- `settings` tablosu karışıktır (halka açık iletişim/IBAN bilgileri +
+  yalnızca admin'e ait değerler); `server/index.js` içinde
+  `PUBLIC_SETTINGS_KEYS` allowlist'i, oturumsuz isteklerin bu listedeki
+  anahtarlar dışında hiçbir satırı göremeyeceğini garanti eder.
+- SQL enjeksiyonuna karşı: tüm değerler parametreli sorgularla geçilir,
+  tablo/alan adları ise regex + whitelist ile sınırlandırılır (asla ham
+  string birleştirme yok).
 
 ### Hardcoded Credentials
-
 ❌ **Kod içinde şifre/key yoktur**
-- Admin şifreleri Supabase Auth'ta tutulur
-- API keys `.env.local` dosyasında (git'e commit edilmez)
+- Admin şifreleri `admin_users` tablosunda bcrypt hash olarak tutulur
+- `SESSION_SECRET`, `DATABASE_URL` gibi değerler yalnızca sunucudaki
+  `.env` dosyasında bulunur (git'e commit edilmez — `.gitignore`'da)
+
+> **Geçmişle ilgili not:** Bu repo daha önce Supabase/Vercel kullanırken
+> `.env`, `supabase-tables.sql` ve eski `supabase/` klasörü içinde bazı
+> değerler (Supabase anon key, ve artık kullanılmayan iki Google Maps API
+> key'i) yanlışlıkla commit edilmişti. Repo public olduğu için bunlar
+> GitHub'ın secret-scanning'i tarafından da tespit edildi. Güncel kodda bu
+> değerlerin hiçbiri kullanılmıyor, ancak git geçmişinde hâlâ görünebilirler
+> — ilgili API anahtarları Google Cloud Console'da iptal/rotate edilmelidir.
 
 ### Console Logs
-
 ✅ **Production'da otomatik kaldırılır**
 - `vite.config.ts` → `esbuild.drop: ['console', 'debugger']`
 - Development'ta normal şekilde çalışırlar
 
 ### HTTPS
-
-✅ **Vercel'de otomatik HTTPS**
+✅ **Let's Encrypt ile gerçek SSL (Nginx üzerinde, certbot ile otomatik
+yenilenir)**
+- HSTS aktif (`server/index.js` → `helmet({ hsts: {...} })`)
 - Production URL'si HTTPS kullanır
-- Mixed content hatası yoktur
 
 ---
 
 ## 📡 API Endpoints
 
-Tüm API'ler Supabase REST API'si üzerinden yapılır.
+Frontend, `src/integrations/supabase/client.ts` shim'i üzerinden kendi
+backend'imizin uçlarına relative path'lerle istek atar.
 
-### Örek Queries
+### Auth
+```
+GET  /api/auth/session          — mevcut oturumu döner
+POST /api/auth/login            — { email, password } → session cookie
+POST /api/auth/logout           — cookie'yi temizler
+POST /api/auth/change-password  — { currentPassword, newPassword } (admin)
+```
+
+### Generic tablo uçları
+```
+GET    /api/db/:table                — filtre/sıralama/limit destekli okuma
+POST   /api/db/:table                — tek veya çoklu satır ekleme (admin)
+POST   /api/db/:table/upsert         — onConflict ile upsert (admin)
+PUT    /api/db/:table/:id            — güncelleme (admin)
+DELETE /api/db/:table/:id            — silme (admin)
+DELETE /api/db/:table                — filtreye göre toplu silme (admin)
+```
+
+### Frontend'den örnek kullanım (shim üzerinden, Supabase-benzeri syntax)
 
 ```typescript
 // Haber listesini getir
@@ -331,54 +380,42 @@ const { data, error } = await supabase
 
 ## 🚀 Deployment
 
-### Vercel'e Deploy Etme
+Production, Natro XCloud VPS üzerinde Nginx (reverse proxy + SSL) ve PM2
+(Node process manager, uygulama adı `spolder-backend`) ile çalışıyor.
 
-1. **GitHub'a Push Edin**
+**Önemli:** `/var/www/spolder` bir git reposu DEĞİL — dosyalar oraya elle
+kopyalanmış. `git pull` çalışmaz. Güncelleme akışı:
+
 ```bash
+# 1. Değişikliği GitHub'a push edin (bu repo)
 git add .
 git commit -m "Feature description"
 git push origin main
-```
 
-2. **Vercel'e Bağlayın**
-   - vercel.com → Import Project → GitHub repo seçin
-   - Branch: `main`
+# 2. VPS'te değişen dosyayı çekin
+cd /var/www/spolder
+curl -fsSL -o <değişen-dosya-yolu> \
+  https://raw.githubusercontent.com/spolderdernegi-del/spolder-website-final/main/<değişen-dosya-yolu>
 
-3. **Environment Variables Ayarlayın**
-   ```
-   Vercel Project Settings → Environment Variables
-   ```
-   - VITE_SUPABASE_URL
-   - VITE_SUPABASE_PUBLISHABLE_KEY
-   - VITE_SUPABASE_PROJECT_ID
+# 3. Frontend değiştiyse build alın
+npm run build
 
-4. **Deploy Edin**
-   ```bash
-   git push → Vercel otomatik deploy eder
-   ```
-
-### Vercel Konfigürasyonu
-
-`vercel.json` dosyası zaten yapılandırılmıştır:
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
-}
+# 4. Backend'i yeniden başlatın
+pm2 restart spolder-backend
 ```
 
 ---
 
 ## 🐛 Sorun Giderme
 
-### Problem: "VITE_SUPABASE_URL is not defined"
-**Çözüm:** `.env.local` dosyasını kontrol edin ve environment variables'ı yükleyin
+### Problem: "DATABASE_URL environment variable is required"
+**Çözüm:** `server/.env` dosyasını kontrol edin, `DATABASE_URL` ayarlı mı bakın.
 
-### Problem: "Supabase giriş hatası"
-**Çözüm:** 
-- Supabase Auth user'ın mevcut olduğundan emin olun
-- Email ve password doğru mu kontrol edin
-- RLS policies'ler ayarlı mı kontrol edin
+### Problem: "E-posta veya şifre hatalı" (login çalışmıyor)
+**Çözüm:**
+- `admin_users` tablosunda ilgili e-posta ile bir satır var mı kontrol edin
+- Gerekirse `server/seed-admin.js` veya `server/reset-password.js` ile
+  şifreyi sıfırlayın
 
 ### Problem: "Harita marker'ı sürüklenemiyor"
 **Çözüm:** `src/components/admin/GoogleMapPicker.tsx` dosyasında marker ref kontrol edin
@@ -387,16 +424,18 @@ git push origin main
 ```bash
 # Node modules'ü temizleyin
 rm -rf node_modules
-bun install
+npm install
 
 # Yeniden build yapın
-bun run build
+npm run build
 ```
 
 ### Problem: "404 Sayfası görünüyor"
-**Çözüm:** 
+**Çözüm:**
 - Router konfigürasyonunu kontrol edin (`src/App.tsx`)
 - Sayfa dosyasının doğru klasörde olduğundan emin olun
+- Backend'deki SPA fallback route'unun (`server/index.js` sonunda) çalıştığını
+  doğrulayın
 
 ---
 
@@ -416,7 +455,7 @@ Format: [Type]: [Açıklama]
 - fix: Harita konumu kaydedilmiyor sorunu
 - refactor: Login page iyileştirildi
 - docs: README güncellendi
-- security: RLS policies düzeltildi
+- security: Ayarlar okuma erişimi kısıtlandı
 ```
 
 ### Pull Request
@@ -434,12 +473,13 @@ Format: [Type]: [Açıklama]
 
 ## 📚 Faydalı Linkler
 
-- **Supabase Docs:** https://supabase.com/docs
 - **React Docs:** https://react.dev
 - **Vite Docs:** https://vitejs.dev
 - **Tailwind CSS:** https://tailwindcss.com
 - **Shadcn/UI:** https://ui.shadcn.com
 - **Leaflet:** https://leafletjs.com
+- **Express:** https://expressjs.com
+- **node-postgres (pg):** https://node-postgres.com
 
 ---
 
@@ -447,7 +487,6 @@ Format: [Type]: [Açıklama]
 
 - **Issue'lar:** GitHub Issues kullanın
 - **Email:** dev@spolder.org
-- **Slack:** #spolder-development
 
 ---
 
@@ -457,6 +496,6 @@ Bu proje SPOLDER Spor Politikaları Derneği tarafından yönetilmektedir.
 
 ---
 
-**Son Güncelleme:** 01 Ocak 2026  
-**Versiyon:** 1.0  
+**Son Güncelleme:** 31 Ağustos 2026
+**Versiyon:** 2.0 (Natro self-hosted mimari)
 **Bakım Yapan:** Geliştiriciler Ekibi
