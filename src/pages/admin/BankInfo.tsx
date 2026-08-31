@@ -41,7 +41,7 @@ const BankInfo = () => {
         .select('id, bankName:bankname, accountHolder:accountholder, iban, accountNumber:accountnumber, branch, swift')
         .single();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error loading bank info:", error);
       }
 
