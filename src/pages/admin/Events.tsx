@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
-import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichTextEditor from "@/components/admin/RichTextEditor"; import DOMPurify from "dompurify";
 
 interface Event {
   id: number;
@@ -710,7 +710,7 @@ const AdminEvents = () => {
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {formData.icerik ? (
-                    <div dangerouslySetInnerHTML={{ __html: formData.icerik }} />
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.icerik) }} />
                   ) : (
                     <p className="text-muted-foreground italic">Etkinlik içeriği burada görünecek...</p>
                   )}
