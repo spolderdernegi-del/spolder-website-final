@@ -16,6 +16,10 @@ const AdminSettings = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [counts, setCounts] = useState({ events: 0, news: 0, projects: 0, blog: 0 });
   const [mapEmbed, setMapEmbed] = useState("");
   const [mapEmbedInput, setMapEmbedInput] = useState("");
@@ -177,6 +181,43 @@ const AdminSettings = () => {
       localStorage.setItem("adminEmail", newEmail);
     } catch (err: any) {
       toast.error('E-posta güncellenemedi: ' + err.message);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.warning('Lütfen tüm şifre alanlarını doldurun');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Yeni şifre en az 8 karakter olmalıdır');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Yeni şifreler eşleşmiyor');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error?.message || 'Şifre güncellenemedi');
+      }
+      toast.success('Şifreniz başarıyla değiştirildi!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Şifre güncellenemedi');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -399,9 +440,6 @@ const AdminSettings = () => {
             <p className="text-sm text-muted-foreground mb-3">
               Mevcut e-posta: <span className="font-medium text-foreground">{currentEmail}</span>
             </p>
-            <p className="text-sm text-amber-600 dark:text-amber-500 mb-4">
-              💡 Şifre değiştirmek için Supabase Dashboard → Authentication → Users sayfasını kullanın.
-            </p>
             <div className="flex gap-4 max-w-2xl">
               <div className="flex-1">
                 <Input
@@ -415,6 +453,52 @@ const AdminSettings = () => {
                 E-postayı Güncelle
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Şifre Değiştirme */}
+        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Key className="w-5 h-5" />
+            Şifre Değiştir
+          </h2>
+
+          <div className="grid gap-4 max-w-2xl">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Mevcut Şifre</label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Mevcut şifreniz"
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Yeni Şifre</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="En az 8 karakter"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Yeni Şifre (Tekrar)</label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Yeni şifreyi tekrar girin"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <Button onClick={handlePasswordChange} disabled={changingPassword} className="w-fit">
+              {changingPassword ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
+            </Button>
           </div>
         </div>
 
@@ -601,7 +685,7 @@ const AdminSettings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">Depolama Tipi</p>
-              <p className="font-medium">Supabase</p>
+              <p className="font-medium">PostgreSQL (Natro VPS)</p>
             </div>
             <div>
               <p className="text-muted-foreground">Toplam Etkinlik</p>
