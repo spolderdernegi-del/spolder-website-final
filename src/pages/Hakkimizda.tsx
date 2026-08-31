@@ -78,7 +78,7 @@ const Hakkimizda = () => {
     setMetaTag("keywords", "SPOLDER hakkında, spor derneği, yönetim kurulu, kurumsal kimlik, logo, vektör logo, renk paleti, marka, spor politikaları derneği");
     setPropertyTag("og:title", "Hakkımızda - SPOLDER Spor Politikaları Derneği");
     setPropertyTag("og:description", "SPOLDER'in misyon, vizyon, değerleri ve kurumsal kimlik sistemi hakkında bilgi alın.");
-    setPropertyTag("og:url", "https://spolder-website-final.vercel.app/hakkimizda");
+    setPropertyTag("og:url", "https://spolder.org/hakkimizda");
 
     return () => {
       // Cleanup optional - sayfadan çıkışta varsayılan meta'ya dönmek istemiyoruz
