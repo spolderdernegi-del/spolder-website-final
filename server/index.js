@@ -23,6 +23,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean);
 
+// --- Hard requirements: refuse to boot in an insecure state -----------------
 if (!DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
@@ -40,6 +41,8 @@ const pool = new Pool({
   ssl: isProduction ? { rejectUnauthorized: false } : false,
 });
 
+// --- Tables the generic /api/db endpoints are allowed to touch --------------
+// Anything not in this list is rejected outright - no arbitrary table access.
 const PUBLIC_READ_TABLES = new Set([
   "categories",
   "board",
@@ -51,16 +54,32 @@ const PUBLIC_READ_TABLES = new Set([
   "files",
   "settings",
 ]);
+// contact_messages: public can INSERT (the contact form) but not read/delete.
 const INSERT_ONLY_PUBLIC_TABLE = "contact_messages";
 const ALL_TABLES = new Set([...PUBLIC_READ_TABLES, INSERT_ONLY_PUBLIC_TABLE]);
 
-app.set("trust proxy", 1);
-app.use(helmet());
+app.set("trust proxy", 1); // behind Nginx
+
+// Default helmet() sends "upgrade-insecure-requests" in its CSP and enables
+// HSTS. Both are correct once real HTTPS is in place, but they actively break
+// the site while it's still served over plain HTTP (the browser tries to
+// upgrade every asset request to https:// and gets nothing back). Strip just
+// that directive and leave HSTS off; everything else stays at helmet's
+// secure defaults.
+const { upgradeInsecureRequests, ...cspDirectives } = helmet.contentSecurityPolicy.getDefaultDirectives();
+app.use(
+  helmet({
+    contentSecurityPolicy: { directives: cspDirectives },
+    hsts: false,
+  }),
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(
   cors({
     origin(origin, callback) {
+      // Same-origin requests (no Origin header, e.g. curl/health checks) are fine.
       if (!origin) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
@@ -83,13 +102,7 @@ const writeLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-class HttpError extends Error {
-  constructor(status, message) {
-    super(message);
-    this.status = status;
-  }
-}
-
+// --- SQL identifier helpers (never interpolate untrusted strings otherwise) -
 const sanitizeTable = (table) => {
   if (!ALL_TABLES.has(table)) {
     throw new HttpError(400, "Invalid table name");
@@ -103,6 +116,13 @@ const sanitizeField = (field) => {
   }
   return field;
 };
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
 
 const parseOrExpression = (expression, startIndex = 0) => {
   const clauses = expression.split(",").map((part) => part.trim()).filter(Boolean);
@@ -122,6 +142,14 @@ const parseOrExpression = (expression, startIndex = 0) => {
   return { sql: `(${conditions.join(" OR ")})`, params };
 };
 
+// Supported query-string filters (mirrors just enough of PostgREST/supabase-js
+// to drive our own frontend's query builder shim):
+//   eq_<field>=value        -> "field" = value
+//   neq_<field>=value       -> "field" != value
+//   in_<field>=a,b,c        -> "field" IN (a,b,c)
+//   not_is_<field>=null     -> "field" IS NOT NULL
+//   not_eq_<field>=value    -> "field" != value  (kept distinct from neq_ for readability)
+//   or=col.ilike.%x%,col2.ilike.%y%
 const buildWhereClause = (query) => {
   const conditions = [];
   const params = [];
@@ -132,6 +160,11 @@ const buildWhereClause = (query) => {
       conditions.push(`"${field}" = $${params.length + 1}`);
       params.push(value);
     }
+    if (key.startsWith("neq_")) {
+      const field = sanitizeField(key.slice(4));
+      conditions.push(`"${field}" != $${params.length + 1}`);
+      params.push(value);
+    }
     if (key.startsWith("in_")) {
       const field = sanitizeField(key.slice(3));
       const values = Array.isArray(value) ? value : String(value).split(",").filter(Boolean);
@@ -140,6 +173,18 @@ const buildWhereClause = (query) => {
         conditions.push(`"${field}" IN (${placeholders.join(",")})`);
         params.push(...values);
       }
+    }
+    if (key.startsWith("not_is_")) {
+      const field = sanitizeField(key.slice(7));
+      // Only "null" is meaningful for an IS NOT check here.
+      if (String(value).toLowerCase() === "null") {
+        conditions.push(`"${field}" IS NOT NULL`);
+      }
+    }
+    if (key.startsWith("not_eq_")) {
+      const field = sanitizeField(key.slice(7));
+      conditions.push(`"${field}" != $${params.length + 1}`);
+      params.push(value);
     }
   }
 
@@ -165,6 +210,13 @@ const safeSelect = (value) => {
     .filter(Boolean)
     .map((item) => {
       if (item === "*") return item;
+      // PostgREST/supabase-js column aliasing: "alias:column" -> "column" AS "alias"
+      const aliasMatch = item.match(/^([a-zA-Z0-9_]+):"?([a-zA-Z0-9_]+)"?$/);
+      if (aliasMatch) {
+        const alias = sanitizeField(aliasMatch[1]);
+        const column = sanitizeField(aliasMatch[2]);
+        return `"${column}" AS "${alias}"`;
+      }
       if (!/^[a-zA-Z0-9_\s".]+$/.test(item)) throw new HttpError(400, "Invalid select clause");
       return item;
     })
@@ -179,6 +231,7 @@ const queryDatabase = async (queryText, params = []) => {
   return result;
 };
 
+// --- Auth --------------------------------------------------------------
 const createSessionToken = (payload) => jwt.sign(payload, SESSION_SECRET, { expiresIn: "8h" });
 
 const verifySessionToken = (token) => {
@@ -194,6 +247,7 @@ const getSessionFromRequest = (req) => {
   return token ? verifySessionToken(token) : null;
 };
 
+// Blocks the request unless a valid admin session cookie is present.
 const requireAdmin = (req, res, next) => {
   const session = getSessionFromRequest(req);
   if (!session || session.role !== "admin") {
@@ -227,6 +281,8 @@ app.post(
     );
     const admin = result.rows[0];
 
+    // Compare against a dummy hash when the user doesn't exist, so response
+    // timing doesn't reveal whether the email is registered.
     const hashToCheck = admin?.password_hash || "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsal";
     const passwordMatches = await bcrypt.compare(String(password), hashToCheck);
 
@@ -250,6 +306,9 @@ app.post("/api/auth/logout", (_req, res) => {
   return res.json({ data: { success: true }, error: null });
 });
 
+// --- Generic table endpoints ---------------------------------------------
+// GET is always public (matches the old "read: true for anyone" RLS policy),
+// except contact_messages which is admin-only to read.
 app.get(
   "/api/db/:table",
   asyncHandler(async (req, res) => {
@@ -284,10 +343,12 @@ app.get(
   }),
 );
 
+// Everything below mutates data. contact_messages allows public INSERT only;
+// every other write requires an admin session.
 const gateWrite = (req, res, next) => {
   const table = req.params.table;
   if (table === INSERT_ONLY_PUBLIC_TABLE && req.method === "POST" && !req.path.endsWith("/upsert")) {
-    return next();
+    return next(); // public contact-form submission
   }
   return requireAdmin(req, res, next);
 };
@@ -391,11 +452,13 @@ app.delete(
   }),
 );
 
+// --- Static frontend (dist/) + SPA fallback --------------------------------
 app.use(express.static(path.join(__dirname, "..", "dist")));
 app.get(/^\/(?!api\/).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
 
+// --- Error handler (must be last) ------------------------------------------
 app.use((err, req, res, _next) => {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: { message: err.message } });
@@ -407,4 +470,3 @@ app.use((err, req, res, _next) => {
 app.listen(PORT, "127.0.0.1", () => {
   console.log(`SPOLDER backend listening on 127.0.0.1:${PORT}`);
 });
-
