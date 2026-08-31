@@ -8,7 +8,7 @@ import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-r
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
-import RichTextEditor from "@/components/admin/RichTextEditor";
+import RichTextEditor from "@/components/admin/RichTextEditor"; import DOMPurify from "dompurify";
 
 interface BlogPost {
   id: number;
@@ -562,7 +562,7 @@ const AdminBlog = () => {
                 </p>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   {formData.content ? (
-                    <div dangerouslySetInnerHTML={{ __html: formData.content }} />
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }} />
                   ) : (
                     <p className="text-muted-foreground italic">Blog içeriği burada görünecek...</p>
                   )}
