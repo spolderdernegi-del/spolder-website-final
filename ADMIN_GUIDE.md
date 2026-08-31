@@ -24,8 +24,8 @@ URL: https://spolder.org/admin/login
 ```
 
 ### Adım 2: Kimlik Bilgilerini Girin
-- **E-posta:** Supabase tarafından size verilen e-posta adresi
-- **Şifre:** Supabase tarafından size verilen şifre
+- **E-posta:** Sistem yöneticisi tarafından size verilen e-posta adresi
+- **Şifre:** Sistem yöneticisi tarafından size verilen şifre
 
 > **⚠️ ÖNEMLİ:** Kimlik bilgileriniz güvenli tutun. Başkasıyla paylaşmayın!
 
@@ -293,7 +293,7 @@ Haberler ile benzer şekilde, blog yazıları ekleyebilirsiniz:
 **C:** Hayır. Silinen mesajlar geri yüklenemez. Önemli mesajları kopyalayıp not edin.
 
 ### S: Şifremi unuttum?
-**C:** Supabase Dashboard'da parolanızı sıfırlayabilirsiniz. Sistem yöneticisine iletişim kurun.
+**C:** Panelden şifre değiştirmek mevcut şifreyi bilmeyi gerektirir. Hiç giriş yapamıyorsanız, sistem yöneticisiyle iletişime geçin; şifre sunucu üzerinden sıfırlanabilir.
 
 ### S: Kaç kişi aynı anda giriş yapabilir?
 **C:** Birden fazla kullanıcı aynı anda giriş yapabilir. Ancak tüm değişiklikler herkese görünür.
@@ -310,7 +310,6 @@ Haberler ile benzer şekilde, blog yazıları ekleyebilirsiniz:
 
 Herhangi bir sorunla karşılaşırsanız:
 - Email: admin@spolder.org
-- Supabase Dashboard: https://supabase.com/dashboard
 
 ---
 
