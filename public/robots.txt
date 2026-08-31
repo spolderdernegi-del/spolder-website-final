@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://spolder-website-final.vercel.app/sitemap.xml
+Sitemap: https://spolder.org/sitemap.xml
