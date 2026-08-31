@@ -84,8 +84,7 @@ app.use(
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,
-  }),
+    credentials: true,  }),
 );
 
 const authLimiter = rateLimit({
@@ -177,8 +176,7 @@ const buildWhereClause = (query) => {
     if (key.startsWith("not_is_")) {
       const field = sanitizeField(key.slice(7));
       // Only "null" is meaningful for an IS NOT check here.
-      if (String(value).toLowerCase() === "null") {
-        conditions.push(`"${field}" IS NOT NULL`);
+      if (String(value).toLowerCase() === "null") {        conditions.push(`"${field}" IS NOT NULL`);
       }
     }
     if (key.startsWith("not_eq_")) {
@@ -276,8 +274,7 @@ app.post(
     }
 
     const result = await queryDatabase(
-      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
-      [String(email).toLowerCase().trim()],
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,      [String(email).toLowerCase().trim()],
     );
     const admin = result.rows[0];
 
@@ -306,6 +303,42 @@ app.post("/api/auth/logout", (_req, res) => {
   return res.json({ data: { success: true }, error: null });
 });
 
+// Lets a logged-in admin change their own password. Requires the current
+// password so a hijacked session can't silently lock the real admin out.
+app.post(
+  "/api/auth/change-password",
+  authLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      throw new HttpError(400, "Mevcut ve yeni şifre gereklidir");
+    }
+    if (String(newPassword).length < 8) {
+      throw new HttpError(400, "Yeni şifre en az 8 karakter olmalıdır");
+    }
+
+    const result = await queryDatabase(
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
+      [req.session.email],
+    );
+    const admin = result.rows[0];
+    if (!admin) {
+      throw new HttpError(404, "Kullanıcı bulunamadı");
+    }
+
+    const passwordMatches = await bcrypt.compare(String(currentPassword), admin.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: { message: "Mevcut şifre yanlış" } });
+    }
+
+    const newHash = await bcrypt.hash(String(newPassword), 12);
+    await queryDatabase(`UPDATE admin_users SET password_hash = $1 WHERE email = $2`, [newHash, admin.email]);
+
+    return res.json({ data: { success: true }, error: null });
+  }),
+);
+
 // --- Generic table endpoints ---------------------------------------------
 // GET is always public (matches the old "read: true for anyone" RLS policy),
 // except contact_messages which is admin-only to read.
@@ -321,8 +354,7 @@ app.get(
     }
 
     const select = safeSelect(req.query.select ? String(req.query.select) : "*");
-    const { whereClause, params } = buildWhereClause(req.query);
-    const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
+    const { whereClause, params } = buildWhereClause(req.query);    const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
     const orderDirection = String(req.query.orderDirection || "asc").toUpperCase() === "DESC" ? "DESC" : "ASC";
     const limit = req.query.limit ? Math.min(parseInt(String(req.query.limit), 10) || 0, 1000) : null;
 
@@ -392,8 +424,7 @@ app.post(
     if (!onConflict) throw new HttpError(400, "onConflict parametresi gereklidir");
     if (entries.length === 0) throw new HttpError(400, "Eklenecek veri bulunamadı");
 
-    const columns = Object.keys(entries[0]).map(sanitizeField);
-    const values = [];
+    const columns = Object.keys(entries[0]).map(sanitizeField);    const values = [];
     const placeholders = entries
       .map((item, rowIndex) =>
         `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(",")})`,
