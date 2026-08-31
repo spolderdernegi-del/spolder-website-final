@@ -84,7 +84,8 @@ app.use(
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true,  }),
+    credentials: true,
+  }),
 );
 
 const authLimiter = rateLimit({
@@ -176,7 +177,8 @@ const buildWhereClause = (query) => {
     if (key.startsWith("not_is_")) {
       const field = sanitizeField(key.slice(7));
       // Only "null" is meaningful for an IS NOT check here.
-      if (String(value).toLowerCase() === "null") {        conditions.push(`"${field}" IS NOT NULL`);
+      if (String(value).toLowerCase() === "null") {
+        conditions.push(`"${field}" IS NOT NULL`);
       }
     }
     if (key.startsWith("not_eq_")) {
@@ -274,7 +276,8 @@ app.post(
     }
 
     const result = await queryDatabase(
-      `SELECT email, password_hash FROM admin_users WHERE email = $1`,      [String(email).toLowerCase().trim()],
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
+      [String(email).toLowerCase().trim()],
     );
     const admin = result.rows[0];
 
@@ -354,7 +357,8 @@ app.get(
     }
 
     const select = safeSelect(req.query.select ? String(req.query.select) : "*");
-    const { whereClause, params } = buildWhereClause(req.query);    const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
+    const { whereClause, params } = buildWhereClause(req.query);
+    const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
     const orderDirection = String(req.query.orderDirection || "asc").toUpperCase() === "DESC" ? "DESC" : "ASC";
     const limit = req.query.limit ? Math.min(parseInt(String(req.query.limit), 10) || 0, 1000) : null;
 
@@ -424,7 +428,8 @@ app.post(
     if (!onConflict) throw new HttpError(400, "onConflict parametresi gereklidir");
     if (entries.length === 0) throw new HttpError(400, "Eklenecek veri bulunamadı");
 
-    const columns = Object.keys(entries[0]).map(sanitizeField);    const values = [];
+    const columns = Object.keys(entries[0]).map(sanitizeField);
+    const values = [];
     const placeholders = entries
       .map((item, rowIndex) =>
         `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(",")})`,
