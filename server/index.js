@@ -58,26 +58,42 @@ const PUBLIC_READ_TABLES = new Set([
 const INSERT_ONLY_PUBLIC_TABLE = "contact_messages";
 const ALL_TABLES = new Set([...PUBLIC_READ_TABLES, INSERT_ONLY_PUBLIC_TABLE]);
 
+// settings is a mixed table: some keys (contact info, IBAN, map embed) are
+// meant to be shown on the public site, but others (e.g. an admin display
+// email, if one is ever stored there) are not meant for anyone to read.
+// Rather than trust every row in the table, an unauthenticated request only
+// ever gets back rows whose key is explicitly on this list - no exceptions,
+// regardless of what select/where the caller asks for.
+const PUBLIC_SETTINGS_KEYS = new Set([
+  "contact_phone",
+  "contact_email",
+  "contact_working_hours",
+  "contact_iban_tl",
+  "contact_iban_eur",
+  "contact_map_embed",
+  "organization_location",
+  "organization_lat",
+  "organization_lng",
+]);
+
 app.set("trust proxy", 1); // behind Nginx
 
-// Default helmet() sends "upgrade-insecure-requests" in its CSP and enables
-// HSTS. Both are correct once real HTTPS is in place, but they actively break
-// the site while it's still served over plain HTTP (the browser tries to
-// upgrade every asset request to https:// and gets nothing back). Strip just
-// that directive and leave HSTS off; everything else stays at helmet's
-// secure defaults.
+// Real Let's Encrypt SSL is live (see nginx config), so the browser should be
+// told to always use HTTPS for this origin (HSTS) and to upgrade any
+// accidental http: subresource reference automatically - both are part of
+// helmet's secure defaults and are kept as-is.
 //
 // img-src is widened from helmet's default ('self' data:) to also allow
 // https: — the site legitimately loads images from outside its own origin
 // (an Unsplash stock photo on the homepage, OpenStreetMap map tiles and
 // Leaflet's marker icons on the contact-page map). Without this, the
 // browser silently blocks those images.
-const { upgradeInsecureRequests, ...cspDirectives } = helmet.contentSecurityPolicy.getDefaultDirectives();
+const cspDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
 cspDirectives["img-src"] = ["'self'", "data:", "https:"];
 app.use(
   helmet({
     contentSecurityPolicy: { directives: cspDirectives },
-    hsts: false,
+    hsts: { maxAge: 15552000, includeSubDomains: true },
   }),
 );
 
@@ -364,10 +380,26 @@ app.get(
     }
 
     const select = safeSelect(req.query.select ? String(req.query.select) : "*");
-    const { whereClause, params } = buildWhereClause(req.query);
+    let { whereClause, params } = buildWhereClause(req.query);
     const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
     const orderDirection = String(req.query.orderDirection || "asc").toUpperCase() === "DESC" ? "DESC" : "ASC";
     const limit = req.query.limit ? Math.min(parseInt(String(req.query.limit), 10) || 0, 1000) : null;
+
+    // settings holds a mix of public site content (contact info, IBAN, map
+    // embed) and admin-only display values. An unauthenticated caller never
+    // sees a row outside PUBLIC_SETTINGS_KEYS, no matter what select/where it
+    // asked for - this is enforced here, not left to the frontend to respect.
+    if (table === "settings") {
+      const session = getSessionFromRequest(req);
+      if (!session || session.role !== "admin") {
+        const allowedKeys = [...PUBLIC_SETTINGS_KEYS];
+        const placeholder = `$${params.length + 1}`;
+        whereClause = whereClause
+          ? `${whereClause} AND "key" = ANY(${placeholder})`
+          : `WHERE "key" = ANY(${placeholder})`;
+        params = [...params, allowedKeys];
+      }
+    }
 
     if (req.query.head === "true" && String(req.query.count) === "exact") {
       const countResult = await queryDatabase(`SELECT COUNT(*) AS count FROM "${table}" ${whereClause}`, params);
