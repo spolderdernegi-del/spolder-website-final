@@ -1,165 +1,69 @@
 # 🔐 Admin Kullanıcı Kurulum Kılavuzu
 
-## Admin Rolü Nasıl Verilir?
+> **Not:** Bu belge daha önce Supabase RLS (Row Level Security) / `auth.users`
+> `app_metadata.role` tabanlı bir sisteme göre yazılmıştı. Site artık Supabase
+> kullanmıyor; admin yetkisi kendi `admin_users` tablomuzdaki bir satırla ve
+> JWT tabanlı bir session cookie'siyle yönetiliyor. Aşağıdaki içerik güncel
+> mimariyi anlatır.
 
-Supabase'de bir kullanıcıya admin rolü vermek için iki yöntem vardır:
+## Admin Kullanıcı Nasıl Oluşturulur?
 
-### Yöntem 1: Supabase Dashboard Üzerinden (Önerilen)
+Admin kullanıcılar `admin_users` tablosunda bcrypt ile hash'lenmiş bir şifre
+olarak tutulur. Supabase Dashboard yoktur; kullanıcı sunucu üzerinde küçük bir
+script ile oluşturulur/sıfırlanır.
 
-1. **Supabase Dashboard'a gidin:** https://supabase.com/dashboard
-2. Projenizi seçin
-3. Sol menüden **Authentication > Users** bölümüne gidin
-4. Admin yapmak istediğiniz kullanıcıyı bulun ve tıklayın
-5. Kullanıcı detay sayfasında, **Raw User Meta Data** bölümünü bulun
-6. **Edit** butonuna tıklayın
-7. `app_metadata` alanını aşağıdaki şekilde düzenleyin:
+### Yöntem 1: İlk kurulumda (`npm run seed:admin`)
 
-```json
-{
-  "role": "admin"
-}
+```bash
+cd server
+ADMIN_EMAIL="admin@spolder.org" ADMIN_PASSWORD="güçlü_bir_şifre" npm run seed:admin
 ```
 
-8. **Save** butonuna basın
-9. Kullanıcı artık admin yetkilerine sahiptir
+Bu script `admin_users` tablosunda o e-posta için bir satır yoksa oluşturur,
+varsa şifresini günceller.
 
-### Yöntem 2: SQL Query Editor Üzerinden
+### Yöntem 2: Şifre sıfırlama (SSH erişimi gerekir)
 
-1. **Supabase Dashboard'a gidin:** https://supabase.com/dashboard
-2. Projenizi seçin
-3. Sol menüden **SQL Editor** bölümüne gidin
-4. Aşağıdaki SQL komutunu çalıştırın (e-posta adresini kendi admin kullanıcınızla değiştirin):
+Panelden "Şifre Değiştir" mevcut şifreyi bilmeyi gerektirir. Hiç giriş
+yapılamıyorsa, sunucuya SSH ile bağlanıp doğrudan çalıştırın:
 
-```sql
-UPDATE auth.users
-SET raw_app_meta_data = 
-  raw_app_meta_data || '{"role": "admin"}'::jsonb
-WHERE email = 'your-email@example.com';
+```bash
+cd /var/www/spolder
+node server/reset-password.js admin@spolder.org YeniGucluSifre123
 ```
 
-5. Query'yi çalıştırın (Run veya F5)
-6. Başarılı mesajını gördüğünüzde, kullanıcı artık admin yetkilerine sahiptir
+## Erişim Kontrolü Nasıl Çalışır?
 
----
+RLS yoktur — tüm erişim kontrolü `server/index.js` içindeki Express
+middleware'lerinde yapılır:
 
-## Güvenlik Notları
+- Geçerli bir `spolder_session` JWT çerezi taşıyan istekler `requireAdmin`
+  middleware'inden geçerek yazma (`POST`/`PUT`/`DELETE`) uçlarına erişebilir.
+- Oturumsuz istekler sadece `PUBLIC_READ_TABLES` listesindeki tablolardan
+  okuma yapabilir (`contact_messages` hariç — o sadece admin'e açık).
+- `settings` tablosunda ayrıca `PUBLIC_SETTINGS_KEYS` allowlist'i vardır:
+  oturumsuz istekler bu listedeki anahtarlar dışında hiçbir satırı göremez.
 
-### 🔒 Rol Tabanlı Erişim Kontrolü (RBAC)
-
-Bu güvenlik güncellemesi ile birlikte, tüm Supabase tabloları artık rol tabanlı erişim kontrolü (RBAC) kullanmaktadır:
-
-#### ✅ Admin Kullanıcılar (role: "admin")
-- ✅ Tüm verileri **okuyabilir** (SELECT)
-- ✅ Yeni veri **ekleyebilir** (INSERT)
-- ✅ Mevcut verileri **güncelleyebilir** (UPDATE)
-- ✅ Verileri **silebilir** (DELETE)
-
-#### 👥 Normal/Anonim Kullanıcılar
-- ✅ Tüm verileri **okuyabilir** (SELECT)
-- ❌ Yeni veri **ekleyemez** (INSERT)
-- ❌ Mevcut verileri **güncelleyemez** (UPDATE)
-- ❌ Verileri **silemez** (DELETE)
-
-#### 📝 İstisna: İletişim Mesajları (contact_messages)
-İletişim formu herkese açıktır, bu nedenle:
-- ✅ **Herkes** mesaj **gönderebilir** (INSERT)
-- ❌ Sadece **adminler** mesajları **görebilir** (SELECT)
-- ❌ Sadece **adminler** mesajları **düzenleyebilir** (UPDATE)
-- ❌ Sadece **adminler** mesajları **silebilir** (DELETE)
-
----
-
-## Etkilenen Tablolar
-
-Aşağıdaki tablolar artık admin-only erişim kontrolü altındadır:
-
-1. **bank_info** - Banka bilgileri
-2. **blog** - Blog yazıları
-3. **board** - Yönetim kurulu üyeleri
-4. **categories** - Kategoriler
-5. **contact_messages** - İletişim mesajları (özel kural: herkes mesaj gönderebilir)
-6. **events** - Etkinlikler
-7. **files** - Dosyalar/Yayınlar
-8. **news** - Haberler
-9. **projects** - Projeler
-10. **settings** - Site ayarları
-
----
+Şu an tek bir admin rolü vardır (ayrıcalık seviyesi yok); `admin_users`
+tablosunda bir satırı olan herkes tam yönetici yetkisine sahiptir.
 
 ## Sıkça Sorulan Sorular (SSS)
 
-### S: Admin kullanıcı nasıl oluşturulur?
-**C:** Önce Supabase Dashboard'da **Authentication > Users** bölümünden yeni bir kullanıcı oluşturun. Ardından yukarıdaki yöntemlerden birini kullanarak kullanıcıya `role: "admin"` metadatasını ekleyin.
+**S: Admin kullanıcı nasıl oluşturulur?**
+C: `npm run seed:admin` komutunu yukarıdaki gibi çalıştırın.
 
-### S: Mevcut admin kullanıcımın yetkilerini nasıl kaldırırım?
-**C:** Kullanıcının `app_metadata` alanından `role: "admin"` satırını silin veya değerini değiştirin.
+**S: Mevcut admin kullanıcımın yetkilerini nasıl kaldırırım?**
+C: `admin_users` tablosundan ilgili satırı silin (veritabanına doğrudan
+erişimle).
 
-### S: Birden fazla admin kullanıcı olabilir mi?
-**C:** Evet! İstediğiniz kadar kullanıcıya admin rolü verebilirsiniz.
+**S: Birden fazla admin kullanıcı olabilir mi?**
+C: Evet — `admin_users` tablosuna istediğiniz kadar satır ekleyebilirsiniz
+(her biri için `seed:admin` çalıştırarak veya doğrudan veritabanı üzerinden).
 
-### S: Admin olmayan bir kullanıcı giriş yapabilir mi?
-**C:** Evet, ancak sadece okuma yetkisine sahip olacaktır. Admin panelinde işlem yapamayacaktır.
-
-### S: Migration dosyasını nasıl çalıştırırım?
-**C:** Supabase Dashboard'da **SQL Editor** bölümüne gidin ve `supabase/migrations/20260105_fix_rls_policies.sql` dosyasının içeriğini kopyalayıp çalıştırın.
-
-### S: Mevcut RLS politikaları ne olacak?
-**C:** Migration dosyası eski güvenlik politikalarını otomatik olarak kaldırıp yenileriyle değiştirecektir.
-
----
-
-## Teknik Detaylar
-
-### is_admin() Fonksiyonu
-
-Migration dosyası aşağıdaki yardımcı fonksiyonu oluşturur:
-
-```sql
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN (
-    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-Bu fonksiyon, kullanıcının JWT token'ındaki `app_metadata.role` değerini kontrol eder ve değer `"admin"` ise `true`, değilse `false` döner.
-
-### RLS Politika Yapısı
-
-Her tablo için dört temel politika oluşturulur:
-
-1. **SELECT Policy** - Herkes okuyabilir
-   ```sql
-   CREATE POLICY "Public can view [table]"
-     ON public.[table] FOR SELECT
-     USING (true);
-   ```
-
-2. **INSERT Policy** - Sadece adminler ekleyebilir
-   ```sql
-   CREATE POLICY "Only admins can insert [table]"
-     ON public.[table] FOR INSERT
-     WITH CHECK (public.is_admin());
-   ```
-
-3. **UPDATE Policy** - Sadece adminler güncelleyebilir
-   ```sql
-   CREATE POLICY "Only admins can update [table]"
-     ON public.[table] FOR UPDATE
-     USING (public.is_admin());
-   ```
-
-4. **DELETE Policy** - Sadece adminler silebilir
-   ```sql
-   CREATE POLICY "Only admins can delete [table]"
-     ON public.[table] FOR DELETE
-     USING (public.is_admin());
-   ```
-
----
+**S: Admin olmayan bir kullanıcı giriş yapabilir mi?**
+C: Hayır — giriş sistemi sadece `admin_users` tablosundaki hesaplarla
+çalışır, ayrı bir "normal kullanıcı" girişi yoktur. Herkes zaten public
+tabloları oturum açmadan okuyabilir.
 
 ## Destek ve İletişim
 
@@ -169,6 +73,6 @@ Herhangi bir sorun yaşarsanız:
 
 ---
 
-**Son Güncelleme:** 05 Ocak 2026  
-**Versiyon:** 1.0  
+**Son Güncelleme:** 31 Ağustos 2026
+**Versiyon:** 2.0 (Natro self-hosted mimari)
 **Yazar:** SPOLDER Geliştirici Ekibi
