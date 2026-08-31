@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Ana Sayfa -->
+  <url>
+    <loc>https://spolder.org/</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Hakkımızda -->
+  <url>
+    <loc>https://spolder.org/hakkimizda</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Haberler -->
+  <url>
+    <loc>https://spolder.org/haberler</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Etkinlikler -->
+  <url>
+    <loc>https://spolder.org/etkinlikler</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Projeler -->
+  <url>
+    <loc>https://spolder.org/projeler</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Blog -->
+  <url>
+    <loc>https://spolder.org/blog</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Yayınlar -->
+  <url>
+    <loc>https://spolder.org/yayinlar</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- İletişim -->
+  <url>
+    <loc>https://spolder.org/iletisim</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <!-- Gizlilik Politikası -->
+  <url>
+    <loc>https://spolder.org/gizlilik</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <!-- KVKK -->
+  <url>
+    <loc>https://spolder.org/kvkk</loc>
+    <lastmod>2026-01-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

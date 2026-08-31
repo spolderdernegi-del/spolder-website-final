@@ -13,7 +13,7 @@ const Gizlilik = () => {
             <div className="space-y-6 text-foreground/90">
               <div>
                 <h2 className="text-2xl font-bold mb-3">1. Genel Bilgiler</h2>
-                <p>SPOlDER Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
+                <p>SPOLDER Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
               </div>
 
               <div>
@@ -44,7 +44,7 @@ const Gizlilik = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">5. İletişim</h2>
-                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize info@spolider.org.tr adresinden ulaşın.</p>
+                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize spolderdernegi@gmail.com adresinden ulaşın.</p>
               </div>
             </div>
           </div>

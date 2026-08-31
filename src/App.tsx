@@ -20,6 +20,21 @@ import Gizlilik from "./pages/Gizlilik";
 import KVKK from "./pages/KVKK";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/lib/ScrollToTop";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AdminLogin from "./pages/admin/Login";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminEvents from "./pages/admin/Events";
+import AdminMediaLibrary from "./pages/admin/MediaLibrary";
+import AdminNews from "./pages/admin/News";
+import AdminProjects from "./pages/admin/Projects";
+import AdminFiles from "./pages/admin/Files";
+import AdminCategories from "./pages/admin/Categories";
+import AdminBlog from "./pages/admin/Blog";
+import AdminWelcomeModal from "./pages/admin/WelcomeModal";
+import AdminSettings from "./pages/admin/Settings";
+import AdminBoard from "./pages/admin/Board";
+import AdminBankInfo from "./pages/admin/BankInfo";
+import AdminContactMessages from "./pages/admin/ContactMessages";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +61,20 @@ const App = () => (
           <Route path="/search" element={<Search />} />
           <Route path="/gizlilik" element={<Gizlilik />} />
           <Route path="/kvkk" element={<KVKK />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
+          <Route path="/admin/news" element={<ProtectedRoute><AdminNews /></ProtectedRoute>} />
+          <Route path="/admin/projects" element={<ProtectedRoute><AdminProjects /></ProtectedRoute>} />
+          <Route path="/admin/files" element={<ProtectedRoute><AdminFiles /></ProtectedRoute>} />
+          <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
+          <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
+          <Route path="/admin/welcome-modal" element={<ProtectedRoute><AdminWelcomeModal /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/media" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
+          <Route path="/admin/board" element={<ProtectedRoute><AdminBoard /></ProtectedRoute>} />
+          <Route path="/admin/bank-info" element={<ProtectedRoute><AdminBankInfo /></ProtectedRoute>} />
+          <Route path="/admin/messages" element={<ProtectedRoute><AdminContactMessages /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         {/* WhatsApp Floating Button */}
