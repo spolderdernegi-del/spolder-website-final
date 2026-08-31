@@ -66,7 +66,14 @@ app.set("trust proxy", 1); // behind Nginx
 // upgrade every asset request to https:// and gets nothing back). Strip just
 // that directive and leave HSTS off; everything else stays at helmet's
 // secure defaults.
+//
+// img-src is widened from helmet's default ('self' data:) to also allow
+// https: — the site legitimately loads images from outside its own origin
+// (an Unsplash stock photo on the homepage, OpenStreetMap map tiles and
+// Leaflet's marker icons on the contact-page map). Without this, the
+// browser silently blocks those images.
 const { upgradeInsecureRequests, ...cspDirectives } = helmet.contentSecurityPolicy.getDefaultDirectives();
+cspDirectives.imgSrc = ["'self'", "data:", "https:"];
 app.use(
   helmet({
     contentSecurityPolicy: { directives: cspDirectives },
