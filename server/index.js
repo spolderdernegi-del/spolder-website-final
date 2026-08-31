@@ -73,7 +73,7 @@ app.set("trust proxy", 1); // behind Nginx
 // Leaflet's marker icons on the contact-page map). Without this, the
 // browser silently blocks those images.
 const { upgradeInsecureRequests, ...cspDirectives } = helmet.contentSecurityPolicy.getDefaultDirectives();
-cspDirectives.imgSrc = ["'self'", "data:", "https:"];
+cspDirectives["img-src"] = ["'self'", "data:", "https:"];
 app.use(
   helmet({
     contentSecurityPolicy: { directives: cspDirectives },
