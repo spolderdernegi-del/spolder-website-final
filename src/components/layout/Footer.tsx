@@ -190,7 +190,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-primary-foreground/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-primary-foreground/60">
-            © {new Date().getFullYear()} SPOLDER Spor Politikaları Derneği. Tüm hakları saklıdır.
+            Spor Politikaları Derneği (SPOLDER) | Tüm hakları saklıdır. {new Date().getFullYear()} ©
           </p>
           <div className="flex gap-6">
             <Link to="/gizlilik" className="text-sm text-primary-foreground/60 hover:text-primary transition-colors">
