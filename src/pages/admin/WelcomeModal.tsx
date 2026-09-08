@@ -52,9 +52,9 @@ const AdminWelcomeModal = () => {
       setFormData({
         title: "Hoş Geldiniz!",
         description: "SPOLDER Spor Politikaları Derneği'ne hoş geldiniz. Türkiye'de spor politikalarının geliştirilmesi için çalışıyoruz.",
-        feature1: "500+ üye ile spor camiasının güçlü sesi",
+        feature1: "508+ gönüllü üye ile spor camiasının güçlü sesi",
         feature2: "Araştırmalar, etkinlikler ve politika önerileri",
-        feature3: "15+ yıllık deneyim ve uzmanlık",
+        feature3: "6+ yıllık deneyim ve uzmanlık",
         buttonText: "Keşfetmeye Başla",
       });
     }
