@@ -29,11 +29,11 @@ const AboutSection = () => {
             <div className="absolute -bottom-6 -right-6 bg-card rounded-lg shadow-elevated p-6 hidden md:block">
               <div className="flex gap-8">
                 <div className="text-center">
-                  <span className="text-3xl font-bold text-primary">15+</span>
+                  <span className="text-3xl font-bold text-primary">6+</span>
                   <p className="text-sm text-muted-foreground">Yıllık Deneyim</p>
                 </div>
                 <div className="text-center">
-                  <span className="text-3xl font-bold text-secondary">500+</span>
+                  <span className="text-3xl font-bold text-secondary">508+</span>
                   <p className="text-sm text-muted-foreground">Üye</p>
                 </div>
               </div>
