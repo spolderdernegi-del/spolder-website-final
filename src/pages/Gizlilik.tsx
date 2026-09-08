@@ -44,7 +44,7 @@ const Gizlilik = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">5. İletişim</h2>
-                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize spolderdernegi@gmail.com adresinden ulaşın.</p>
+                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize iletisim@spolder.org adresinden ulaşın.</p>
               </div>
             </div>
           </div>
