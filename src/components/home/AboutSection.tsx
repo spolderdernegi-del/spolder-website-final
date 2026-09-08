@@ -49,7 +49,7 @@ const AboutSection = () => {
               Spor Politikalarında <span className="text-gradient">Öncü Kuruluş</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              SPOLDER Spor Politikaları Derneği, spor politikalarının geliştirilmesi, 
+              Spor Politikaları Derneği (SPOLDER), spor politikalarının geliştirilmesi, 
               spor kültürünün yaygınlaştırılması ve sporun toplumsal faydalarının artırılması 
               amacıyla kurulmuş bir sivil toplum kuruluşudur.
             </p>
