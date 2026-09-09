@@ -1,69 +1,73 @@
+import { useEffect, useState } from "react";
 import { Calendar, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-const news = [
-  {
-    id: 1,
-    title: "Spor Ekonomisi Raporu 2024 Yayınlandı",
-    excerpt: "Türkiye'nin spor ekonomisine ilişkin kapsamlı raporumuz kamuoyuyla paylaşıldı.",
-    date: "12 Ara 2024",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&auto=format&fit=crop&q=80",
-    category: "Haber",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler ve Spor Forumu",
-    excerpt: "Belediyelerin spor politikalarını ele aldığımız forum büyük ilgi gördü.",
-    date: "8 Ara 2024",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    category: "Haber",
-  },
-];
+interface NewsItem {
+  id: number;
+  baslik: string;
+  ozet: string;
+  gorsel: string;
+  tarih: string;
+  kategori: string;
+  categories?: string[];
+  image?: string;
+  title?: string;
+  excerpt?: string;
+  category?: string;
+  date?: string;
+}
 
-const events = [
-  {
-    id: 1,
-    title: "Uluslararası Spor Hukuku Konferansı",
-    date: "25",
-    month: "Ara",
-    location: "Ankara",
-  },
-  {
-    id: 2,
-    title: "Spor Yönetimi Eğitim Programı",
-    date: "10",
-    month: "Oca",
-    location: "İstanbul",
-  },
-  {
-    id: 3,
-    title: "Kadın ve Spor Sempozyumu",
-    date: "18",
-    month: "Oca",
-    location: "İzmir",
-  },
-];
-
-const announcements = [
-  {
-    id: 1,
-    title: "2025 Yılı Üyelik Başvuruları Başladı",
-    date: "10 Ara 2024",
-  },
-  {
-    id: 2,
-    title: "Yeni Yayınımız: Spor ve Medya",
-    date: "5 Ara 2024",
-  },
-  {
-    id: 3,
-    title: "Staj Başvuruları Açıldı",
-    date: "1 Ara 2024",
-  },
-];
+interface EventItem {
+  id: number;
+  baslik: string;
+  tarih: string;
+  konum: string;
+  kategori?: string;
+}
 
 const NewsEventsSection = () => {
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const [{ data: newsData }, { data: eventData }] = await Promise.all([
+          supabase
+            .from('news')
+            .select('id, baslik, ozet, gorsel, tarih, kategori')
+            .eq('yayin_durumu', 'yayinlandi')
+            .order('created_at', { ascending: false })
+            .limit(4),
+          supabase
+            .from('events')
+            .select('id, baslik, tarih, konum, kategori')
+            .eq('yayin_durumu', 'yayinlandi')
+            .order('created_at', { ascending: false })
+            .limit(4),
+        ]);
+
+        setNews(newsData || []);
+        setEvents(eventData || []);
+      } catch (error) {
+        console.error('Error loading news/events', error);
+        setNews([]);
+        setEvents([]);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
+  const announcements = news.slice(0, 4).map((n) => ({
+    id: n.id,
+    title: n.baslik,
+    date: n.tarih,
+    link: `/haber/${n.id}`,
+  }));
+
   return (
     <section className="section-padding bg-muted">
       <div className="container-custom mx-auto">
@@ -90,25 +94,36 @@ const NewsEventsSection = () => {
                     className="bg-card rounded-lg overflow-hidden shadow-card card-hover block"
                   >
                     <div className="relative h-48">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-4 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                        {item.category}
-                      </span>
+                      {item.gorsel && (
+                        <img
+                          src={item.gorsel}
+                          alt={item.baslik}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
                     <div className="p-6">
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {(item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).slice(0, 2).map((cat, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                            {cat}
+                          </span>
+                        ))}
+                        {((item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).length > 2) && (
+                          <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded">
+                            +{(item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : []).length - 2}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="font-display font-bold text-lg text-foreground mb-2 line-clamp-2 hover:text-primary transition-colors">
-                        {item.title}
+                        {item.baslik}
                       </h3>
                       <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                        {item.excerpt}
+                        {item.ozet}
                       </p>
                       <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <Calendar className="w-4 h-4" />
-                        <span>{item.date}</span>
+                        <span>{item.tarih}</span>
                       </div>
                     </div>
                   </Link>
@@ -133,23 +148,29 @@ const NewsEventsSection = () => {
 
               <div className="space-y-4">
                 {events.map((event) => (
-                  <div
+                  <Link
                     key={event.id}
+                    to={`/etkinlik/${event.id}`}
                     className="flex gap-4 bg-card rounded-lg p-4 shadow-soft card-hover"
                   >
                     <div className="w-16 h-16 rounded-lg bg-gradient-green flex flex-col items-center justify-center text-primary-foreground shrink-0">
-                      <span className="text-xl font-bold">{event.date}</span>
-                      <span className="text-xs uppercase">{event.month}</span>
+                      <span className="text-xl font-bold">{new Date(event.tarih).getDate()}</span>
+                      <span className="text-xs uppercase">{new Date(event.tarih).toLocaleString('tr-TR', { month: 'short' })}</span>
                     </div>
                     <div className="flex-1 min-w-0">
+                      {event.kategori && (
+                        <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full mb-2">
+                          {event.kategori}
+                        </span>
+                      )}
                       <h4 className="font-semibold text-foreground text-sm line-clamp-2 hover:text-primary transition-colors">
-                        <Link to="/etkinlikler">{event.title}</Link>
+                        {event.baslik}
                       </h4>
                       <p className="text-muted-foreground text-xs mt-1">
-                        📍 {event.location}
+                        📍 {event.konum}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -164,20 +185,21 @@ const NewsEventsSection = () => {
 
               <div className="bg-card rounded-lg shadow-soft overflow-hidden">
                 {announcements.map((item, index) => (
-                  <div
+                  <Link
                     key={item.id}
-                    className={`p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer ${
+                    to={item.link}
+                    className={`p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors ${
                       index !== announcements.length - 1 ? "border-b border-border" : ""
                     }`}
                   >
                     <Bell className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-medium text-foreground text-sm hover:text-primary transition-colors">
-                        <Link to="/yayinlar">{item.title}</Link>
+                        {item.title}
                       </h4>
                       <p className="text-muted-foreground text-xs mt-1">{item.date}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

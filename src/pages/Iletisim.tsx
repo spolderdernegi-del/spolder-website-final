@@ -4,8 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Phone, Mail, Clock, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Leaflet marker icon ayarlarını düzelt
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const Iletisim = () => {
   const [formData, setFormData] = useState({
@@ -14,15 +26,93 @@ const Iletisim = () => {
     subject: "",
     message: "",
   });
+  const [mapUrl, setMapUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [organizationLocation, setOrganizationLocation] = useState("");
+  const [organizationLat, setOrganizationLat] = useState(39.9334);
+  const [organizationLng, setOrganizationLng] = useState(32.8597);
+  const [contactInfo, setContactInfo] = useState({
+    phone: "+90 (312) 123 45 67",
+    email: "info@spolder.org.tr",
+    working_hours: "Pazartesi - Cuma: 09:00 - 18:00\nCumartesi - Pazar: Kapalı",
+    iban_tl: "TR00 0000 0000 0000 0000 00",
+    iban_eur: "TR00 0000 0000 0000 0000 01"
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadInfo = async () => {
+      try {
+        setLoading(true);
+        const keys = [
+          'contact_map_embed',
+          'organization_location',
+          'organization_lat',
+          'organization_lng',
+          'contact_phone',
+          'contact_email',
+          'contact_working_hours',
+          'contact_iban_tl',
+          'contact_iban_eur'
+        ];
+
+        const { data } = await supabase
+          .from('settings')
+          .select('key, value')
+          .in('key', keys);
+
+        if (data) {
+          const newContactInfo = { ...contactInfo };
+          
+          data.forEach((item: any) => {
+            if (item.key === 'contact_map_embed') setMapUrl(item.value);
+            if (item.key === 'organization_location') setOrganizationLocation(item.value);
+            if (item.key === 'organization_lat') setOrganizationLat(parseFloat(item.value) || 39.9334);
+            if (item.key === 'organization_lng') setOrganizationLng(parseFloat(item.value) || 32.8597);
+            if (item.key === 'contact_phone') newContactInfo.phone = item.value;
+            if (item.key === 'contact_email') newContactInfo.email = item.value;
+            if (item.key === 'contact_working_hours') newContactInfo.working_hours = item.value;
+            if (item.key === 'contact_iban_tl') newContactInfo.iban_tl = item.value;
+            if (item.key === 'contact_iban_eur') newContactInfo.iban_eur = item.value;
+          });
+
+          setContactInfo(newContactInfo);
+        }
+      } catch (err) {
+        console.error('İletişim bilgileri okunamadı', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInfo();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Mesajınız başarıyla gönderildi!");
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('contact_messages').insert([
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Mesajınız başarıyla iletildi!");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      toast.error("Mesaj gönderilemedi: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const donationIbanTL = "TR00 0000 0000 0000 0000 00"; // REPLACE with real IBAN
-  const donationIbanEUR = "TR00 0000 0000 0000 0000 01"; // optional
+  const donationIbanTL = contactInfo.iban_tl;
+  const donationIbanEUR = contactInfo.iban_eur;
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -65,8 +155,8 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Adres</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Atatürk Bulvarı No: 123<br />Çankaya, Ankara 06100
+                      <p className="text-muted-foreground text-sm whitespace-pre-line">
+                        {organizationLocation || "Atatürk Bulvarı No: 123\nÇankaya, Ankara 06100"}
                       </p>
                     </div>
                   </div>
@@ -109,7 +199,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Telefon</h3>
-                      <p className="text-muted-foreground text-sm">+90 (312) 123 45 67</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.phone}</p>
                     </div>
                   </div>
 
@@ -119,7 +209,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">E-posta</h3>
-                      <p className="text-muted-foreground text-sm">info@spolider.org.tr</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.email}</p>
                     </div>
                   </div>
 
@@ -129,9 +219,8 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Çalışma Saatleri</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Pazartesi - Cuma: 09:00 - 18:00<br />
-                        Cumartesi - Pazar: Kapalı
+                      <p className="text-muted-foreground text-sm whitespace-pre-line">
+                        {contactInfo.working_hours}
                       </p>
                     </div>
                   </div>
@@ -207,16 +296,27 @@ const Iletisim = () => {
 
             {/* Map */}
             <div className="mt-12 rounded-lg overflow-hidden shadow-card h-[400px]">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.7881754813!2d32.8597!3d39.9334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU2JzAwLjIiTiAzMsKwNTEnMzQuOSJF!5e0!3m2!1str!2str!4v1234567890"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="SPOlDER Konum"
-              />
+              <MapContainer
+                key={`${organizationLat}-${organizationLng}`}
+                center={[organizationLat, organizationLng]}
+                zoom={13}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[organizationLat, organizationLng]}>
+                  <Popup>
+                    <div className="text-sm">
+                      <p className="font-semibold">{organizationLocation || 'SPOLDER Merkezi'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {organizationLat.toFixed(4)}, {organizationLng.toFixed(4)}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
             </div>
           </div>
         </section>

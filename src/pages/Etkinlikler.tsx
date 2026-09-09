@@ -1,49 +1,112 @@
+import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { MapPin, Clock, ArrowRight } from "lucide-react";
+import { MapPin, Clock, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-const events = [
-  {
-    id: 1,
-    title: "Spor ve Gençlik Konferansı 2024",
-    description: "Gençlerin spor yoluyla gelişimi üzerine kapsamlı bir konferans.",
-    date: "15",
-    month: "Oca",
-    year: "2025",
-    time: "09:30 - 17:00",
-    location: "İstanbul Kongre Merkezi, Ana Salon",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler Spor Forumu",
-    description: "Belediyelerin spor politikaları ve bütçe planlaması üzerine eğitim semineri.",
-    date: "22",
-    month: "Oca",
-    year: "2025",
-    time: "10:00 - 16:00",
-    location: "Ankara, Kamu Yönetimi Enstitüsü",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-  },
-  {
-    id: 3,
-    title: "Spor Bilimleri Araştırma Atölyesi",
-    description: "Spor araştırmalarında metodoloji ve veri analizi tekniklerinin öğretildiği atölye.",
-    date: "03",
-    month: "Şub",
-    year: "2025",
-    time: "09:00 - 15:00",
-    location: "İstanbul Üniversitesi, Spor Bilimleri Fakültesi",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=600&auto=format&fit=crop&q=80",
-    status: "upcoming",
-  },
-];
+interface Event {
+  id: number;
+  baslik: string;
+  ozet: string;
+  icerik: string;
+  tarih: string;
+  saat: string;
+  konum: string;
+  gorsel: string;
+  durum: string;
+  kategori?: string;
+  categories?: string[];
+  slug?: string;
+  created_at: string;
+}
 
 const Etkinlikler = () => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [activeFilter, setActiveFilter] = useState("Tümü");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const { data, error: supabaseError } = await supabase
+        .from("events")
+        .select("*")
+        .eq('yayin_durumu', 'yayinlandi')
+        .order("tarih", { ascending: true });
+      
+      if (supabaseError) throw supabaseError;
+      setEvents(data || []);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Etkinlikler yüklenirken hata oluştu");
+      console.error("Error fetching events:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterEvents = () => {
+    const now = new Date();
+    
+    if (activeFilter === "Tümü") return events;
+    
+    if (activeFilter === "Devam Eden") {
+      return events.filter(event => {
+        // Durum kontrolü
+        if (event.durum === "Tamamlandı") return false;
+        
+        // Tarih ve saat kontrolü
+        try {
+          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
+          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
+          return eventDateTime >= now;
+        } catch (error) {
+          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
+          return event.tarih >= now.toISOString().split('T')[0];
+        }
+      });
+    }
+    
+    if (activeFilter === "Süresi Geçen") {
+      return events.filter(event => {
+        // Durum kontrolü
+        if (event.durum === "Tamamlandı") return true;
+        
+        // Tarih ve saat kontrolü
+        try {
+          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
+          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
+          return eventDateTime < now;
+        } catch (error) {
+          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
+          return event.tarih < now.toISOString().split('T')[0];
+        }
+      });
+    }
+    
+    return events;
+  };
+
+  const formatEventDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const monthNames = ["OCA", "ŞUB", "MAR", "NİS", "MAY", "HAZ", "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA"];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      return { day, month, year };
+    } catch (error) {
+      return { day: dateStr, month: "", year: "" };
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -60,47 +123,118 @@ const Etkinlikler = () => {
           </div>
         </section>
 
+        {/* Loading State */}
+        {loading && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto flex justify-center items-center min-h-96">
+              <Loader className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          </section>
+        )}
+
+        {/* Empty State */}
+        {!loading && events.length === 0 && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Etkinlik bulunamadı</h3>
+              <p className="text-muted-foreground">Şu anda gösterilecek bir etkinlik yok.</p>
+            </div>
+          </section>
+        )}
+
+        {/* Filter Buttons */}
+        {!loading && events.length > 0 && (
+          <section className="py-8">
+            <div className="container-custom mx-auto">
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Button
+                  variant={activeFilter === "Tümü" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Tümü")}
+                >
+                  Tümü
+                </Button>
+                <Button
+                  variant={activeFilter === "Devam Eden" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Devam Eden")}
+                >
+                  Devam Eden
+                </Button>
+                <Button
+                  variant={activeFilter === "Süresi Geçen" ? "gradient" : "outline"}
+                  size="lg"
+                  onClick={() => setActiveFilter("Süresi Geçen")}
+                >
+                  Süresi Geçen
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Events Grid */}
-        <section className="section-padding">
-          <div className="container-custom mx-auto">
-            <div className="space-y-8">
-              {events.map((event) => (
-                <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover">
+        {!loading && events.length > 0 && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto">
+              <div className="space-y-8">
+                {filterEvents().map((event) => {
+                  const { day, month, year } = formatEventDate(event.tarih);
+                  return (
+                <article key={event.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover relative">
+                  {/* Status Badge */}
+                  {event.durum && (
+                    <span className={`absolute top-4 right-4 px-3 py-1 text-xs font-medium rounded-full ${
+                      event.durum === 'Tamamlandı' ? 'bg-slate-700 text-white' : 'bg-primary text-primary-foreground'
+                    }`}>
+                      {event.durum}
+                    </span>
+                  )}
                   <div className="flex flex-col md:flex-row">
                     {/* Date Box */}
                     <div className="md:w-32 shrink-0 bg-gradient-green p-6 flex flex-row md:flex-col items-center justify-center text-primary-foreground">
-                      <span className="text-4xl font-bold">{event.date}</span>
-                      <span className="text-lg uppercase ml-2 md:ml-0">{event.month}</span>
-                      <span className="text-sm ml-2 md:ml-0 md:mt-1">{event.year}</span>
+                      <span className="text-4xl font-bold">{day}</span>
+                      <span className="text-lg uppercase ml-2 md:ml-0">{month}</span>
+                      <span className="text-sm ml-2 md:ml-0 md:mt-1">{year}</span>
                     </div>
                     
                     {/* Image */}
                     <div className="md:w-64 shrink-0">
-                      <img src={event.image} alt={event.title} className="w-full h-48 md:h-full object-cover" />
+                      <img src={event.gorsel} alt={event.baslik} className="w-full h-48 md:h-full object-cover" />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 p-6 flex flex-col justify-between">
                       <div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {(event.categories && event.categories.length > 0 ? event.categories : event.kategori ? [event.kategori] : []).map((cat, idx) => (
+                            <span 
+                              key={idx}
+                              className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
                         <h3 className="font-display font-bold text-xl text-foreground mb-2 hover:text-primary transition-colors">
-                          <Link to={`/etkinlik/${event.id}`}>{event.title}</Link>
+                          <Link to={`/etkinlik/${event.id}`}>{event.baslik}</Link>
                         </h3>
-                        <p className="text-muted-foreground mb-4">{event.description}</p>
+                        <p className="text-muted-foreground mb-4">{event.ozet}</p>
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4 text-secondary" />
-                            {event.time}
+                            {event.saat}
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="w-4 h-4 text-secondary" />
-                            {event.location}
+                            {event.konum}
                           </span>
                         </div>
                       </div>
                       <div className="mt-4 flex gap-2">
                         <Link to={`/etkinlik/${event.id}`}>
                           <Button variant="outline" size="sm">
-                            Detaylar <ArrowRight className="w-4 h-4 ml-1" />
+                            Detaylar
                           </Button>
                         </Link>
                         <a
@@ -109,17 +243,19 @@ const Etkinlikler = () => {
                           rel="noopener noreferrer"
                         >
                           <Button variant="turquoise" size="sm">
-                            Kayıt Ol <ArrowRight className="w-4 h-4 ml-1" />
+                            Kayıt Ol
                           </Button>
                         </a>
                       </div>
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
+        )}
       </main>
       <Footer />
     </div>

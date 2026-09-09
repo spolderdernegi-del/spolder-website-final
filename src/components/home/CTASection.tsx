@@ -21,15 +21,15 @@ const CTASection = () => {
             Spor Politikalarının Geleceğini Birlikte Şekillendirelim
           </h2>
           <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-            SPOlDER ailesine katılarak Türkiye'nin spor politikalarının gelişimine katkı sağlayın. 
-            Üyelerimize özel etkinlikler, yayınlar ve networking fırsatlarından yararlanın.
+            Ailemize katılarak spor politikalarının gelişimine katkı sağlayın. 
+            Ailemize özel etkinlikler, yayınlar ve networking fırsatlarından yararlanın.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
             <Link to="/iletisim">
               <Button variant="hero" size="xl" className="group">
-                Hemen Üye Ol
+                Gönüllü Ol
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
@@ -47,15 +47,15 @@ const CTASection = () => {
           {/* Stats */}
           <div className="flex justify-center gap-12 pt-8">
             <div className="text-center">
-              <span className="text-4xl font-bold text-primary-foreground">500+</span>
-              <p className="text-sm text-primary-foreground/70 mt-1">Aktif Üye</p>
+              <span className="text-4xl font-bold text-primary-foreground">508+</span>
+              <p className="text-sm text-primary-foreground/70 mt-1">Gönüllü Üye</p>
             </div>
             <div className="text-center">
-              <span className="text-4xl font-bold text-primary-foreground">50+</span>
+              <span className="text-4xl font-bold text-primary-foreground">23+</span>
               <p className="text-sm text-primary-foreground/70 mt-1">Proje</p>
             </div>
             <div className="text-center">
-              <span className="text-4xl font-bold text-primary-foreground">15+</span>
+              <span className="text-4xl font-bold text-primary-foreground">6+</span>
               <p className="text-sm text-primary-foreground/70 mt-1">Yıl</p>
             </div>
           </div>

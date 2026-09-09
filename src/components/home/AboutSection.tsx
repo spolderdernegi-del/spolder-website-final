@@ -18,8 +18,8 @@ const AboutSection = () => {
           <div className="relative">
             <div className="relative rounded-lg overflow-hidden shadow-elevated">
               <img
-                src="https://images.unsplash.com/photo-1517649763962-0c623066013b?w=800&auto=format&fit=crop&q=80"
-                alt="SPOlDER Dernek Tanıtım"
+                src="/placeholder.svg"
+                alt="SPOLDER Dernek Tanıtım"
                 className="w-full h-[400px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-anthracite/40 to-transparent" />
@@ -29,12 +29,12 @@ const AboutSection = () => {
             <div className="absolute -bottom-6 -right-6 bg-card rounded-lg shadow-elevated p-6 hidden md:block">
               <div className="flex gap-8">
                 <div className="text-center">
-                  <span className="text-3xl font-bold text-primary">15+</span>
+                  <span className="text-3xl font-bold text-primary">6+</span>
                   <p className="text-sm text-muted-foreground">Yıllık Deneyim</p>
                 </div>
                 <div className="text-center">
-                  <span className="text-3xl font-bold text-secondary">500+</span>
-                  <p className="text-sm text-muted-foreground">Üye</p>
+                  <span className="text-3xl font-bold text-secondary">508+</span>
+                  <p className="text-sm text-muted-foreground">Gönüllü Üye</p>
                 </div>
               </div>
             </div>
@@ -49,7 +49,7 @@ const AboutSection = () => {
               Spor Politikalarında <span className="text-gradient">Öncü Kuruluş</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              SPOlDER Spor Politikaları Derneği, Türkiye'de spor politikalarının geliştirilmesi, 
+              Spor Politikaları Derneği (SPOLDER), spor politikalarının geliştirilmesi, 
               spor kültürünün yaygınlaştırılması ve sporun toplumsal faydalarının artırılması 
               amacıyla kurulmuş bir sivil toplum kuruluşudur.
             </p>
