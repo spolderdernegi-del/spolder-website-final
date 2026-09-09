@@ -13,7 +13,7 @@ const Index = () => {
   const [modalContent, setModalContent] = useState({
     title: "Hoş Geldiniz!",
     description: "SPOLDER Spor Politikaları Derneği'ne hoş geldiniz. Türkiye'de spor politikalarının geliştirilmesi için çalışıyoruz.",
-    feature1: "508+ gönüllü üye ile spor camiasının güçlü sesi",
+    feature1: "508+ gönüllü ile spor camiasının güçlü sesi",
     feature2: "Araştırmalar, etkinlikler ve politika önerileri",
     feature3: "6+ yıllık deneyim ve uzmanlık",
     buttonText: "Keşfetmeye Başla",

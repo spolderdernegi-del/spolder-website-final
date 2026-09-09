@@ -48,7 +48,7 @@ const CTASection = () => {
           <div className="flex justify-center gap-12 pt-8">
             <div className="text-center">
               <span className="text-4xl font-bold text-primary-foreground">508+</span>
-              <p className="text-sm text-primary-foreground/70 mt-1">Gönüllü Üye</p>
+              <p className="text-sm text-primary-foreground/70 mt-1">Gönüllü</p>
             </div>
             <div className="text-center">
               <span className="text-4xl font-bold text-primary-foreground">23+</span>
