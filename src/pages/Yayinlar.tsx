@@ -396,19 +396,19 @@ const Yayinlar = () => {
           <div className="container-custom mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               <div>
-                <div className="font-display text-4xl font-bold text-primary mb-2">25+</div>
+                <div className="font-display text-4xl font-bold text-primary mb-2">1+</div>
                 <p className="text-sm text-muted-foreground">Yayınlanan Rapor</p>
               </div>
               <div>
-                <div className="font-display text-4xl font-bold text-secondary mb-2">15+</div>
+                <div className="font-display text-4xl font-bold text-secondary mb-2">1+</div>
                 <p className="text-sm text-muted-foreground">Araştırma Projesi</p>
               </div>
               <div>
-                <div className="font-display text-4xl font-bold text-accent mb-2">10K+</div>
+                <div className="font-display text-4xl font-bold text-accent mb-2">1+</div>
                 <p className="text-sm text-muted-foreground">İndirme Sayısı</p>
               </div>
               <div>
-                <div className="font-display text-4xl font-bold text-primary mb-2">50+</div>
+                <div className="font-display text-4xl font-bold text-primary mb-2">1+</div>
                 <p className="text-sm text-muted-foreground">Akademik Atıf</p>
               </div>
             </div>
