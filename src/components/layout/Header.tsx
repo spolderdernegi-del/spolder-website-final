@@ -4,6 +4,7 @@ import { Menu, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { matchStaticPages } from "@/lib/staticPages";
 
 const navItems = [
   { label: "Ana Sayfa", href: "/" },
@@ -51,9 +52,9 @@ const Header = () => {
     }
 
     const searchInDatabase = async () => {
+      const q = searchQuery.trim().toLowerCase();
+      const allResults: any[] = [];
       try {
-        const q = searchQuery.trim().toLowerCase();
-        const allResults: any[] = [];
 
         // Haberler
         const { data: news } = await supabase
@@ -138,7 +139,19 @@ const Header = () => {
         setSuggestions(allResults);
       } catch (error) {
         console.error("Arama hatası:", error);
-        setSuggestions([]);
+      } finally {
+        // Sabit sayfalar (Kurumsal Kimlik, KVKK, İletişim vb.) veritabanı
+        // hatasından etkilenmeden, ayrı olarak eklenir.
+        matchStaticPages(searchQuery).forEach((page) => {
+          allResults.push({
+            id: `page-${page.link}`,
+            type: "Sayfa",
+            title: page.title,
+            excerpt: page.excerpt,
+            link: page.link,
+          });
+        });
+        setSuggestions(allResults);
       }
     };
 
