@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { Pool } from "pg";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,53 @@ const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: isProduction ? { rejectUnauthorized: false } : false,
 });
+
+// --- Contact form email notifications (optional) -----------------------
+// If SMTP_HOST/SMTP_USER/SMTP_PASS aren't set, this feature is silently
+// disabled - the contact form still works and still saves to the database,
+// it just won't also send an email. Nothing breaks if these are missing.
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const CONTACT_NOTIFY_EMAIL = process.env.CONTACT_NOTIFY_EMAIL || SMTP_USER;
+
+let mailTransporter = null;
+if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+  mailTransporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465, // 465 = SSL, 587 = STARTTLS
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+  console.log(`Mail bildirimleri aktif: ${SMTP_HOST}:${SMTP_PORT} -> ${CONTACT_NOTIFY_EMAIL}`);
+} else {
+  console.log("Mail bildirimleri devre dışı (SMTP_HOST/SMTP_USER/SMTP_PASS tanımlı değil)");
+}
+
+// Fire-and-forget: never let a mail failure affect the contact form response.
+function notifyNewContactMessage(entry) {
+  if (!mailTransporter) return;
+  const safe = (v) => String(v ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  mailTransporter
+    .sendMail({
+      from: `"SPOLDER Web Sitesi" <${SMTP_USER}>`,
+      to: CONTACT_NOTIFY_EMAIL,
+      replyTo: entry.email || undefined,
+      subject: `Yeni İletişim Mesajı: ${entry.subject || "(konu belirtilmedi)"}`,
+      html: `
+        <h3>Web sitesinden yeni bir iletişim mesajı var</h3>
+        <p><strong>Ad Soyad:</strong> ${safe(entry.name)}</p>
+        <p><strong>E-posta:</strong> ${safe(entry.email)}</p>
+        <p><strong>Konu:</strong> ${safe(entry.subject)}</p>
+        <p><strong>Mesaj:</strong></p>
+        <p>${safe(entry.message).replace(/\n/g, "<br/>")}</p>
+        <hr/>
+        <p style="color:#888;font-size:12px">Bu mesaj admin panelinden de görüntülenebilir.</p>
+      `,
+    })
+    .catch((err) => console.error("Bildirim maili gönderilemedi:", err.message));
+}
 
 // --- Tables the generic /api/db endpoints are allowed to touch --------------
 // Anything not in this list is rejected outright - no arbitrary table access.
@@ -451,6 +499,11 @@ app.post(
     }
     const query = `INSERT INTO "${table}" (${columns.map((c) => `"${c}"`).join(",")}) VALUES ${placeholders} RETURNING *`;
     const result = await queryDatabase(query, values);
+
+    if (table === INSERT_ONLY_PUBLIC_TABLE) {
+      result.rows.forEach((row) => notifyNewContactMessage(row));
+    }
+
     return res.json({ data: result.rows, error: null });
   }),
 );
