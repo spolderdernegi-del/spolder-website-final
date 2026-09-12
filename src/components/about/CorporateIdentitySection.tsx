@@ -26,19 +26,19 @@ export default function CorporateIdentitySection() {
         <p className="mt-2 text-muted-foreground">Logo kullanım kılavuzu, renk paleti ve tipografi.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid md:grid-cols-2 gap-6 min-w-0">
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Logo Önizleme</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-6">
+          <CardContent className="space-y-6 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-6">
               {/* Siyah/renkli logo için daha koyu (foreground %10) arka plan */}
-              <div className="h-28 w-44 bg-foreground/10 rounded-lg border flex items-center justify-center p-5">
+              <div className="h-28 w-44 bg-foreground/10 rounded-lg border flex items-center justify-center p-5 shrink-0">
                 <img src={erkekLogo} alt="SPOLDER Logo Erkek" className="max-h-24 w-auto" />
               </div>
               {/* Beyaz yazılı logo için koyu anthracite arka plan */}
-              <div className="h-28 w-44 bg-anthracite rounded-lg border flex items-center justify-center p-5">
+              <div className="h-28 w-44 bg-anthracite rounded-lg border flex items-center justify-center p-5 shrink-0">
                 <img src={disiLogo} alt="SPOLDER Logo Dişi" className="max-h-24 w-auto" />
               </div>
             </div>
@@ -56,7 +56,7 @@ export default function CorporateIdentitySection() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Renk Paleti</CardTitle>
           </CardHeader>

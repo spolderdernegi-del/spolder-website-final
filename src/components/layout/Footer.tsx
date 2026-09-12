@@ -46,7 +46,7 @@ const Footer = () => {
               <img src={logo} alt="SPOLDER Logo" className="h-16 w-auto brightness-0 invert" />
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              Türkiye'de spor politikalarının geliştirilmesi ve spor kültürünün yaygınlaştırılması için çalışıyoruz.
+              Spor politikalarının geliştirilmesi ve spor kültürünün yaygınlaştırılması için çalışıyoruz.
             </p>
             <div className="flex gap-3 pt-2">
               <a href="https://www.facebook.com/spolderorg/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300" title="Facebook">
