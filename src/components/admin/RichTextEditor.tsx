@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -9,17 +9,59 @@ interface RichTextEditorProps {
   rows?: number;
 }
 
+// İçerik satırı çok büyümesin diye tek bir gömülü görsel için üst sınır.
+// (Kapak görseli gibi bu da base64 olarak doğrudan içeriğin içine gömülüyor,
+// ayrı bir dosya depolama/upload altyapısı gerektirmiyor.)
+const MAX_INLINE_IMAGE_MB = 3;
+
 const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", rows = 10 }: RichTextEditorProps) => {
+  const quillRef = useRef<ReactQuill>(null);
+
+  const imageHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      if (file.size > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
+        alert(`Görsel çok büyük (max ${MAX_INLINE_IMAGE_MB}MB). Lütfen daha küçük bir görsel seçin.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const editor = quillRef.current?.getEditor();
+        if (!editor) return;
+        // İmleç konumuna (veya seçim yoksa metnin sonuna) görseli ekle,
+        // böylece metnin istenen herhangi bir noktasının arasına konabilir.
+        const range = editor.getSelection(true);
+        const insertIndex = range ? range.index : editor.getLength();
+        editor.insertEmbed(insertIndex, 'image', reader.result);
+        editor.setSelection(insertIndex + 1, 0);
+      };
+      reader.readAsDataURL(file);
+    };
+  };
+
   // Configure toolbar with basic formatting options
   const modules = useMemo(() => ({
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'align': [] }],
-      ['link'],
-      ['clean']
-    ],
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'align': [] }],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler,
+      },
+    },
   }), []);
 
   const formats = [
@@ -27,7 +69,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
     'bold', 'italic', 'underline', 'strike',
     'list', 'bullet',
     'align',
-    'link'
+    'link', 'image'
   ];
 
   // Calculate approximate height based on rows
@@ -36,6 +78,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
   return (
     <div className="rich-text-editor">
       <ReactQuill
+        ref={quillRef}
         theme="snow"
         value={value}
         onChange={onChange}
@@ -51,6 +94,12 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
         }
         .rich-text-editor .ql-editor {
           min-height: ${editorHeight}px;
+        }
+        .rich-text-editor .ql-editor img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.375rem;
+          margin: 0.5rem 0;
         }
         .rich-text-editor .ql-toolbar {
           background: #f8fafc;
