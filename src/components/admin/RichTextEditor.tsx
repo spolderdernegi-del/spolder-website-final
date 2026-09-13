@@ -1,6 +1,11 @@
-import { useMemo, useRef } from 'react';
-import ReactQuill from 'react-quill';
+import { useMemo, useRef, useState } from 'react';
+import ReactQuill, { Quill } from 'react-quill';
+import { ImageResize } from 'quill-image-resize-module-react';
 import 'react-quill/dist/quill.snow.css';
+import ImageCropDialog from './ImageCropDialog';
+
+// Modülü sadece bir kez, uygulama genelinde kaydet.
+Quill.register('modules/imageResize', ImageResize);
 
 interface RichTextEditorProps {
   value: string;
@@ -16,8 +21,16 @@ const MAX_INLINE_IMAGE_MB = 3;
 
 const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", rows = 10 }: RichTextEditorProps) => {
   const quillRef = useRef<ReactQuill>(null);
+  // Kırpma modalı açıkken, kırpma bitince görseli imlecin doğru yerine
+  // ekleyebilmek için seçilen ham görseli ve o andaki imleç konumunu tutar.
+  const [pendingImage, setPendingImage] = useState<{ src: string; insertIndex: number } | null>(null);
 
   const imageHandler = () => {
+    const editor = quillRef.current?.getEditor();
+    // Modal açılınca editör odağı/seçimi kaybolabilir, o yüzden şimdi kaydet.
+    const range = editor?.getSelection(true);
+    const insertIndex = range ? range.index : (editor?.getLength() ?? 0);
+
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
@@ -34,17 +47,19 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
 
       const reader = new FileReader();
       reader.onload = () => {
-        const editor = quillRef.current?.getEditor();
-        if (!editor) return;
-        // İmleç konumuna (veya seçim yoksa metnin sonuna) görseli ekle,
-        // böylece metnin istenen herhangi bir noktasının arasına konabilir.
-        const range = editor.getSelection(true);
-        const insertIndex = range ? range.index : editor.getLength();
-        editor.insertEmbed(insertIndex, 'image', reader.result);
-        editor.setSelection(insertIndex + 1, 0);
+        setPendingImage({ src: reader.result as string, insertIndex });
       };
       reader.readAsDataURL(file);
     };
+  };
+
+  const handleCropDone = (croppedDataUrl: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (editor && pendingImage) {
+      editor.insertEmbed(pendingImage.insertIndex, 'image', croppedDataUrl);
+      editor.setSelection(pendingImage.insertIndex + 1, 0);
+    }
+    setPendingImage(null);
   };
 
   // Configure toolbar with basic formatting options
@@ -61,6 +76,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
       handlers: {
         image: imageHandler,
       },
+    },
+    // Metin içine eklenen görsele tıklayınca boyutlandırma tutamaçları ve
+    // hizalama (sol/orta/sağ) araç çubuğu çıkar.
+    imageResize: {
+      modules: ['Resize', 'DisplaySize', 'Toolbar'],
     },
   }), []);
 
@@ -86,6 +106,11 @@ const RichTextEditor = ({ value, onChange, placeholder = "İçerik yazın...", r
         formats={formats}
         placeholder={placeholder}
         style={{ height: `${editorHeight}px`, marginBottom: '42px' }}
+      />
+      <ImageCropDialog
+        imageSrc={pendingImage?.src ?? null}
+        onClose={() => setPendingImage(null)}
+        onCropDone={handleCropDone}
       />
       <style>{`
         .rich-text-editor .ql-container {
