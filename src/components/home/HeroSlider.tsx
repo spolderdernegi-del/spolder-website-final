@@ -2,49 +2,145 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
-const slides = [
-  {
-    id: 1,
-    title: "Spor Ekonomisi Raporu 2024 Yayınlandı",
-    description: "Türkiye'nin spor ekonomisine ilişkin kapsamlı raporumuz kamuoyuyla paylaşıldı. Raporda spor sektörünün GSYH'ye katkısı analiz edildi.",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&auto=format&fit=crop&q=80",
-    date: "12 Aralık 2024",
-    category: "Araştırma",
-  },
-  {
-    id: 2,
-    title: "Yerel Yönetimler ve Spor Forumu Gerçekleşti",
-    description: "Belediyelerin spor politikalarını ele aldığımız forum büyük ilgi gördü. 50'den fazla belediye temsilcisi katıldı.",
-    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=1200&auto=format&fit=crop&q=80",
-    date: "8 Aralık 2024",
-    category: "Etkinlik",
-  },
-  {
-    id: 3,
-    title: "Avrupa Spor Şartı Türkçe'ye Çevrildi",
-    description: "Avrupa Konseyi'nin yeni Spor Şartı'nın Türkçe çevirisi derneğimiz tarafından tamamlandı.",
-    image: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1200&auto=format&fit=crop&q=80",
-    date: "5 Aralık 2024",
-    category: "Yayın",
-  },
-];
+interface SlideItem {
+  id: number;
+  baslik: string;
+  ozet: string;
+  gorsel: string;
+  tarih: string;
+  kategori: string;
+  categories?: string[];
+  sliderda_goster?: boolean;
+  contentType: 'event' | 'news' | 'project' | 'blog';
+  link: string;
+}
 
 const HeroSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [slides, setSlides] = useState<SlideItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Supabase'den tüm slider içeriklerini yükle (events, news, projects)
+    const fetchSliderContent = async () => {
+      try {
+        const allSlides: SlideItem[] = [];
+
+        // Etkinlikler
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
+          .eq('sliderda_goster', true)
+          .eq('yayin_durumu', 'yayinlandi')
+          .order('created_at', { ascending: false });
+        
+        if (!eventsError && events) {
+          allSlides.push(...events.map(e => ({
+            ...e,
+            contentType: 'event' as const,
+            link: `/etkinlik/${e.id}`
+          })));
+        }
+
+        // Haberler
+        const { data: news, error: newsError } = await supabase
+          .from('news')
+          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
+          .eq('sliderda_goster', true)
+          .eq('yayin_durumu', 'yayinlandi')
+          .order('created_at', { ascending: false });
+        
+        if (!newsError && news) {
+          allSlides.push(...news.map(n => ({
+            ...n,
+            contentType: 'news' as const,
+            link: `/haber/${n.id}`
+          })));
+        }
+
+        // Projeler
+        const { data: projects, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, title, description, image, start_date, category, categories, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
+          .order('created_at', { ascending: false });
+        
+        if (!projectsError && projects) {
+          allSlides.push(...projects.map(p => ({
+            id: p.id,
+            baslik: p.title,
+            ozet: p.description,
+            gorsel: p.image,
+            tarih: p.start_date,
+            kategori: p.category,
+            categories: p.categories,
+            sliderda_goster: p.showInSlider,
+            contentType: 'project' as const,
+            link: `/proje/${p.id}`
+          })));
+        }
+
+        // Blog
+        const { data: blogs, error: blogsError } = await supabase
+          .from('blog')
+          .select('id, title, excerpt, image, date, category, categories, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
+          .order('created_at', { ascending: false });
+        
+        if (!blogsError && blogs) {
+          allSlides.push(...blogs.map(b => ({
+            id: b.id,
+            baslik: b.title,
+            ozet: b.excerpt,
+            gorsel: b.image,
+            tarih: b.date,
+            kategori: b.category,
+            categories: b.categories,
+            sliderda_goster: b.showInSlider,
+            contentType: 'blog' as const,
+            link: `/blog/${b.id}`
+          })));
+        }
+
+        // Tarihe göre sırala (en yeni en başta)
+        allSlides.sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+        
+        setSlides(allSlides);
+      } catch (error) {
+        console.error("Error loading slider content:", error);
+        setSlides([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSliderContent();
+  }, []);
+
+  useEffect(() => {
+    // Slider otomatik döngüsü
+    if (slides.length === 0) return;
+    
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
+  // Slider boşsa hiçbir şey gösterme
+  if (slides.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="relative h-[90vh] min-h-[600px] overflow-hidden">
+    <section className="relative h-[90vh] min-h-[600px] overflow-hidden bg-gray-900">
       {/* Background Slides */}
       {slides.map((slide, index) => (
         <div
@@ -55,7 +151,7 @@ const HeroSlider = () => {
         >
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${slide.image})` }}
+            style={{ backgroundImage: `url(${slide.gorsel})` }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-anthracite/90 via-anthracite/60 to-transparent" />
         </div>
@@ -64,39 +160,55 @@ const HeroSlider = () => {
       {/* Content */}
       <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
         <div className="max-w-2xl space-y-6 animate-fade-up">
-          {/* Category Badge */}
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
-            {slides[currentSlide].category}
-          </span>
+          {/* Category Badges */}
+          <div className="flex flex-wrap gap-2">
+            {slides[currentSlide].categories && slides[currentSlide].categories.length > 0 ? (
+              slides[currentSlide].categories.slice(0, 3).map((cat, idx) => (
+                <span key={idx} className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  {cat}
+                </span>
+              ))
+            ) : (
+              <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                {slides[currentSlide].kategori}
+              </span>
+            )}
+          </div>
 
           {/* Title */}
           <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
-            {slides[currentSlide].title}
+            {slides[currentSlide].baslik}
           </h1>
 
           {/* Description */}
           <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl">
-            {slides[currentSlide].description}
+            {slides[currentSlide].ozet}
           </p>
 
           {/* Date */}
           <div className="flex items-center gap-2 text-primary-foreground/70">
             <Calendar className="w-4 h-4" />
-            <span className="text-sm">{slides[currentSlide].date}</span>
+            <span className="text-sm">{slides[currentSlide].tarih}</span>
           </div>
 
           {/* CTA */}
           <div className="flex gap-4 pt-4">
-            <Link to={`/haber/${slides[currentSlide].id}`}>
+            <Link to={slides[currentSlide].link}>
               <Button variant="hero" size="lg">
                 Devamını Oku
               </Button>
             </Link>
-            <Link to="/haberler">
-              <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-                Tüm Haberler
-              </Button>
-            </Link>
+              <Link to={
+                slides[currentSlide].contentType === 'event' ? '/etkinlikler' :
+                slides[currentSlide].contentType === 'news' ? '/haberler' :
+                '/projeler'
+              }>
+                <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+                  {slides[currentSlide].contentType === 'event' ? 'Tüm Etkinlikler' :
+                   slides[currentSlide].contentType === 'news' ? 'Tüm Haberler' :
+                   'Tüm Projeler'}
+                </Button>
+              </Link>
           </div>
         </div>
       </div>
