@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Loader, Calendar, User, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -128,13 +129,10 @@ const BlogDetay = () => {
         <section className="section-padding">
           <div className="container-custom mx-auto">
             <div className="max-w-3xl">
-              <article className="prose prose-invert max-w-none mb-8">
-                {(post.content || post.excerpt).split("\n").map((paragraph, index) => (
-                  <p key={index} className="text-foreground/90 text-lg leading-relaxed mb-6">
-                    {paragraph}
-                  </p>
-                ))}
-              </article>
+              <article
+                className="prose prose-invert max-w-none mb-8 text-foreground/90 text-lg leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content || post.excerpt || '') }}
+              />
 
               <div className="py-8 border-t border-border">
                 <Button onClick={() => window.history.back()} className="gap-2">
