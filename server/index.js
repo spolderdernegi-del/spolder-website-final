@@ -69,12 +69,19 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
 function notifyNewContactMessage(entry) {
   if (!mailTransporter) return;
   const safe = (v) => String(v ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Headers (subject, reply-to) are far more sensitive than the HTML body:
+  // a newline smuggled into one of these could let an attacker inject extra
+  // SMTP headers (e.g. additional Bcc/To recipients). Strip any CR/LF before
+  // they ever reach nodemailer's header fields.
+  const stripCrlf = (v) => String(v ?? "").replace(/[\r\n]+/g, " ").trim();
+  const subject = stripCrlf(entry.subject) || "(konu belirtilmedi)";
+  const replyTo = stripCrlf(entry.email);
   mailTransporter
     .sendMail({
       from: `"SPOLDER Web Sitesi" <${SMTP_USER}>`,
       to: CONTACT_NOTIFY_EMAIL,
-      replyTo: entry.email || undefined,
-      subject: `Yeni İletişim Mesajı: ${entry.subject || "(konu belirtilmedi)"}`,
+      replyTo: replyTo || undefined,
+      subject: `Yeni İletişim Mesajı: ${subject}`,
       html: `
         <h3>Web sitesinden yeni bir iletişim mesajı var</h3>
         <p><strong>Ad Soyad:</strong> ${safe(entry.name)}</p>
@@ -171,6 +178,18 @@ const writeLimiter = rateLimit({
   limit: 120,
   standardHeaders: true,
   legacyHeaders: false,
+});
+// contact_messages is public and unauthenticated (no login required to hit
+// it), and each row now also triggers an outbound email - the generous
+// 120/min writeLimiter meant for authenticated admin bulk actions is far too
+// permissive here. A dedicated, much stricter limiter prevents someone from
+// flooding the inbox or getting the SMTP account throttled/blacklisted.
+const contactFormLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: "Çok fazla mesaj gönderildi, lütfen daha sonra tekrar deneyin." } },
 });
 
 // --- SQL identifier helpers (never interpolate untrusted strings otherwise) -
@@ -480,10 +499,26 @@ app.post(
   "/api/db/:table",
   writeLimiter,
   gateWrite,
+  (req, res, next) => {
+    // Extra-strict, dedicated limiter for the public, unauthenticated
+    // contact form path only - admin writes to other tables keep the
+    // regular writeLimiter above.
+    if (req.params.table === INSERT_ONLY_PUBLIC_TABLE) {
+      return contactFormLimiter(req, res, next);
+    }
+    return next();
+  },
   asyncHandler(async (req, res) => {
     const table = sanitizeTable(req.params.table);
     const payload = req.body;
-    const entries = Array.isArray(payload) ? payload : [payload];
+    let entries = Array.isArray(payload) ? payload : [payload];
+    if (table === INSERT_ONLY_PUBLIC_TABLE && entries.length > 1) {
+      // The public contact form should only ever submit one message at a
+      // time. Without this cap, a single request could smuggle in an array
+      // of hundreds of rows, inserting them all and firing an email for
+      // each one - bypassing the rate limiter above entirely.
+      throw new HttpError(400, "Tek seferde yalnızca bir kayıt eklenebilir");
+    }
     if (entries.length === 0 || !entries[0] || typeof entries[0] !== "object") {
       throw new HttpError(400, "Eklenecek veri bulunamadı");
     }
