@@ -3,17 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, AlignLeft, AlignCenter, AlignRight, Baseline, Rows3, Crop, Trash2, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Save, AlignLeft, AlignCenter, AlignRight, Baseline, Rows3, Crop, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import ImageCropDialog from '@/components/admin/ImageCropDialog';
 
-// Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden tam
-// değerlerle değiştiriyoruz (küçük/büyük/devasa gibi belirsiz etiketler
-// yerine). Bu, Quill'in dokümante edilmiş standart özelleştirme yöntemi -
-// üçüncü parti bir eklenti değil, riskli değil.
-const PX_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
+// Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden serbest
+// değerlerle çalışacak şekilde ayarlıyoruz (Word'deki gibi elle yazılabilir
+// bir punto kutusu için). Bu, Quill'in dokümante edilmiş standart
+// özelleştirme yöntemi - üçüncü parti bir eklenti değil, riskli değil.
+const DEFAULT_FONT_SIZE = 16;
 const SizeStyle = Quill.import('attributors/style/size') as any;
-SizeStyle.whitelist = PX_SIZES;
+SizeStyle.whitelist = null; // whitelist yok = herhangi bir px değeri kabul edilir
 Quill.register(SizeStyle, true);
 
 const INFLIGHT_KEY = 'spolder_admin_content_inflight';
@@ -44,6 +45,10 @@ const AdminContentEditor = () => {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [, forceRerender] = useState(0);
 
+  // Word'deki gibi, imlecin bulunduğu yerin yazı boyutunu gösteren/değiştiren
+  // sayısal kutu.
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+
   useEffect(() => {
     const raw = sessionStorage.getItem(INFLIGHT_KEY);
     if (!raw) {
@@ -70,9 +75,9 @@ const AdminContentEditor = () => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'IMG') {
         const img = target as HTMLImageElement;
-        const rect = img.getBoundingClientRect();
+        const r = img.getBoundingClientRect();
         setSelectedImage(img);
-        setToolbarPos({ top: rect.top + window.scrollY - 48, left: rect.left + window.scrollX });
+        setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
       } else {
         setSelectedImage(null);
         setToolbarPos(null);
@@ -83,9 +88,52 @@ const AdminContentEditor = () => {
     return () => root.removeEventListener('click', onClick);
   }, [content === '']); // İçerik ilk yüklendiğinde editör hazır olunca yeniden bağlan
 
-  const syncContentFromDom = () => {
+  // İmlecin bulunduğu yerin yazı boyutunu izler, Word'deki punto kutusunu günceller.
+  useEffect(() => {
     const editor = quillRef.current?.getEditor();
-    if (editor) setContent(editor.root.innerHTML);
+    if (!editor) return;
+
+    const updateFromSelection = () => {
+      const range = editor.getSelection();
+      if (!range) return;
+      const fmt = editor.getFormat(range) as Record<string, any>;
+      const sizeVal = fmt.size as string | undefined;
+      const px = sizeVal ? parseInt(sizeVal, 10) : DEFAULT_FONT_SIZE;
+      if (!Number.isNaN(px)) setFontSize(px);
+    };
+
+    editor.on('selection-change', updateFromSelection);
+    editor.on('editor-change', updateFromSelection);
+    return () => {
+      editor.off('selection-change', updateFromSelection);
+      editor.off('editor-change', updateFromSelection);
+    };
+  }, [content === '']);
+
+  const applyFontSize = (px: number) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const clamped = Math.max(6, Math.min(200, Math.round(px)));
+    setFontSize(clamped);
+    const range = editor.getSelection();
+    if (range && range.length > 0) {
+      editor.format('size', `${clamped}px`);
+    } else {
+      // Seçili metin yoksa, bundan sonra yazılacak metne uygulanır.
+      editor.format('size', `${clamped}px`);
+      editor.focus();
+    }
+  };
+
+  // Görsel üzerindeki de değişiklikler sadece ger DOM'a uygulanır; bunu
+  // ReactQuill'in kontrollü "value" prop'una geri yazmıyoruz. Çünkü Quill
+  // HTML'i kendi Delta modeline çevirirken class gibi kendi tanımadığı
+  // özel öznitelikleri (attribute) silebiliyor - bu da az önce uyguladığımız
+  // hizalama/boyut sınıflarının anlık olarak geri alınmasına neden oluyordu.
+  // Bunun yerine gerçek/güncel HTML'i sadece kaydetme anında DOM'dan okuyoruz.
+  const repositionToolbar = (img: HTMLImageElement) => {
+    const r = img.getBoundingClientRect();
+    setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
   };
 
   const applyWrap = (cls: string) => {
@@ -93,7 +141,7 @@ const AdminContentEditor = () => {
     WRAP_CLASSES.forEach((c) => selectedImage.classList.remove(c));
     selectedImage.classList.add(cls);
     forceRerender((n) => n + 1);
-    syncContentFromDom();
+    repositionToolbar(selectedImage);
   };
 
   const applySize = (cls: string | null) => {
@@ -102,7 +150,7 @@ const AdminContentEditor = () => {
     if (cls) selectedImage.classList.add(cls);
     else selectedImage.style.width = '';
     forceRerender((n) => n + 1);
-    syncContentFromDom();
+    repositionToolbar(selectedImage);
   };
 
   const deleteSelectedImage = () => {
@@ -110,7 +158,6 @@ const AdminContentEditor = () => {
     selectedImage.remove();
     setSelectedImage(null);
     setToolbarPos(null);
-    syncContentFromDom();
   };
 
   const openCrop = () => {
@@ -121,7 +168,8 @@ const AdminContentEditor = () => {
   const handleCropDone = (croppedDataUrl: string) => {
     if (selectedImage) {
       selectedImage.src = croppedDataUrl;
-      syncContentFromDom();
+      // Kırpma sonrası boyut/oran değiştiği için araç çubuğunu yeniden konumlandır.
+      requestAnimationFrame(() => selectedImage && repositionToolbar(selectedImage));
     }
     setCropSrc(null);
   };
@@ -164,7 +212,6 @@ const AdminContentEditor = () => {
     toolbar: {
       container: [
         [{ header: [1, 2, 3, false] }],
-        [{ size: PX_SIZES }],
         ['bold', 'italic', 'underline', 'strike'],
         [{ color: [] }, { background: [] }],
         [{ list: 'ordered' }, { list: 'bullet' }],
@@ -189,7 +236,12 @@ const AdminContentEditor = () => {
 
   const handleSave = () => {
     if (!draft) return;
-    sessionStorage.setItem(RESULT_KEY, JSON.stringify({ content }));
+    // Görsel araç çubuğundaki değişiklikler React state'ine anlık
+    // yansıtılmıyor (yukarıdaki not), o yüzden burada gerçek/güncel
+    // HTML'i doğrudan editörün DOM'undan okuyoruz.
+    const editor = quillRef.current?.getEditor();
+    const finalContent = editor ? editor.root.innerHTML : content;
+    sessionStorage.setItem(RESULT_KEY, JSON.stringify({ content: finalContent }));
     sessionStorage.removeItem(INFLIGHT_KEY);
     toast.success('İçerik güncellendi, geri dönülüyor...');
     navigate(draft.returnPath || '/admin');
@@ -241,6 +293,38 @@ const AdminContentEditor = () => {
 
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
         <div className="full-page-editor bg-card rounded-lg border shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40">
+            <span className="text-xs text-muted-foreground">Yazı Boyutu (px)</span>
+            <div className="flex items-center border rounded-md overflow-hidden bg-background">
+              <Input
+                type="number"
+                min={6}
+                max={200}
+                value={fontSize}
+                onChange={(e) => applyFontSize(Number(e.target.value) || DEFAULT_FONT_SIZE)}
+                className="w-16 h-7 border-0 text-center px-1 focus-visible:ring-0"
+              />
+              <div className="flex flex-col border-l">
+                <button
+                  type="button"
+                  className="h-3.5 w-5 flex items-center justify-center hover:bg-muted"
+                  onClick={() => applyFontSize(fontSize + 1)}
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  className="h-3.5 w-5 flex items-center justify-center hover:bg-muted border-t"
+                  onClick={() => applyFontSize(fontSize - 1)}
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Metni seçip değiştirin, veya seçim yokken sonraki yazılacak metne uygulanır.
+            </span>
+          </div>
           <ReactQuill
             ref={quillRef}
             theme="snow"
