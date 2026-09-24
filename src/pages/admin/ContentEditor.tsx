@@ -23,8 +23,6 @@ const MAX_INLINE_IMAGE_MB = 3;
 
 // Görsele uygulanabilecek metin sarma (wrap) sınıfları - birbirini dışlar.
 const WRAP_CLASSES = ['img-float-left', 'img-float-right', 'img-align-center', 'img-inline', 'img-wrap-topbottom'];
-// Görsele uygulanabilecek boyut sınıfları - birbirini dışlar.
-const SIZE_CLASSES = ['img-size-small', 'img-size-medium', 'img-size-large'];
 
 interface InflightDraft {
   content: string;
@@ -48,6 +46,8 @@ const AdminContentEditor = () => {
   // Word'deki gibi, imlecin bulunduğu yerin yazı boyutunu gösteren/değiştiren
   // sayısal kutu.
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  // Seçili görselin genişliği (px) - araç çubuğundaki sayısal kutuda gösterilir.
+  const [imageWidth, setImageWidth] = useState(0);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(INFLIGHT_KEY);
@@ -78,6 +78,7 @@ const AdminContentEditor = () => {
         const r = img.getBoundingClientRect();
         setSelectedImage(img);
         setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
+        setImageWidth(Math.round(img.getBoundingClientRect().width));
       } else {
         setSelectedImage(null);
         setToolbarPos(null);
@@ -144,11 +145,23 @@ const AdminContentEditor = () => {
     repositionToolbar(selectedImage);
   };
 
-  const applySize = (cls: string | null) => {
+  const applyImageWidthPx = (px: number) => {
     if (!selectedImage) return;
-    SIZE_CLASSES.forEach((c) => selectedImage.classList.remove(c));
-    if (cls) selectedImage.classList.add(cls);
-    else selectedImage.style.width = '';
+    const clamped = Math.max(20, Math.min(2000, Math.round(px)));
+    // Satır içi style, sınıf tabanlı kurallardan her zaman daha önceliklidir,
+    // bu yüzden görsel genişliği burada kesin ve garanti şekilde uygulanır.
+    selectedImage.style.width = `${clamped}px`;
+    selectedImage.style.height = 'auto';
+    setImageWidth(clamped);
+    forceRerender((n) => n + 1);
+    repositionToolbar(selectedImage);
+  };
+
+  const resetImageSize = () => {
+    if (!selectedImage) return;
+    selectedImage.style.width = '';
+    selectedImage.style.height = '';
+    setImageWidth(selectedImage.naturalWidth || 0);
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
   };
@@ -169,7 +182,12 @@ const AdminContentEditor = () => {
     if (selectedImage) {
       selectedImage.src = croppedDataUrl;
       // Kırpma sonrası boyut/oran değiştiği için araç çubuğunu yeniden konumlandır.
-      requestAnimationFrame(() => selectedImage && repositionToolbar(selectedImage));
+      requestAnimationFrame(() => {
+        if (selectedImage) {
+          repositionToolbar(selectedImage);
+          setImageWidth(Math.round(selectedImage.getBoundingClientRect().width));
+        }
+      });
     }
     setCropSrc(null);
   };
@@ -360,11 +378,20 @@ const AdminContentEditor = () => {
             <Rows3 className="w-3.5 h-3.5" />
           </Button>
 
-          <span className="text-[10px] text-muted-foreground px-1 w-full mt-1">Boyut</span>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-small')}>K</Button>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-medium')}>O</Button>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-large')}>B</Button>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize(null)}>Orijinal</Button>
+          <span className="text-[10px] text-muted-foreground px-1 w-full mt-1">Genişlik (px)</span>
+          <div className="flex items-center gap-1 w-full">
+            <Input
+              type="number"
+              min={20}
+              max={2000}
+              value={imageWidth}
+              onChange={(e) => applyImageWidthPx(Number(e.target.value) || imageWidth)}
+              className="h-7 text-xs px-2 w-20"
+            />
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={resetImageSize}>
+              Orijinal
+            </Button>
+          </div>
 
           <div className="w-full flex justify-between mt-1 pt-1 border-t">
             <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Görseli kırp" onClick={openCrop}>
@@ -416,19 +443,19 @@ const AdminContentEditor = () => {
           cursor: pointer;
         }
         .full-page-editor .ql-editor img.img-float-left {
-          float: left;
-          margin: 0.25rem 1.5rem 1rem 0;
-          width: 40%;
+          float: left !important;
+          margin: 0.25rem 2rem 1rem 0 !important;
+          max-width: 45%;
         }
         .full-page-editor .ql-editor img.img-float-right {
-          float: right;
-          margin: 0.25rem 0 1rem 1.5rem;
-          width: 40%;
+          float: right !important;
+          margin: 0.25rem 0 1rem 2rem !important;
+          max-width: 45%;
         }
         .full-page-editor .ql-editor img.img-align-center {
           display: block;
-          margin-left: auto;
-          margin-right: auto;
+          margin-left: auto !important;
+          margin-right: auto !important;
           float: none;
         }
         .full-page-editor .ql-editor img.img-inline {
@@ -442,9 +469,6 @@ const AdminContentEditor = () => {
           clear: both;
           margin: 1rem 0;
         }
-        .full-page-editor .ql-editor img.img-size-small { width: 25%; }
-        .full-page-editor .ql-editor img.img-size-medium { width: 50%; }
-        .full-page-editor .ql-editor img.img-size-large { width: 75%; }
         .dark .full-page-editor .ql-toolbar {
           border-color: #334155;
         }
