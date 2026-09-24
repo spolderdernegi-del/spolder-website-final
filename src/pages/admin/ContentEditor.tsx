@@ -17,6 +17,38 @@ const SizeStyle = Quill.import('attributors/style/size') as any;
 SizeStyle.whitelist = null; // whitelist yok = herhangi bir px değeri kabul edilir
 Quill.register(SizeStyle, true);
 
+// Quill'in varsayılan Görsel (Image) blot'u, class/style gibi kendi
+// tanımadığı öznitelikleri (attribute) sildiği için, araç çubuğundan
+// uyguladığımız hizalama/boyut class'ları ve kırpma sonrası değişen src,
+// Quill'in kontrollü render döngüsünde SIFIRLANIYORDU (kırpılan görsel
+// orijinaline dönüyordu). Bunu kalıcı olarak çözmek için Image blot'u,
+// bu öznitelikleri de koruyacak şekilde genişletiyoruz. Bu da Quill'in
+// resmi, dokümante edilmiş genişletme yöntemi.
+const ImageFormat = Quill.import('formats/image') as any;
+const IMAGE_ATTRIBUTES = ['alt', 'height', 'width', 'style', 'class'];
+class CustomImage extends ImageFormat {
+  static formats(domNode: HTMLElement) {
+    return IMAGE_ATTRIBUTES.reduce((formats: Record<string, string>, attribute) => {
+      if (domNode.hasAttribute(attribute)) {
+        formats[attribute] = domNode.getAttribute(attribute) || '';
+      }
+      return formats;
+    }, {});
+  }
+  format(name: string, value: any) {
+    if (IMAGE_ATTRIBUTES.indexOf(name) > -1) {
+      if (value) {
+        (this as any).domNode.setAttribute(name, value);
+      } else {
+        (this as any).domNode.removeAttribute(name);
+      }
+    } else {
+      super.format(name, value);
+    }
+  }
+}
+Quill.register(CustomImage, true);
+
 const INFLIGHT_KEY = 'spolder_admin_content_inflight';
 const RESULT_KEY = 'spolder_admin_content_result';
 const MAX_INLINE_IMAGE_MB = 3;
@@ -140,15 +172,19 @@ const AdminContentEditor = () => {
     applyFontSize(Number.isNaN(parsed) ? fontSize : parsed);
   };
 
-  // Görsel üzerindeki de değişiklikler sadece ger DOM'a uygulanır; bunu
-  // ReactQuill'in kontrollü "value" prop'una geri yazmıyoruz. Çünkü Quill
-  // HTML'i kendi Delta modeline çevirirken class gibi kendi tanımadığı
-  // özel öznitelikleri (attribute) silebiliyor - bu da az önce uyguladığımız
-  // hizalama/boyut sınıflarının anlık olarak geri alınmasına neden oluyordu.
-  // Bunun yerine gerçek/güncel HTML'i sadece kaydetme anında DOM'dan okuyoruz.
+  // Özel Image blot'u artık class/style/src'yi koruduğu için, her değişiklikten
+  // sonra gerçek DOM'u React state'ine geri yazmak artık güvenli - bu,
+  // ReactQuill'in kontrollü "value" prop'unu güncel tutup, bir sonraki
+  // render'da eski (bayat) içerikle DOM'un üzerine yazmasını (ör. kırpılan
+  // görselin orijinaline dönmesi) engeller.
   const repositionToolbar = (img: HTMLImageElement) => {
     const r = img.getBoundingClientRect();
     setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
+  };
+
+  const syncContentFromDom = () => {
+    const editor = quillRef.current?.getEditor();
+    if (editor) setContent(editor.root.innerHTML);
   };
 
   const applyWrap = (cls: string) => {
@@ -157,6 +193,7 @@ const AdminContentEditor = () => {
     selectedImage.classList.add(cls);
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
+    syncContentFromDom();
   };
 
   const applyImageWidthPx = (px: number) => {
@@ -170,6 +207,7 @@ const AdminContentEditor = () => {
     setImageWidthText(String(clamped));
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
+    syncContentFromDom();
   };
 
   // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
@@ -187,6 +225,7 @@ const AdminContentEditor = () => {
     setImageWidthText(String(selectedImage.naturalWidth || 0));
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
+    syncContentFromDom();
   };
 
   const deleteSelectedImage = () => {
@@ -194,6 +233,7 @@ const AdminContentEditor = () => {
     selectedImage.remove();
     setSelectedImage(null);
     setToolbarPos(null);
+    syncContentFromDom();
   };
 
   const openCrop = () => {
@@ -210,6 +250,7 @@ const AdminContentEditor = () => {
           repositionToolbar(selectedImage);
           setImageWidth(Math.round(selectedImage.getBoundingClientRect().width));
           setImageWidthText(String(Math.round(selectedImage.getBoundingClientRect().width)));
+          syncContentFromDom();
         }
       });
     }
@@ -453,6 +494,9 @@ const AdminContentEditor = () => {
         .full-page-editor .ql-editor {
           min-height: calc(100vh - 260px);
           padding: 2rem 3rem;
+        }
+        .full-page-editor .ql-editor p {
+          margin-bottom: 0.4em;
         }
         .full-page-editor .ql-editor::after {
           content: '';
