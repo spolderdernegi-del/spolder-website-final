@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, AlignLeft, AlignCenter, AlignRight, Baseline, Trash2, X } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
 const INFLIGHT_KEY = 'spolder_admin_content_inflight';
 const RESULT_KEY = 'spolder_admin_content_result';
 const MAX_INLINE_IMAGE_MB = 3;
+
+// Görsele uygulanabilecek metin sarma (wrap) sınıfları - birbirini dışlar.
+const WRAP_CLASSES = ['img-float-left', 'img-float-right', 'img-align-center', 'img-inline'];
+// Görsele uygulanabilecek boyut sınıfları - birbirini dışlar.
+const SIZE_CLASSES = ['img-size-small', 'img-size-medium', 'img-size-large'];
 
 interface InflightDraft {
   content: string;
@@ -22,6 +27,11 @@ const AdminContentEditor = () => {
   const [draft, setDraft] = useState<InflightDraft | null>(null);
   const [content, setContent] = useState('');
   const [notFound, setNotFound] = useState(false);
+
+  // Editör içinde tıklanan görsel ve onun için gösterilen küçük araç çubuğu.
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
+  const [, forceRerender] = useState(0);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(INFLIGHT_KEY);
@@ -37,6 +47,60 @@ const AdminContentEditor = () => {
       setNotFound(true);
     }
   }, []);
+
+  // Editör içindeki görsellere tıklanmasını dinler; bir görsele tıklanınca
+  // onun üstünde küçük bir hizalama/boyut araç çubuğu gösterir.
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    const root = editor?.root;
+    if (!root) return;
+
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        const img = target as HTMLImageElement;
+        const rect = img.getBoundingClientRect();
+        setSelectedImage(img);
+        setToolbarPos({ top: rect.top + window.scrollY - 48, left: rect.left + window.scrollX });
+      } else {
+        setSelectedImage(null);
+        setToolbarPos(null);
+      }
+    };
+
+    root.addEventListener('click', onClick);
+    return () => root.removeEventListener('click', onClick);
+  }, [content === '']); // İçerik ilk yüklendiğinde editör hazır olunca yeniden bağlan
+
+  const syncContentFromDom = () => {
+    const editor = quillRef.current?.getEditor();
+    if (editor) setContent(editor.root.innerHTML);
+  };
+
+  const applyWrap = (cls: string) => {
+    if (!selectedImage) return;
+    WRAP_CLASSES.forEach((c) => selectedImage.classList.remove(c));
+    selectedImage.classList.add(cls);
+    forceRerender((n) => n + 1);
+    syncContentFromDom();
+  };
+
+  const applySize = (cls: string | null) => {
+    if (!selectedImage) return;
+    SIZE_CLASSES.forEach((c) => selectedImage.classList.remove(c));
+    if (cls) selectedImage.classList.add(cls);
+    else selectedImage.style.width = '';
+    forceRerender((n) => n + 1);
+    syncContentFromDom();
+  };
+
+  const deleteSelectedImage = () => {
+    if (!selectedImage) return;
+    selectedImage.remove();
+    setSelectedImage(null);
+    setToolbarPos(null);
+    syncContentFromDom();
+  };
 
   const imageHandler = () => {
     const editor = quillRef.current?.getEditor();
@@ -165,6 +229,43 @@ const AdminContentEditor = () => {
         </div>
       </div>
 
+      {/* Görsele tıklanınca çıkan hizalama/boyut araç çubuğu (Word'deki "Resim Biçimi" mantığına benzer, sadeleştirilmiş) */}
+      {selectedImage && toolbarPos && (
+        <div
+          className="fixed z-30 bg-card border rounded-md shadow-lg p-1.5 flex items-center gap-1 flex-wrap max-w-xs"
+          style={{ top: toolbarPos.top, left: toolbarPos.left }}
+        >
+          <span className="text-[10px] text-muted-foreground px-1 w-full">Metin Sarma</span>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Sola yasla, metin sağdan sarsın" onClick={() => applyWrap('img-float-left')}>
+            <AlignLeft className="w-3.5 h-3.5" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Ortala" onClick={() => applyWrap('img-align-center')}>
+            <AlignCenter className="w-3.5 h-3.5" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Sağa yasla, metin soldan sarsın" onClick={() => applyWrap('img-float-right')}>
+            <AlignRight className="w-3.5 h-3.5" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Metinle aynı hizada (satır içi)" onClick={() => applyWrap('img-inline')}>
+            <Baseline className="w-3.5 h-3.5" />
+          </Button>
+
+          <span className="text-[10px] text-muted-foreground px-1 w-full mt-1">Boyut</span>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-small')}>K</Button>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-medium')}>O</Button>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize('img-size-large')}>B</Button>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => applySize(null)}>Orijinal</Button>
+
+          <div className="w-full flex justify-between mt-1 pt-1 border-t">
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Görseli sil" onClick={deleteSelectedImage}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Kapat" onClick={() => { setSelectedImage(null); setToolbarPos(null); }}>
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .full-page-editor .ql-toolbar {
           position: sticky;
@@ -182,12 +283,42 @@ const AdminContentEditor = () => {
           min-height: calc(100vh - 260px);
           padding: 2rem 3rem;
         }
+        .full-page-editor .ql-editor::after {
+          content: '';
+          display: block;
+          clear: both;
+        }
         .full-page-editor .ql-editor img {
           max-width: 100%;
           height: auto;
           border-radius: 0.375rem;
           margin: 0.5rem 0;
+          cursor: pointer;
         }
+        .full-page-editor .ql-editor img.img-float-left {
+          float: left;
+          margin: 0.25rem 1.5rem 1rem 0;
+          width: 40%;
+        }
+        .full-page-editor .ql-editor img.img-float-right {
+          float: right;
+          margin: 0.25rem 0 1rem 1.5rem;
+          width: 40%;
+        }
+        .full-page-editor .ql-editor img.img-align-center {
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+          float: none;
+        }
+        .full-page-editor .ql-editor img.img-inline {
+          float: none;
+          display: inline-block;
+          margin: 0.5rem 0;
+        }
+        .full-page-editor .ql-editor img.img-size-small { width: 25%; }
+        .full-page-editor .ql-editor img.img-size-medium { width: 50%; }
+        .full-page-editor .ql-editor img.img-size-large { width: 75%; }
         .dark .full-page-editor .ql-toolbar {
           border-color: #334155;
         }
