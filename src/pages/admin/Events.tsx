@@ -9,7 +9,9 @@ import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
-import RichTextEditor from "@/components/admin/RichTextEditor"; import DOMPurify from "dompurify";
+import { useContentEditorHandoff } from "@/hooks/useContentEditorHandoff";
+import { FileEdit } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface Event {
   id: number;
@@ -69,6 +71,18 @@ const AdminEvents = () => {
     meta_aciklama: "",
     sliderda_goster: false,
     google_form_link: "",
+  });
+
+  const { openFullEditor } = useContentEditorHandoff({
+    storageKey: "events",
+    formData,
+    setFormData,
+    showForm,
+    setShowForm,
+    editingId: editingEvent?.id ?? null,
+    setEditingId: (id) => setEditingEvent(id !== null ? ({ id } as Event) : null),
+    editorTitle: "Etkinlik İçeriği",
+    contentField: "icerik",
   });
 
   useEffect(() => {
@@ -565,12 +579,17 @@ const AdminEvents = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <RichTextEditor
-                  value={formData.icerik}
-                  onChange={(value) => setFormData({ ...formData, icerik: value })}
-                  placeholder="Etkinlik içeriğini buraya yazın..."
-                  rows={6}
-                />
+                <div className="border rounded-md p-4 bg-muted/30">
+                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                    {formData.icerik
+                      ? formData.icerik.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.icerik.length > 220 ? '…' : '')
+                      : <span className="italic">Henüz içerik girilmedi.</span>}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                    <FileEdit className="w-4 h-4" />
+                    Tam Sayfa Düzenle (Word gibi)
+                  </Button>
+                </div>
               </div>
 
               {/* SEO Metadata Bölümü */}
@@ -654,12 +673,17 @@ const AdminEvents = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <RichTextEditor
-                  value={formData.icerik}
-                  onChange={(value) => setFormData({ ...formData, icerik: value })}
-                  placeholder="Etkinlik içeriğini buraya yazın..."
-                  rows={6}
-                />
+                <div className="border rounded-md p-4 bg-muted/30">
+                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                    {formData.icerik
+                      ? formData.icerik.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.icerik.length > 220 ? '…' : '')
+                      : <span className="italic">Henüz içerik girilmedi.</span>}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                    <FileEdit className="w-4 h-4" />
+                    Tam Sayfa Düzenle (Word gibi)
+                  </Button>
+                </div>
               </div>
 
               <div className="flex gap-2">

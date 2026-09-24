@@ -8,7 +8,9 @@ import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-r
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
-import RichTextEditor from "@/components/admin/RichTextEditor"; import DOMPurify from "dompurify";
+import { useContentEditorHandoff } from "@/hooks/useContentEditorHandoff";
+import { FileEdit } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface Project {
   id: number;
@@ -55,6 +57,17 @@ const AdminProjects = () => {
     slug: "",
     metaTitle: "",
     metaDescription: "",
+  });
+
+  const { openFullEditor } = useContentEditorHandoff({
+    storageKey: "projects",
+    formData,
+    setFormData,
+    showForm,
+    setShowForm,
+    editingId: editingProject?.id ?? null,
+    setEditingId: (id) => setEditingProject(id !== null ? ({ id } as Project) : null),
+    editorTitle: "Proje İçeriği",
   });
 
   useEffect(() => {
@@ -507,12 +520,17 @@ const AdminProjects = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Detaylı İçerik</label>
-                <RichTextEditor
-                  value={formData.content}
-                  onChange={(value) => setFormData({ ...formData, content: value })}
-                  placeholder="Proje detaylarını buraya yazın..."
-                  rows={8}
-                />
+                <div className="border rounded-md p-4 bg-muted/30">
+                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                    {formData.content
+                      ? formData.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.content.length > 220 ? '…' : '')
+                      : <span className="italic">Henüz içerik girilmedi.</span>}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                    <FileEdit className="w-4 h-4" />
+                    Tam Sayfa Düzenle (Word gibi)
+                  </Button>
+                </div>
               </div>
 
               <div className="flex gap-2">

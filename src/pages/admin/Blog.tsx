@@ -8,7 +8,9 @@ import { ArrowLeft, Plus, Edit, Trash2, Save, X, Search, Filter } from "lucide-r
 import { toast } from "@/lib/toast";
 import { logActivity } from "@/lib/activityLog";
 import ImageUploadField from "@/components/admin/ImageUploadField";
-import RichTextEditor from "@/components/admin/RichTextEditor"; import DOMPurify from "dompurify";
+import { useContentEditorHandoff } from "@/hooks/useContentEditorHandoff";
+import { FileEdit } from "lucide-react";
+import DOMPurify from "dompurify";
 
 interface BlogPost {
   id: number;
@@ -54,6 +56,17 @@ const AdminBlog = () => {
     metaTitle: "",
     showInSlider: false,
     metaDescription: "",
+  });
+
+  const { openFullEditor } = useContentEditorHandoff({
+    storageKey: "blog",
+    formData,
+    setFormData,
+    showForm,
+    setShowForm,
+    editingId: editingPost?.id ?? null,
+    setEditingId: (id) => setEditingPost(id !== null ? ({ id } as BlogPost) : null),
+    editorTitle: "Blog Yazısı İçeriği",
   });
 
   const checkAuth = useCallback(async () => {
@@ -422,12 +435,17 @@ const AdminBlog = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <RichTextEditor
-                  value={formData.content}
-                  onChange={(value) => setFormData({ ...formData, content: value })}
-                  placeholder="Blog içeriğini buraya yazın..."
-                  rows={10}
-                />
+                <div className="border rounded-md p-4 bg-muted/30">
+                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                    {formData.content
+                      ? formData.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.content.length > 220 ? '…' : '')
+                      : <span className="italic">Henüz içerik girilmedi.</span>}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                    <FileEdit className="w-4 h-4" />
+                    Tam Sayfa Düzenle (Word gibi)
+                  </Button>
+                </div>
               </div>
 
               {/* SEO Metadata Bölümü */}
@@ -511,12 +529,17 @@ const AdminBlog = () => {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <RichTextEditor
-                  value={formData.content}
-                  onChange={(value) => setFormData({ ...formData, content: value })}
-                  placeholder="Blog içeriğini buraya yazın..."
-                  rows={10}
-                />
+                <div className="border rounded-md p-4 bg-muted/30">
+                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                    {formData.content
+                      ? formData.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.content.length > 220 ? '…' : '')
+                      : <span className="italic">Henüz içerik girilmedi.</span>}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                    <FileEdit className="w-4 h-4" />
+                    Tam Sayfa Düzenle (Word gibi)
+                  </Button>
+                </div>
               </div>
 
               <div className="flex gap-2">

@@ -30,6 +30,7 @@ import AdminProjects from "./pages/admin/Projects";
 import AdminFiles from "./pages/admin/Files";
 import AdminCategories from "./pages/admin/Categories";
 import AdminBlog from "./pages/admin/Blog";
+import AdminContentEditor from "./pages/admin/ContentEditor";
 import AdminWelcomeModal from "./pages/admin/WelcomeModal";
 import AdminSettings from "./pages/admin/Settings";
 import AdminBoard from "./pages/admin/Board";
@@ -69,6 +70,7 @@ const App = () => (
           <Route path="/admin/files" element={<ProtectedRoute><AdminFiles /></ProtectedRoute>} />
           <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
+          <Route path="/admin/content-editor" element={<ProtectedRoute><AdminContentEditor /></ProtectedRoute>} />
           <Route path="/admin/welcome-modal" element={<ProtectedRoute><AdminWelcomeModal /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/admin/media" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />
