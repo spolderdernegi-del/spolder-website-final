@@ -4,7 +4,7 @@ import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, AlignLeft, AlignCenter, AlignRight, Baseline, Rows3, Crop, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Save, AlignLeft, AlignRight, Rows3, Crop, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import ImageCropDialog from '@/components/admin/ImageCropDialog';
 
@@ -319,7 +319,13 @@ const AdminContentEditor = () => {
         const ed = quillRef.current?.getEditor();
         if (!ed) return;
         ed.insertEmbed(insertIndex, 'image', reader.result);
+        // Kullanıcı ayrıca "Sola Yasla" demek zorunda kalmasın diye,
+        // eklenen her görsel varsayılan olarak zaten sola yaslı ve makul
+        // boyutta gelir - metin hemen yanına sarmaya başlar.
+        ed.formatText(insertIndex, 1, 'class', 'img-float-left', 'user');
+        ed.formatText(insertIndex, 1, 'style', 'width: 320px; height: auto;', 'user');
         ed.setSelection(insertIndex + 1, 0);
+        syncContentFromDom();
       };
       reader.readAsDataURL(file);
     };
@@ -461,24 +467,21 @@ const AdminContentEditor = () => {
       {/* Görsele tıklanınca çıkan hizalama/boyut araç çubuğu (Word'deki "Resim Biçimi" mantığına benzer, sadeleştirilmiş) */}
       {selectedImage && toolbarPos && (
         <div
-          className="fixed z-30 bg-card border rounded-md shadow-lg p-1.5 flex items-center gap-1 flex-wrap max-w-xs"
+          className="fixed z-30 bg-card border rounded-md shadow-lg p-1.5 flex items-center gap-1 flex-wrap max-w-sm"
           style={{ top: toolbarPos.top, left: toolbarPos.left }}
         >
           <span className="text-[10px] text-muted-foreground px-1 w-full">Metin Sarma</span>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Sola yasla, metin sağdan sarsın" onClick={() => applyWrap('img-float-left')}>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel sola, metin sağından devam etsin" onClick={() => applyWrap('img-float-left')}>
             <AlignLeft className="w-3.5 h-3.5" />
+            Sola Yasla
           </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Ortala" onClick={() => applyWrap('img-align-center')}>
-            <AlignCenter className="w-3.5 h-3.5" />
-          </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Sağa yasla, metin soldan sarsın" onClick={() => applyWrap('img-float-right')}>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel sağa, metin solundan devam etsin" onClick={() => applyWrap('img-float-right')}>
             <AlignRight className="w-3.5 h-3.5" />
+            Sağa Yasla
           </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Metinle aynı hizada (satır içi)" onClick={() => applyWrap('img-inline')}>
-            <Baseline className="w-3.5 h-3.5" />
-          </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Üstte ve altta (kendi satırında, metin yanına sarmaz)" onClick={() => applyWrap('img-wrap-topbottom')}>
+          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel kendi satırında, tam genişlikte dursun, metin sarmasın" onClick={() => applyWrap('img-wrap-topbottom')}>
             <Rows3 className="w-3.5 h-3.5" />
+            Tam Genişlik
           </Button>
 
           <span className="text-[10px] text-muted-foreground px-1 w-full mt-1">Genişlik (px)</span>
