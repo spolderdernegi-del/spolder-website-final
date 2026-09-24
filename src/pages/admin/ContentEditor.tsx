@@ -44,10 +44,15 @@ const AdminContentEditor = () => {
   const [, forceRerender] = useState(0);
 
   // Word'deki gibi, imlecin bulunduğu yerin yazı boyutunu gösteren/değiştiren
-  // sayısal kutu.
+  // sayısal kutu. "...Text" olanlar serbestçe yazılabilsin diye ayrı tutuluyor;
+  // sınır (min/max) sadece kutudan çıkılınca (blur) veya Enter'a basılınca
+  // uygulanıyor - yoksa her tuşta anlık sınırlamaya takılıp örn. "300"
+  // yazılamıyordu.
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [fontSizeText, setFontSizeText] = useState(String(DEFAULT_FONT_SIZE));
   // Seçili görselin genişliği (px) - araç çubuğundaki sayısal kutuda gösterilir.
   const [imageWidth, setImageWidth] = useState(0);
+  const [imageWidthText, setImageWidthText] = useState('');
 
   useEffect(() => {
     const raw = sessionStorage.getItem(INFLIGHT_KEY);
@@ -79,6 +84,7 @@ const AdminContentEditor = () => {
         setSelectedImage(img);
         setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
         setImageWidth(Math.round(img.getBoundingClientRect().width));
+        setImageWidthText(String(Math.round(img.getBoundingClientRect().width)));
       } else {
         setSelectedImage(null);
         setToolbarPos(null);
@@ -100,7 +106,7 @@ const AdminContentEditor = () => {
       const fmt = editor.getFormat(range) as Record<string, any>;
       const sizeVal = fmt.size as string | undefined;
       const px = sizeVal ? parseInt(sizeVal, 10) : DEFAULT_FONT_SIZE;
-      if (!Number.isNaN(px)) setFontSize(px);
+      if (!Number.isNaN(px)) { setFontSize(px); setFontSizeText(String(px)); }
     };
 
     editor.on('selection-change', updateFromSelection);
@@ -116,6 +122,7 @@ const AdminContentEditor = () => {
     if (!editor) return;
     const clamped = Math.max(6, Math.min(200, Math.round(px)));
     setFontSize(clamped);
+    setFontSizeText(String(clamped));
     const range = editor.getSelection();
     if (range && range.length > 0) {
       editor.format('size', `${clamped}px`);
@@ -124,6 +131,13 @@ const AdminContentEditor = () => {
       editor.format('size', `${clamped}px`);
       editor.focus();
     }
+  };
+
+  // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
+  // kullanıcı sınırlanmadan istediği sayıyı serbestçe yazabilir.
+  const commitFontSize = () => {
+    const parsed = parseInt(fontSizeText, 10);
+    applyFontSize(Number.isNaN(parsed) ? fontSize : parsed);
   };
 
   // Görsel üzerindeki de değişiklikler sadece ger DOM'a uygulanır; bunu
@@ -153,8 +167,16 @@ const AdminContentEditor = () => {
     selectedImage.style.width = `${clamped}px`;
     selectedImage.style.height = 'auto';
     setImageWidth(clamped);
+    setImageWidthText(String(clamped));
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
+  };
+
+  // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
+  // kullanıcı sınırlanmadan istediği sayıyı serbestçe yazabilir.
+  const commitImageWidth = () => {
+    const parsed = parseInt(imageWidthText, 10);
+    applyImageWidthPx(Number.isNaN(parsed) ? imageWidth : parsed);
   };
 
   const resetImageSize = () => {
@@ -162,6 +184,7 @@ const AdminContentEditor = () => {
     selectedImage.style.width = '';
     selectedImage.style.height = '';
     setImageWidth(selectedImage.naturalWidth || 0);
+    setImageWidthText(String(selectedImage.naturalWidth || 0));
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
   };
@@ -186,6 +209,7 @@ const AdminContentEditor = () => {
         if (selectedImage) {
           repositionToolbar(selectedImage);
           setImageWidth(Math.round(selectedImage.getBoundingClientRect().width));
+          setImageWidthText(String(Math.round(selectedImage.getBoundingClientRect().width)));
         }
       });
     }
@@ -316,10 +340,10 @@ const AdminContentEditor = () => {
             <div className="flex items-center border rounded-md overflow-hidden bg-background">
               <Input
                 type="number"
-                min={6}
-                max={200}
-                value={fontSize}
-                onChange={(e) => applyFontSize(Number(e.target.value) || DEFAULT_FONT_SIZE)}
+                value={fontSizeText}
+                onChange={(e) => setFontSizeText(e.target.value)}
+                onBlur={commitFontSize}
+                onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur())}
                 className="w-16 h-7 border-0 text-center px-1 focus-visible:ring-0"
               />
               <div className="flex flex-col border-l">
@@ -382,10 +406,10 @@ const AdminContentEditor = () => {
           <div className="flex items-center gap-1 w-full">
             <Input
               type="number"
-              min={20}
-              max={2000}
-              value={imageWidth}
-              onChange={(e) => applyImageWidthPx(Number(e.target.value) || imageWidth)}
+              value={imageWidthText}
+              onChange={(e) => setImageWidthText(e.target.value)}
+              onBlur={commitImageWidth}
+              onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur())}
               className="h-7 text-xs px-2 w-20"
             />
             <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={resetImageSize}>
