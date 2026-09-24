@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const RESULT_KEY = 'spolder_admin_content_result';
@@ -34,12 +34,14 @@ export function useContentEditorHandoff<T extends Record<string, any>>(
   const contentField = (options.contentField ?? 'content') as string;
   const navigate = useNavigate();
   const location = useLocation();
-  const restoredRef = useRef(false);
 
+  // location.key, her navigasyonda (geri dönüşler dahil) değişen benzersiz
+  // bir değerdir. Bunu bağımlılık olarak kullanmak, sayfa bileşeni yeniden
+  // mount edilmese bile (React Router'ın tam olarak nasıl davrandığından
+  // bağımsız olarak) "tam sayfa düzenle"den her dönüşte taslağın kontrol
+  // edilmesini garantiler - önceki "sadece bir kez" koruması, ikinci
+  // düzenleme denemesinde geri dönüşün hiç işlenmemesine sebep oluyordu.
   useEffect(() => {
-    if (restoredRef.current) return;
-    restoredRef.current = true;
-
     const draftRaw = sessionStorage.getItem(DRAFT_PREFIX + storageKey);
     if (!draftRaw) return;
 
@@ -63,9 +65,8 @@ export function useContentEditorHandoff<T extends Record<string, any>>(
       sessionStorage.removeItem(RESULT_KEY);
       sessionStorage.removeItem(INFLIGHT_KEY);
     }
-    // Sadece ilk mount'ta çalışsın.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.key]);
 
   const openFullEditor = () => {
     sessionStorage.setItem(

@@ -172,11 +172,6 @@ const AdminContentEditor = () => {
     applyFontSize(Number.isNaN(parsed) ? fontSize : parsed);
   };
 
-  // Özel Image blot'u artık class/style/src'yi koruduğu için, her değişiklikten
-  // sonra gerçek DOM'u React state'ine geri yazmak artık güvenli - bu,
-  // ReactQuill'in kontrollü "value" prop'unu güncel tutup, bir sonraki
-  // render'da eski (bayat) içerikle DOM'un üzerine yazmasını (ör. kırpılan
-  // görselin orijinaline dönmesi) engeller.
   const repositionToolbar = (img: HTMLImageElement) => {
     const r = img.getBoundingClientRect();
     setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
@@ -187,10 +182,30 @@ const AdminContentEditor = () => {
     if (editor) setContent(editor.root.innerHTML);
   };
 
+  // Seçili görselin Quill belgesindeki konumunu (index) bulur. Değişiklikleri
+  // doğrudan DOM'a değil, Quill'in KENDİ formatText/deleteText/insertEmbed
+  // API'si üzerinden uygulamak için gerekli - bu sayede Ctrl+Z ile geri
+  // alınabilir oluyor (Quill'in tarihçesi sadece kendi API'si üzerinden
+  // yapılan değişiklikleri izliyor, doğrudan DOM mutasyonlarını değil).
+  const getSelectedIndex = (): number | null => {
+    if (!selectedImage) return null;
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return null;
+    const blot = (Quill as any).find(selectedImage);
+    if (!blot) return null;
+    return editor.getIndex(blot);
+  };
+
   const applyWrap = (cls: string) => {
     if (!selectedImage) return;
-    WRAP_CLASSES.forEach((c) => selectedImage.classList.remove(c));
-    selectedImage.classList.add(cls);
+    const editor = quillRef.current?.getEditor();
+    const index = getSelectedIndex();
+    if (!editor || index === null) return;
+    const existing = (selectedImage.getAttribute('class') || '')
+      .split(' ')
+      .filter((c) => c && !WRAP_CLASSES.includes(c));
+    existing.push(cls);
+    editor.formatText(index, 1, 'class', existing.join(' '), 'user');
     forceRerender((n) => n + 1);
     repositionToolbar(selectedImage);
     syncContentFromDom();
@@ -198,11 +213,11 @@ const AdminContentEditor = () => {
 
   const applyImageWidthPx = (px: number) => {
     if (!selectedImage) return;
+    const editor = quillRef.current?.getEditor();
+    const index = getSelectedIndex();
+    if (!editor || index === null) return;
     const clamped = Math.max(20, Math.min(2000, Math.round(px)));
-    // Satır içi style, sınıf tabanlı kurallardan her zaman daha önceliklidir,
-    // bu yüzden görsel genişliği burada kesin ve garanti şekilde uygulanır.
-    selectedImage.style.width = `${clamped}px`;
-    selectedImage.style.height = 'auto';
+    editor.formatText(index, 1, 'style', `width: ${clamped}px; height: auto;`, 'user');
     setImageWidth(clamped);
     setImageWidthText(String(clamped));
     forceRerender((n) => n + 1);
@@ -219,8 +234,10 @@ const AdminContentEditor = () => {
 
   const resetImageSize = () => {
     if (!selectedImage) return;
-    selectedImage.style.width = '';
-    selectedImage.style.height = '';
+    const editor = quillRef.current?.getEditor();
+    const index = getSelectedIndex();
+    if (!editor || index === null) return;
+    editor.formatText(index, 1, 'style', '', 'user');
     setImageWidth(selectedImage.naturalWidth || 0);
     setImageWidthText(String(selectedImage.naturalWidth || 0));
     forceRerender((n) => n + 1);
@@ -230,7 +247,10 @@ const AdminContentEditor = () => {
 
   const deleteSelectedImage = () => {
     if (!selectedImage) return;
-    selectedImage.remove();
+    const editor = quillRef.current?.getEditor();
+    const index = getSelectedIndex();
+    if (!editor || index === null) return;
+    editor.deleteText(index, 1, 'user');
     setSelectedImage(null);
     setToolbarPos(null);
     syncContentFromDom();
@@ -242,19 +262,37 @@ const AdminContentEditor = () => {
   };
 
   const handleCropDone = (croppedDataUrl: string) => {
-    if (selectedImage) {
-      selectedImage.src = croppedDataUrl;
-      // Kırpma sonrası boyut/oran değiştiği için araç çubuğunu yeniden konumlandır.
-      requestAnimationFrame(() => {
-        if (selectedImage) {
-          repositionToolbar(selectedImage);
-          setImageWidth(Math.round(selectedImage.getBoundingClientRect().width));
-          setImageWidthText(String(Math.round(selectedImage.getBoundingClientRect().width)));
-          syncContentFromDom();
-        }
-      });
+    const editor = quillRef.current?.getEditor();
+    const index = getSelectedIndex();
+    if (!editor || index === null || !selectedImage) {
+      setCropSrc(null);
+      return;
     }
+    const existingClass = selectedImage.getAttribute('class') || '';
+    const existingStyle = selectedImage.getAttribute('style') || '';
+
+    // Kırpma, görselin kendisini (embed değerini) değiştirdiği için eskisini
+    // silip aynı konuma yenisini ekliyoruz, sonra eski hizalama/boyutunu
+    // geri uyguluyoruz - hepsi Quill'in kendi API'si üzerinden, tek bir
+    // geri-alınabilir adım olarak.
+    editor.deleteText(index, 1, 'user');
+    editor.insertEmbed(index, 'image', croppedDataUrl, 'user');
+    if (existingClass) editor.formatText(index, 1, 'class', existingClass, 'user');
+    if (existingStyle) editor.formatText(index, 1, 'style', existingStyle, 'user');
+    editor.setSelection(index + 1, 0);
     setCropSrc(null);
+
+    requestAnimationFrame(() => {
+      const [leafBlot] = editor.getLeaf(index);
+      const newImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+      if (newImg) {
+        setSelectedImage(newImg);
+        repositionToolbar(newImg);
+        setImageWidth(Math.round(newImg.getBoundingClientRect().width));
+        setImageWidthText(String(Math.round(newImg.getBoundingClientRect().width)));
+      }
+      syncContentFromDom();
+    });
   };
 
   const imageHandler = () => {
