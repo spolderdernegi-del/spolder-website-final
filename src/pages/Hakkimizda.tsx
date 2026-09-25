@@ -192,7 +192,7 @@ const Hakkimizda = () => {
                   </div>
                   <h3 className="font-display text-xl font-bold text-foreground mb-4">{item.title}</h3>
                   {item.title === "Değerler" ? (
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-left">
                       {(() => {
                         const values = item.text.split("•").map((v) => v.trim()).filter(Boolean);
                         const lowered = values.map((v, i) => (i === 0 ? v : v.toLocaleLowerCase("tr-TR")));
