@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Download, FileText, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { uploadImage } from "@/lib/uploadImage";
 import { logActivity } from "@/lib/activityLog";
 
 interface File {
@@ -97,15 +98,19 @@ const AdminFiles = () => {
 
     setUploading(true);
     try {
-      // Base64'e çevir
+      // Base64'e çevirip gerçek bir dosyaya yükle (veritabanına devasa
+      // base64 metni olarak gömmek yerine) - hem veritabanını küçültür
+      // hem de indirme linkinin gerçek bir URL olmasını sağlar.
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve) => {
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(uploadFile);
       });
 
+      const url = await uploadImage(base64);
+
       return {
-        url: base64,
+        url,
         type: uploadFile.type,
         size: uploadFile.size,
       };

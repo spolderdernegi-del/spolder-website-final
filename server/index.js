@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import "dotenv/config";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { Pool } from "pg";
 import jwt from "jsonwebtoken";
@@ -153,7 +154,7 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "25mb" }));
 app.use(cookieParser());
 app.use(
   cors({
@@ -615,6 +616,66 @@ app.delete(
     return res.json({ data: result.rows, error: null });
   }),
 );
+
+// --- Görsel yükleme (base64 -> gerçek dosya) -------------------------------
+// Önceden yüklenen kapak görselleri ve içerik-içi görseller doğrudan base64
+// olarak veritabanına gömülüyordu: veritabanını şişiriyor, sayfayı
+// yavaşlatıyor ve WhatsApp/Facebook gibi paylaşım botlarının görseli
+// getirememesine (gerçek bir URL olmadığı için) sebep oluyordu. Bu uç nokta,
+// admin panelinden gönderilen base64 görseli gerçek bir dosyaya çevirip
+// herkese açık bir URL döndürür.
+const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const ALLOWED_UPLOAD_MIME = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+};
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB (rapor/PDF dosyaları görsellerden büyük olabiliyor)
+
+app.post(
+  "/api/upload",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { data } = req.body || {};
+    if (typeof data !== "string" || !data.startsWith("data:")) {
+      throw new HttpError(400, "Geçersiz dosya verisi");
+    }
+
+    const match = data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new HttpError(400, "Geçersiz base64 formatı");
+    }
+    const [, mime, base64Payload] = match;
+    const extension = ALLOWED_UPLOAD_MIME[mime];
+    if (!extension) {
+      throw new HttpError(400, "Desteklenmeyen dosya türü");
+    }
+
+    const buffer = Buffer.from(base64Payload, "base64");
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
+    }
+
+    const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+
+    return res.json({ data: { url: `/uploads/${filename}` }, error: null });
+  }),
+);
+// uploads/ klasörü dist/ İÇİNDE DEĞİL - her "npm run build" dist/ klasörünü
+// yeniden oluşturur ve içindekileri siler, uploads/ ayrı tutulmazsa her
+// deploy'da tüm yüklenen görseller kaybolurdu.
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 // --- Sosyal medya paylaşım önizlemeleri (WhatsApp, Facebook vb.) ----------
 // Bu bir tek-sayfa uygulaması (SPA) olduğu için normalde her sayfa AYNI

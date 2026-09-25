@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Upload, Scissors } from "lucide-react";
+import { Upload, Scissors, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { uploadImage } from "@/lib/uploadImage";
 import ImageCropperDialog from "./ImageCropperDialog";
 
 interface ImageUploadFieldProps {
@@ -25,6 +26,7 @@ const ImageUploadField = ({
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,10 +39,21 @@ const ImageUploadField = ({
 
     setUploadFile(file);
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setImagePreview(result);
-      onChange(result);
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      // Hızlı geri bildirim için önce yerel base64 önizlemesi gösterilir,
+      // gerçek (kalıcı) URL arka planda yüklenip geldiğinde değeri günceller.
+      setImagePreview(dataUrl);
+      setUploading(true);
+      try {
+        const url = await uploadImage(dataUrl);
+        onChange(url);
+      } catch (err: any) {
+        toast.error("Görsel yüklenemedi: " + err.message);
+        onChange(dataUrl); // yükleme başarısız olsa da kullanıcının işi kaybolmasın
+      } finally {
+        setUploading(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -55,10 +68,19 @@ const ImageUploadField = ({
     setShowCropper(true);
   };
 
-  const handleCropComplete = (croppedImage: string) => {
-    onChange(croppedImage);
+  const handleCropComplete = async (croppedImage: string) => {
     setImagePreview(croppedImage);
     setShowCropper(false);
+    setUploading(true);
+    try {
+      const url = await uploadImage(croppedImage);
+      onChange(url);
+    } catch (err: any) {
+      toast.error("Kırpılan görsel yüklenemedi: " + err.message);
+      onChange(croppedImage);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -78,9 +100,9 @@ const ImageUploadField = ({
             onChange={handleFileUpload}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
-          <Button type="button" variant="outline" className="pointer-events-none">
-            <Upload className="w-4 h-4 mr-2" />
-            Dosya Yükle
+          <Button type="button" variant="outline" className="pointer-events-none" disabled={uploading}>
+            {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            {uploading ? "Yükleniyor..." : "Dosya Yükle"}
           </Button>
         </div>
         {(imagePreview || value) && (
@@ -88,6 +110,7 @@ const ImageUploadField = ({
             type="button"
             variant="outline"
             onClick={handleCropImage}
+            disabled={uploading}
           >
             <Scissors className="w-4 h-4 mr-2" />
             Kırp

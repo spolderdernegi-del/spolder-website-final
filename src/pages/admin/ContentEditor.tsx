@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, AlignLeft, AlignRight, Rows3, Crop, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { uploadImage } from '@/lib/uploadImage';
 import ImageCropDialog from '@/components/admin/ImageCropDialog';
 
 // Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden serbest
@@ -277,6 +278,29 @@ const AdminContentEditor = () => {
     setCropSrc(selectedImage.src);
   };
 
+  // Bir görselin embed değerini (src) Quill'in kendi API'si üzerinden
+  // değiştirir (sil + aynı yere yeniden ekle + eski class/style'ı geri
+  // uygula) - crop sonrası ve base64->gerçek URL takası sonrası ortak
+  // olarak kullanılıyor.
+  const swapImageSrc = (index: number, newSrc: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const [leafBlot] = editor.getLeaf(index);
+    const img = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+    const existingClass = img?.getAttribute('class') || '';
+    const existingStyle = img?.getAttribute('style') || '';
+
+    editor.deleteText(index, 1, 'silent');
+    editor.insertEmbed(index, 'image', newSrc, 'silent');
+    if (existingClass) editor.formatText(index, 1, 'class', existingClass, 'silent');
+    if (existingStyle) editor.formatText(index, 1, 'style', existingStyle, 'silent');
+
+    requestAnimationFrame(() => {
+      refreshSelectedImageRef(index);
+      syncContentFromDom();
+    });
+  };
+
   const handleCropDone = (croppedDataUrl: string) => {
     const editor = quillRef.current?.getEditor();
     const index = getSelectedIndex();
@@ -308,6 +332,12 @@ const AdminContentEditor = () => {
       }
       syncContentFromDom();
     });
+
+    // Kırpılan görsel de gerçek bir dosyaya yüklenip src arka planda
+    // değiştirilir - base64 olarak kalmasın diye.
+    uploadImage(croppedDataUrl)
+      .then((url) => swapImageSrc(index, url))
+      .catch((err) => console.error('Kırpılan görsel yüklenemedi, base64 olarak kalacak:', err));
   };
 
   const imageHandler = () => {
@@ -333,7 +363,10 @@ const AdminContentEditor = () => {
       reader.onload = () => {
         const ed = quillRef.current?.getEditor();
         if (!ed) return;
-        ed.insertEmbed(insertIndex, 'image', reader.result);
+        const dataUrl = reader.result as string;
+        // Önce base64 olarak hemen eklenir (beklemeden görünsün diye),
+        // arka planda gerçek dosyaya yüklenip src ile değiştirilir.
+        ed.insertEmbed(insertIndex, 'image', dataUrl);
         // Kullanıcı ayrıca "Sola Yasla" demek zorunda kalmasın diye,
         // eklenen her görsel varsayılan olarak zaten sola yaslı ve makul
         // boyutta gelir - metin hemen yanına sarmaya başlar.
@@ -341,6 +374,10 @@ const AdminContentEditor = () => {
         ed.formatText(insertIndex, 1, 'style', 'width: 320px; height: auto;', 'user');
         ed.setSelection(insertIndex + 1, 0);
         syncContentFromDom();
+
+        uploadImage(dataUrl)
+          .then((url) => swapImageSrc(insertIndex, url))
+          .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
       };
       reader.readAsDataURL(file);
     };
