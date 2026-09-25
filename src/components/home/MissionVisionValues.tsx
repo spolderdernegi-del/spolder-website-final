@@ -4,19 +4,19 @@ const items = [
   {
     icon: Target,
     title: "Misyonumuz",
-    description: "Türkiye'de spor politikalarının bilimsel temellere dayalı olarak geliştirilmesine katkı sağlamak ve spor kültürünü toplumun tüm kesimlerine yaymak.",
+    description: "Sporun farklı alanlarında bilgi, deneyim ve saha ihtiyaçlarını bir araya getirerek; araştıran, üreten, geliştiren ve çözüm odaklı çalışmalarla daha nitelikli bir spor ekosisteminin oluşmasına katkı sunmak.",
     color: "primary",
   },
   {
     icon: Eye,
     title: "Vizyonumuz",
-    description: "Spor politikaları alanında ulusal ve uluslararası düzeyde öncü, güvenilir ve etkin bir sivil toplum kuruluşu olmak.",
+    description: "Spor politikaları ve yönetimi alanında güvenilir bir referans noktası olmak; Türkiye'de sporun geleceğine ilişkin fikir, politika ve modeller üreten öncü bir yapı haline gelmek.",
     color: "secondary",
   },
   {
     icon: Heart,
     title: "Değerlerimiz",
-    description: "Bilimsellik, şeffaflık, katılımcılık, yenilikçilik ve sürdürülebilirlik ilkeleriyle hareket ediyoruz.",
+    description: "Bilimsellik • Şeffaflık • Liyakat • Katılımcılık • Eşitlik • Sürdürülebilirlik • İş Birliği • Toplumsal Fayda",
     color: "turquoise",
   },
 ];
@@ -59,9 +59,22 @@ const MissionVisionValues = () => {
               <h3 className="font-display text-xl font-bold text-foreground mb-4">
                 {item.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {item.description}
-              </p>
+              {item.title === "Değerlerimiz" ? (
+                <div className="flex flex-wrap gap-2">
+                  {item.description.split("•").map((v) => v.trim()).filter(Boolean).map((value) => (
+                    <span
+                      key={value}
+                      className="text-sm font-medium px-3 py-1.5 rounded-full bg-turquoise/10 text-turquoise"
+                    >
+                      {value}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              )}
             </div>
           ))}
         </div>
