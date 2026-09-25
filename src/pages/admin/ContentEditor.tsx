@@ -183,63 +183,33 @@ const AdminContentEditor = () => {
     if (editor) setContent(editor.root.innerHTML);
   };
 
-  // Seçili görselin Quill belgesindeki konumunu (index) bulur. Değişiklikleri
-  // doğrudan DOM'a değil, Quill'in KENDİ formatText/deleteText/insertEmbed
-  // API'si üzerinden uygulamak için gerekli - bu sayede Ctrl+Z ile geri
-  // alınabilir oluyor (Quill'in tarihçesi sadece kendi API'si üzerinden
-  // yapılan değişiklikleri izliyor, doğrudan DOM mutasyonlarını değil).
-  const getSelectedIndex = (): number | null => {
-    if (!selectedImage) return null;
-    const editor = quillRef.current?.getEditor();
-    if (!editor) return null;
-    const blot = (Quill as any).find(selectedImage);
-    if (!blot) return null;
-    return editor.getIndex(blot);
-  };
-
-  // Quill her değişiklikten sonra o görselin blot'unu (ve dolayısıyla DOM
-  // node'unu) yeniden oluşturabiliyor - bu yüzden elimizdeki eski
-  // "selectedImage" referansı bir sonraki tıklamada geçersiz (stale)
-  // kalabiliyordu, ikinci tıklamanın sessizce hiçbir şey yapmamasına neden
-  // oluyordu. Her değişiklikten sonra bunu günceliyoruz.
-  const refreshSelectedImageRef = (index: number) => {
-    const editor = quillRef.current?.getEditor();
-    if (!editor) return;
-    const [leafBlot] = editor.getLeaf(index);
-    const img = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
-    if (img) {
-      setSelectedImage(img);
-      repositionToolbar(img);
-    }
-  };
-
+  // Görsel değişiklikleri (hizalama, boyut, kırpma, silme) doğrudan DOM
+  // üzerinde yapılır - Quill.find()/getIndex() üzerinden "bu görsel belgede
+  // kaçıncı sırada" bulmaya çalışmak güvenilmez çıktı (bazen ikinci
+  // tıklamada, bazen arka planda görsel yüklenip src değiştiğinde
+  // bozuluyordu). class/style/src doğrudan img elementi üzerinde
+  // değiştirilip son hali syncContentFromDom() ile React state'ine
+  // yazılıyor - CustomImage blot'u bu öznitelikleri koruduğu için Quill
+  // bunu bir sonraki render'da silmiyor.
   const applyWrap = (cls: string) => {
     if (!selectedImage) return;
-    const editor = quillRef.current?.getEditor();
-    const index = getSelectedIndex();
-    if (!editor || index === null) return;
-    const existing = (selectedImage.getAttribute('class') || '')
-      .split(' ')
-      .filter((c) => c && !WRAP_CLASSES.includes(c));
-    existing.push(cls);
-    editor.formatText(index, 1, 'class', existing.join(' '), 'user');
+    WRAP_CLASSES.forEach((c) => selectedImage.classList.remove(c));
+    selectedImage.classList.add(cls);
     forceRerender((n) => n + 1);
+    repositionToolbar(selectedImage);
     syncContentFromDom();
-    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   const applyImageWidthPx = (px: number) => {
     if (!selectedImage) return;
-    const editor = quillRef.current?.getEditor();
-    const index = getSelectedIndex();
-    if (!editor || index === null) return;
     const clamped = Math.max(20, Math.min(2000, Math.round(px)));
-    editor.formatText(index, 1, 'style', `width: ${clamped}px; height: auto;`, 'user');
+    selectedImage.style.width = `${clamped}px`;
+    selectedImage.style.height = 'auto';
     setImageWidth(clamped);
     setImageWidthText(String(clamped));
     forceRerender((n) => n + 1);
+    repositionToolbar(selectedImage);
     syncContentFromDom();
-    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
@@ -251,23 +221,18 @@ const AdminContentEditor = () => {
 
   const resetImageSize = () => {
     if (!selectedImage) return;
-    const editor = quillRef.current?.getEditor();
-    const index = getSelectedIndex();
-    if (!editor || index === null) return;
-    editor.formatText(index, 1, 'style', '', 'user');
+    selectedImage.style.width = '';
+    selectedImage.style.height = '';
     setImageWidth(selectedImage.naturalWidth || 0);
     setImageWidthText(String(selectedImage.naturalWidth || 0));
     forceRerender((n) => n + 1);
+    repositionToolbar(selectedImage);
     syncContentFromDom();
-    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   const deleteSelectedImage = () => {
     if (!selectedImage) return;
-    const editor = quillRef.current?.getEditor();
-    const index = getSelectedIndex();
-    if (!editor || index === null) return;
-    editor.deleteText(index, 1, 'user');
+    selectedImage.remove();
     setSelectedImage(null);
     setToolbarPos(null);
     syncContentFromDom();
@@ -278,65 +243,33 @@ const AdminContentEditor = () => {
     setCropSrc(selectedImage.src);
   };
 
-  // Bir görselin embed değerini (src) Quill'in kendi API'si üzerinden
-  // değiştirir (sil + aynı yere yeniden ekle + eski class/style'ı geri
-  // uygula) - crop sonrası ve base64->gerçek URL takası sonrası ortak
-  // olarak kullanılıyor.
-  const swapImageSrc = (index: number, newSrc: string) => {
-    const editor = quillRef.current?.getEditor();
-    if (!editor) return;
-    const [leafBlot] = editor.getLeaf(index);
-    const img = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
-    const existingClass = img?.getAttribute('class') || '';
-    const existingStyle = img?.getAttribute('style') || '';
-
-    editor.deleteText(index, 1, 'silent');
-    editor.insertEmbed(index, 'image', newSrc, 'silent');
-    if (existingClass) editor.formatText(index, 1, 'class', existingClass, 'silent');
-    if (existingStyle) editor.formatText(index, 1, 'style', existingStyle, 'silent');
-
-    requestAnimationFrame(() => {
-      refreshSelectedImageRef(index);
-      syncContentFromDom();
-    });
+  // Bir görselin src'sini doğrudan değiştirir (kırpma sonrası ve arka
+  // planda base64 -> gerçek URL takası için ortak kullanılır). src, tek
+  // bir öznitelik değişikliği olduğu için Quill'in belge yapısına hiç
+  // dokunulmuyor, herhangi bir node yeniden oluşturma riski yok.
+  const swapImageSrc = (img: HTMLImageElement, newSrc: string) => {
+    img.src = newSrc;
+    syncContentFromDom();
   };
 
   const handleCropDone = (croppedDataUrl: string) => {
-    const editor = quillRef.current?.getEditor();
-    const index = getSelectedIndex();
-    if (!editor || index === null || !selectedImage) {
+    if (!selectedImage) {
       setCropSrc(null);
       return;
     }
-    const existingClass = selectedImage.getAttribute('class') || '';
-    const existingStyle = selectedImage.getAttribute('style') || '';
-
-    // Kırpma, görselin kendisini (embed değerini) değiştirdiği için eskisini
-    // silip aynı konuma yenisini ekliyoruz, sonra eski hizalama/boyutunu
-    // geri uyguluyoruz - hepsi Quill'in kendi API'si üzerinden, tek bir
-    // geri-alınabilir adım olarak.
-    editor.deleteText(index, 1, 'user');
-    editor.insertEmbed(index, 'image', croppedDataUrl, 'user');
-    if (existingClass) editor.formatText(index, 1, 'class', existingClass, 'user');
-    if (existingStyle) editor.formatText(index, 1, 'style', existingStyle, 'user');
-    editor.setSelection(index + 1, 0);
+    const img = selectedImage;
+    img.src = croppedDataUrl;
     setCropSrc(null);
-
-    requestAnimationFrame(() => {
-      refreshSelectedImageRef(index);
-      const [leafBlot] = editor.getLeaf(index);
-      const newImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
-      if (newImg) {
-        setImageWidth(Math.round(newImg.getBoundingClientRect().width));
-        setImageWidthText(String(Math.round(newImg.getBoundingClientRect().width)));
-      }
-      syncContentFromDom();
-    });
+    forceRerender((n) => n + 1);
+    repositionToolbar(img);
+    setImageWidth(Math.round(img.getBoundingClientRect().width));
+    setImageWidthText(String(Math.round(img.getBoundingClientRect().width)));
+    syncContentFromDom();
 
     // Kırpılan görsel de gerçek bir dosyaya yüklenip src arka planda
     // değiştirilir - base64 olarak kalmasın diye.
     uploadImage(croppedDataUrl)
-      .then((url) => swapImageSrc(index, url))
+      .then((url) => swapImageSrc(img, url))
       .catch((err) => console.error('Kırpılan görsel yüklenemedi, base64 olarak kalacak:', err));
   };
 
@@ -375,9 +308,16 @@ const AdminContentEditor = () => {
         ed.setSelection(insertIndex + 1, 0);
         syncContentFromDom();
 
-        uploadImage(dataUrl)
-          .then((url) => swapImageSrc(insertIndex, url))
-          .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
+        // Az sonra (bir sonraki tık) bu görsele DOM üzerinden erişebilmek
+        // için gerçek node'u burada saklıyoruz.
+        requestAnimationFrame(() => {
+          const [leafBlot] = ed.getLeaf(insertIndex);
+          const insertedImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+          if (!insertedImg) return;
+          uploadImage(dataUrl)
+            .then((url) => swapImageSrc(insertedImg, url))
+            .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
+        });
       };
       reader.readAsDataURL(file);
     };
