@@ -64,7 +64,7 @@ const MissionVisionValues = () => {
                   {item.description.split("•").map((v) => v.trim()).filter(Boolean).map((value) => (
                     <span
                       key={value}
-                      className="text-sm font-medium px-3 py-1.5 rounded-full bg-turquoise/10 text-turquoise"
+                      className="text-sm font-medium px-3 py-1.5 rounded-full bg-muted text-foreground/80 border border-border"
                     >
                       {value}
                     </span>
