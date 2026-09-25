@@ -111,26 +111,32 @@ const Hakkimizda = () => {
                     Başkan Mesajı
                   </span>
                   <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                    Sporun Gücüne İnanıyoruz
+                    Sporu Sadece Konuşmuyor, Geleceğini Birlikte Tasarlıyoruz
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    Spor Politikaları Derneği'nin resmi web sitesine hoş geldiniz. Sporun, toplumu bir araya getiren ve bireylerin yaşam kalitesini artıran en önemli unsurlardan biri olduğuna yürekten inanıyoruz. Dernek olarak, sporun her dalında sürdürülebilir ve kapsayıcı politikalar geliştirmek için çalışıyoruz.
+                    Spor Politikaları Derneği olarak spora yalnızca müsabaka, başarı veya fiziksel aktivite üzerinden bakmıyoruz. Sporun; bireyden topluma, eğitimden yönetime, şehirlerden uluslararası ilişkilere kadar geniş bir alanda etkisi olduğuna inanıyor; bu alanlarda daha nitelikli, kapsayıcı ve sürdürülebilir bir spor anlayışının gelişmesine katkı sunmayı amaçlıyoruz.
                   </p>
                   <p className="text-muted-foreground leading-relaxed">
-                    Derneğimiz aracılığıyla sizlerle projelerimizi, araştırmalarımızı ve etkinliklerimizi paylaşmayı hedefliyoruz. Spor bilimleri, yönetimi ve eğitimine olan katkılarımızla, gençlerimize ve spor dünyasına yeni ufuklar açmak için buradayız. Herkesin spora erişimini kolaylaştırmak ve sporun yaygınlaşmasını sağlamak için çeşitli projeler yürütmekteyiz.
+                    SPOLDER; spor politikaları, spor yönetimi, spor eğitimi, spor ekonomisi, spor diplomasisi, sosyal sorumluluk ve toplumsal gelişim başlıklarında çalışmalar yürüten; akademiyi, kamu kurumlarını, yerel yönetimleri, spor kulüplerini, uzmanları ve sporun diğer paydaşlarını ortak bir zeminde buluşturmayı hedefleyen bir yapıdır.
                   </p>
                   <p className="text-muted-foreground leading-relaxed">
-                    Siz değerli Spor paydaşlarının her birinin desteği, bizim için büyük bir motivasyon kaynağı. Sporun gücüne inanan herkesi, bu yolculukta bizimle birlikte olmaya ve katkı sunmaya davet ediyoruz. Görüşleriniz ve önerilerinizle bize yön vereceğinizi ve birlikte daha büyük başarılara imza atacağımızı umuyoruz.
+                    Bizim için sahadaki ihtiyaç ile masa başındaki bilgi birbirinden ayrı değildir. Bu nedenle yalnızca görüş ortaya koymakla yetinmiyor; araştırıyor, sahayı gözlemliyor, projeler geliştiriyor, eğitimler düzenliyor, farklı paydaşlarla iş birlikleri kuruyor ve elde ettiğimiz deneyimleri spor kamuoyuyla paylaşmaya çalışıyoruz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Önümüzdeki dönemde de sporun bugününü anlamaya ve geleceğine dair fikir üretmeye; gençlerin, sporcuların, kulüplerin, yöneticilerin, antrenörlerin, akademisyenlerin ve sporla temas eden herkesin ihtiyaçlarına yönelik çalışmalar geliştirmeye devam edeceğiz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    SPOLDER'ın kapısı; fikir üretmek, bilgi paylaşmak, bir projeye katkı sunmak, bir soruna birlikte çözüm aramak veya sporun geleceğine dair söz söylemek isteyen herkese açıktır.
                   </p>
                   <p className="text-muted-foreground leading-relaxed italic">
-                    Spor dolu ve sağlıklı günler dileriz.
+                    Çünkü bizce sporun geleceği, yalnızca spor sahalarında değil; üretilen fikirlerde, geliştirilen politikalarda ve kurulan iş birliklerinde şekillenir.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed italic">
+                    Sporun geleceğini birlikte düşünmek ve birlikte üretmek dileğiyle.
                   </p>
                   <p className="font-display font-bold text-foreground">
                     {presidentInfo.name}
-                    <span className="font-normal text-muted-foreground block text-sm">SPOLDER Başkanı</span>
-                  </p>
-                  <p className="text-muted-foreground text-sm italic">
-                    Sevgi ve saygılarımızla...
+                    <span className="font-normal text-muted-foreground block text-sm">Başkan</span>
                   </p>
                 </div>
                 <div className="relative">
@@ -154,21 +160,21 @@ const Hakkimizda = () => {
                   icon: Target,
                   title: "Misyon",
                   text:
-                    "Türkiye'de spor politikalarının bilimsel temellere dayalı olarak geliştirilmesine katkı sağlamak.",
+                    "Sporun farklı alanlarında bilgi, deneyim ve saha ihtiyaçlarını bir araya getirerek; araştıran, üreten, geliştiren ve çözüm odaklı çalışmalarla daha nitelikli bir spor ekosisteminin oluşmasına katkı sunmak.",
                   color: "primary",
                 },
                 {
                   icon: Eye,
                   title: "Vizyon",
                   text:
-                    "Spor politikaları alanında ulusal ve uluslararası düzeyde öncü bir sivil toplum kuruluşu olmak.",
+                    "Spor politikaları ve yönetimi alanında güvenilir bir referans noktası olmak; Türkiye'de sporun geleceğine ilişkin fikir, politika ve modeller üreten öncü bir yapı haline gelmek.",
                   color: "secondary",
                 },
                 {
                   icon: Heart,
                   title: "Değerler",
                   text:
-                    "Bilimsellik, şeffaflık, katılımcılık, yenilikçilik ve sürdürülebilirlik.",
+                    "Bilimsellik • Şeffaflık • Liyakat • Katılımcılık • Eşitlik • Sürdürülebilirlik • İş Birliği • Toplumsal Fayda",
                   color: "turquoise",
                 },
               ].map((item) => (
