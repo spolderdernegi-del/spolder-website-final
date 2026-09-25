@@ -42,7 +42,7 @@ const AdminDashboard = () => {
       const [eventsRes, newsRes, blogRes, projectsRes, filesRes] = await Promise.all([
         supabase.from('events').select('id', { count: 'exact', head: true }),
         supabase.from('news').select('id', { count: 'exact', head: true }),
-        supabase.from('blog_posts').select('id', { count: 'exact', head: true }),
+        supabase.from('blog').select('id', { count: 'exact', head: true }),
         supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('files').select('id', { count: 'exact', head: true }),
       ]);
@@ -62,8 +62,8 @@ const AdminDashboard = () => {
   const fetchRecentContent = async () => {
     try {
       const [eventsData, newsData] = await Promise.all([
-        supabase.from('events').select('id, title, date').order('created_at', { ascending: false }).limit(5),
-        supabase.from('news').select('id, title, date').order('created_at', { ascending: false }).limit(5),
+        supabase.from('events').select('id, title:baslik, date:tarih').order('created_at', { ascending: false }).limit(5),
+        supabase.from('news').select('id, title:baslik, date:tarih').order('created_at', { ascending: false }).limit(5),
       ]);
       setRecentEvents(eventsData.data || []);
       setRecentNews(newsData.data || []);
