@@ -39,7 +39,7 @@ const Etkinlikler = () => {
         .from("events")
         .select("*")
         .eq('yayin_durumu', 'yayinlandi')
-        .order("tarih", { ascending: true });
+        .order("tarih", { ascending: false });
       
       if (supabaseError) throw supabaseError;
       setEvents(data || []);

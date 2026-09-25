@@ -126,7 +126,7 @@ const Hakkimizda = () => {
                     Önümüzdeki dönemde de sporun bugününü anlamaya ve geleceğine dair fikir üretmeye; gençlerin, sporcuların, kulüplerin, yöneticilerin, antrenörlerin, akademisyenlerin ve sporla temas eden herkesin ihtiyaçlarına yönelik çalışmalar geliştirmeye devam edeceğiz.
                   </p>
                   <p className="text-muted-foreground leading-relaxed">
-                    SPOLDER'ın kapısı; fikir üretmek, bilgi paylaşmak, bir projeye katkı sunmak, bir soruna birlikte çözüm aramak veya sporun geleceğine dair söz söylemek isteyen herkese açıktır.
+                    SPOLDER'in kapısı; fikir üretmek, bilgi paylaşmak, bir projeye katkı sunmak, bir soruna birlikte çözüm aramak veya sporun geleceğine dair söz söylemek isteyen herkese açıktır.
                   </p>
                   <p className="text-muted-foreground leading-relaxed italic">
                     Çünkü bizce sporun geleceği, yalnızca spor sahalarında değil; üretilen fikirlerde, geliştirilen politikalarda ve kurulan iş birliklerinde şekillenir.
