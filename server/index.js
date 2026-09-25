@@ -1,0 +1,816 @@
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import "dotenv/config";
+import path from "path";
+import fs from "fs";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+import { Pool } from "pg";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
+import mammoth from "mammoth";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express();
+
+const PORT = process.env.PORT || 4173;
+const DATABASE_URL = process.env.DATABASE_URL;
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const isProduction = process.env.NODE_ENV === "production";
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// --- Hard requirements: refuse to boot in an insecure state -----------------
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
+  throw new Error(
+    "SESSION_SECRET environment variable is required and must be at least 32 characters (generate with: openssl rand -base64 48)",
+  );
+}
+if (isProduction && ALLOWED_ORIGINS.length === 0) {
+  throw new Error("ALLOWED_ORIGINS environment variable is required in production");
+}
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
+});
+
+// --- Contact form email notifications (optional) -----------------------
+// If SMTP_HOST/SMTP_USER/SMTP_PASS aren't set, this feature is silently
+// disabled - the contact form still works and still saves to the database,
+// it just won't also send an email. Nothing breaks if these are missing.
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const CONTACT_NOTIFY_EMAIL = process.env.CONTACT_NOTIFY_EMAIL || SMTP_USER;
+
+let mailTransporter = null;
+if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+  mailTransporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465, // 465 = SSL, 587 = STARTTLS
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+  console.log(`Mail bildirimleri aktif: ${SMTP_HOST}:${SMTP_PORT} -> ${CONTACT_NOTIFY_EMAIL}`);
+} else {
+  console.log("Mail bildirimleri devre dışı (SMTP_HOST/SMTP_USER/SMTP_PASS tanımlı değil)");
+}
+
+// Fire-and-forget: never let a mail failure affect the contact form response.
+function notifyNewContactMessage(entry) {
+  if (!mailTransporter) return;
+  const safe = (v) => String(v ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Headers (subject, reply-to) are far more sensitive than the HTML body:
+  // a newline smuggled into one of these could let an attacker inject extra
+  // SMTP headers (e.g. additional Bcc/To recipients). Strip any CR/LF before
+  // they ever reach nodemailer's header fields.
+  const stripCrlf = (v) => String(v ?? "").replace(/[\r\n]+/g, " ").trim();
+  const subject = stripCrlf(entry.subject) || "(konu belirtilmedi)";
+  const replyTo = stripCrlf(entry.email);
+  mailTransporter
+    .sendMail({
+      from: `"SPOLDER Web Sitesi" <${SMTP_USER}>`,
+      to: CONTACT_NOTIFY_EMAIL,
+      replyTo: replyTo || undefined,
+      subject: `Yeni İletişim Mesajı: ${subject}`,
+      html: `
+        <h3>Web sitesinden yeni bir iletişim mesajı var</h3>
+        <p><strong>Ad Soyad:</strong> ${safe(entry.name)}</p>
+        <p><strong>E-posta:</strong> ${safe(entry.email)}</p>
+        <p><strong>Konu:</strong> ${safe(entry.subject)}</p>
+        <p><strong>Mesaj:</strong></p>
+        <p>${safe(entry.message).replace(/\n/g, "<br/>")}</p>
+        <hr/>
+        <p style="color:#888;font-size:12px">Bu mesaj admin panelinden de görüntülenebilir.</p>
+      `,
+    })
+    .catch((err) => console.error("Bildirim maili gönderilemedi:", err.message));
+}
+
+// --- Tables the generic /api/db endpoints are allowed to touch --------------
+// Anything not in this list is rejected outright - no arbitrary table access.
+const PUBLIC_READ_TABLES = new Set([
+  "categories",
+  "board",
+  "bank_info",
+  "events",
+  "news",
+  "blog",
+  "projects",
+  "files",
+  "settings",
+]);
+// contact_messages: public can INSERT (the contact form) but not read/delete.
+const INSERT_ONLY_PUBLIC_TABLE = "contact_messages";
+const ALL_TABLES = new Set([...PUBLIC_READ_TABLES, INSERT_ONLY_PUBLIC_TABLE]);
+
+// settings is a mixed table: some keys (contact info, IBAN, map embed) are
+// meant to be shown on the public site, but others (e.g. an admin display
+// email, if one is ever stored there) are not meant for anyone to read.
+// Rather than trust every row in the table, an unauthenticated request only
+// ever gets back rows whose key is explicitly on this list - no exceptions,
+// regardless of what select/where the caller asks for.
+const PUBLIC_SETTINGS_KEYS = new Set([
+  "contact_phone",
+  "contact_email",
+  "contact_working_hours",
+  "contact_iban_tl",
+  "contact_iban_eur",
+  "contact_map_embed",
+  "organization_location",
+  "organization_lat",
+  "organization_lng",
+]);
+
+app.set("trust proxy", 1); // behind Nginx
+
+// Real Let's Encrypt SSL is live (see nginx config), so the browser should be
+// told to always use HTTPS for this origin (HSTS) and to upgrade any
+// accidental http: subresource reference automatically - both are part of
+// helmet's secure defaults and are kept as-is.
+//
+// img-src is widened from helmet's default ('self' data:) to also allow
+// https: — the site legitimately loads images from outside its own origin
+// (an Unsplash stock photo on the homepage, OpenStreetMap map tiles and
+// Leaflet's marker icons on the contact-page map). Without this, the
+// browser silently blocks those images.
+const cspDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
+cspDirectives["img-src"] = ["'self'", "data:", "https:"];
+app.use(
+  helmet({
+    contentSecurityPolicy: { directives: cspDirectives },
+    hsts: { maxAge: 15552000, includeSubDomains: true },
+  }),
+);
+
+app.use(express.json({ limit: "25mb" }));
+app.use(cookieParser());
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Same-origin requests (no Origin header, e.g. curl/health checks) are fine.
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: "Çok fazla deneme yapıldı, lütfen daha sonra tekrar deneyin." } },
+});
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+// contact_messages is public and unauthenticated (no login required to hit
+// it), and each row now also triggers an outbound email - the generous
+// 120/min writeLimiter meant for authenticated admin bulk actions is far too
+// permissive here. A dedicated, much stricter limiter prevents someone from
+// flooding the inbox or getting the SMTP account throttled/blacklisted.
+const contactFormLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: "Çok fazla mesaj gönderildi, lütfen daha sonra tekrar deneyin." } },
+});
+
+// --- SQL identifier helpers (never interpolate untrusted strings otherwise) -
+const sanitizeTable = (table) => {
+  if (!ALL_TABLES.has(table)) {
+    throw new HttpError(400, "Invalid table name");
+  }
+  return table;
+};
+
+const sanitizeField = (field) => {
+  if (!/^[a-zA-Z0-9_]+$/.test(field)) {
+    throw new HttpError(400, "Invalid field name");
+  }
+  return field;
+};
+
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const parseOrExpression = (expression, startIndex = 0) => {
+  const clauses = expression.split(",").map((part) => part.trim()).filter(Boolean);
+  const conditions = [];
+  const params = [];
+
+  for (const clause of clauses) {
+    const match = clause.match(/^([a-zA-Z0-9_]+)\.ilike\.%(.+)%$/i);
+    if (!match) continue;
+    const field = sanitizeField(match[1]);
+    const value = match[2];
+    conditions.push(`"${field}" ILIKE $${params.length + startIndex + 1}`);
+    params.push(`%${value}%`);
+  }
+
+  if (conditions.length === 0) return { sql: "", params: [] };
+  return { sql: `(${conditions.join(" OR ")})`, params };
+};
+
+// Supported query-string filters (mirrors just enough of PostgREST/supabase-js
+// to drive our own frontend's query builder shim):
+//   eq_<field>=value        -> "field" = value
+//   neq_<field>=value       -> "field" != value
+//   in_<field>=a,b,c        -> "field" IN (a,b,c)
+//   not_is_<field>=null     -> "field" IS NOT NULL
+//   not_eq_<field>=value    -> "field" != value  (kept distinct from neq_ for readability)
+//   or=col.ilike.%x%,col2.ilike.%y%
+const buildWhereClause = (query) => {
+  const conditions = [];
+  const params = [];
+
+  for (const [key, value] of Object.entries(query)) {
+    if (key.startsWith("eq_")) {
+      const field = sanitizeField(key.slice(3));
+      conditions.push(`"${field}" = $${params.length + 1}`);
+      params.push(value);
+    }
+    if (key.startsWith("neq_")) {
+      const field = sanitizeField(key.slice(4));
+      conditions.push(`"${field}" != $${params.length + 1}`);
+      params.push(value);
+    }
+    if (key.startsWith("in_")) {
+      const field = sanitizeField(key.slice(3));
+      const values = Array.isArray(value) ? value : String(value).split(",").filter(Boolean);
+      if (values.length > 0) {
+        const placeholders = values.map((_, index) => `$${params.length + index + 1}`);
+        conditions.push(`"${field}" IN (${placeholders.join(",")})`);
+        params.push(...values);
+      }
+    }
+    if (key.startsWith("not_is_")) {
+      const field = sanitizeField(key.slice(7));
+      // Only "null" is meaningful for an IS NOT check here.
+      if (String(value).toLowerCase() === "null") {
+        conditions.push(`"${field}" IS NOT NULL`);
+      }
+    }
+    if (key.startsWith("not_eq_")) {
+      const field = sanitizeField(key.slice(7));
+      conditions.push(`"${field}" != $${params.length + 1}`);
+      params.push(value);
+    }
+  }
+
+  if (query.or) {
+    const orResult = parseOrExpression(String(query.or), params.length);
+    if (orResult.sql) {
+      conditions.push(orResult.sql);
+      params.push(...orResult.params);
+    }
+  }
+
+  return {
+    whereClause: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+    params,
+  };
+};
+
+const safeSelect = (value) => {
+  if (!value || value.trim() === "") return "*";
+  const safe = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (item === "*") return item;
+      // PostgREST/supabase-js column aliasing: "alias:column" -> "column" AS "alias"
+      const aliasMatch = item.match(/^([a-zA-Z0-9_]+):"?([a-zA-Z0-9_]+)"?$/);
+      if (aliasMatch) {
+        const alias = sanitizeField(aliasMatch[1]);
+        const column = sanitizeField(aliasMatch[2]);
+        return `"${column}" AS "${alias}"`;
+      }
+      if (!/^[a-zA-Z0-9_\s".]+$/.test(item)) throw new HttpError(400, "Invalid select clause");
+      return item;
+    })
+    .join(", ");
+  return safe || "*";
+};
+
+const queryDatabase = async (queryText, params = []) => {
+  const start = Date.now();
+  const result = await pool.query(queryText, params);
+  if (!isProduction) console.log(`Executed (${Date.now() - start}ms): ${queryText}`);
+  return result;
+};
+
+// --- Auth --------------------------------------------------------------
+const createSessionToken = (payload) => jwt.sign(payload, SESSION_SECRET, { expiresIn: "8h" });
+
+const verifySessionToken = (token) => {
+  try {
+    return jwt.verify(token, SESSION_SECRET);
+  } catch {
+    return null;
+  }
+};
+
+const getSessionFromRequest = (req) => {
+  const token = req.cookies?.spolder_session;
+  return token ? verifySessionToken(token) : null;
+};
+
+// Blocks the request unless a valid admin session cookie is present.
+const requireAdmin = (req, res, next) => {
+  const session = getSessionFromRequest(req);
+  if (!session || session.role !== "admin") {
+    return res.status(401).json({ error: { message: "Yetkiniz yok, lütfen giriş yapın" } });
+  }
+  req.session = session;
+  return next();
+};
+
+const asyncHandler = (fn) => (req, res, next) => fn(req, res, next).catch(next);
+
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+
+app.get("/api/auth/session", (req, res) => {
+  const session = getSessionFromRequest(req);
+  return res.json({ data: { session: session ? { user: { email: session.email } } : null }, error: null });
+});
+
+app.post(
+  "/api/auth/login",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      throw new HttpError(400, "E-posta ve şifre gereklidir");
+    }
+
+    const result = await queryDatabase(
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
+      [String(email).toLowerCase().trim()],
+    );
+    const admin = result.rows[0];
+
+    // Compare against a dummy hash when the user doesn't exist, so response
+    // timing doesn't reveal whether the email is registered.
+    const hashToCheck = admin?.password_hash || "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsal";
+    const passwordMatches = await bcrypt.compare(String(password), hashToCheck);
+
+    if (!admin || !passwordMatches) {
+      return res.status(401).json({ error: { message: "E-posta veya şifre hatalı" } });
+    }
+
+    const token = createSessionToken({ email: admin.email, role: "admin" });
+    res.cookie("spolder_session", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      maxAge: 8 * 3600 * 1000,
+    });
+    return res.json({ data: { session: { user: { email: admin.email } } }, error: null });
+  }),
+);
+
+app.post("/api/auth/logout", (_req, res) => {
+  res.clearCookie("spolder_session");
+  return res.json({ data: { success: true }, error: null });
+});
+
+// Lets a logged-in admin change their own password. Requires the current
+// password so a hijacked session can't silently lock the real admin out.
+app.post(
+  "/api/auth/change-password",
+  authLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      throw new HttpError(400, "Mevcut ve yeni şifre gereklidir");
+    }
+    if (String(newPassword).length < 8) {
+      throw new HttpError(400, "Yeni şifre en az 8 karakter olmalıdır");
+    }
+
+    const result = await queryDatabase(
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
+      [req.session.email],
+    );
+    const admin = result.rows[0];
+    if (!admin) {
+      throw new HttpError(404, "Kullanıcı bulunamadı");
+    }
+
+    const passwordMatches = await bcrypt.compare(String(currentPassword), admin.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: { message: "Mevcut şifre yanlış" } });
+    }
+
+    const newHash = await bcrypt.hash(String(newPassword), 12);
+    await queryDatabase(`UPDATE admin_users SET password_hash = $1 WHERE email = $2`, [newHash, admin.email]);
+
+    return res.json({ data: { success: true }, error: null });
+  }),
+);
+
+// --- Generic table endpoints ---------------------------------------------
+// GET is always public (matches the old "read: true for anyone" RLS policy),
+// except contact_messages which is admin-only to read.
+app.get(
+  "/api/db/:table",
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    if (table === INSERT_ONLY_PUBLIC_TABLE) {
+      const session = getSessionFromRequest(req);
+      if (!session || session.role !== "admin") {
+        throw new HttpError(401, "Yetkiniz yok, lütfen giriş yapın");
+      }
+    }
+
+    const select = safeSelect(req.query.select ? String(req.query.select) : "*");
+    let { whereClause, params } = buildWhereClause(req.query);
+    const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
+    const orderDirection = String(req.query.orderDirection || "asc").toUpperCase() === "DESC" ? "DESC" : "ASC";
+    const limit = req.query.limit ? Math.min(parseInt(String(req.query.limit), 10) || 0, 1000) : null;
+
+    // settings holds a mix of public site content (contact info, IBAN, map
+    // embed) and admin-only display values. An unauthenticated caller never
+    // sees a row outside PUBLIC_SETTINGS_KEYS, no matter what select/where it
+    // asked for - this is enforced here, not left to the frontend to respect.
+    if (table === "settings") {
+      const session = getSessionFromRequest(req);
+      if (!session || session.role !== "admin") {
+        const allowedKeys = [...PUBLIC_SETTINGS_KEYS];
+        const placeholder = `$${params.length + 1}`;
+        whereClause = whereClause
+          ? `${whereClause} AND "key" = ANY(${placeholder})`
+          : `WHERE "key" = ANY(${placeholder})`;
+        params = [...params, allowedKeys];
+      }
+    }
+
+    if (req.query.head === "true" && String(req.query.count) === "exact") {
+      const countResult = await queryDatabase(`SELECT COUNT(*) AS count FROM "${table}" ${whereClause}`, params);
+      return res.json({ data: [], count: Number(countResult.rows[0]?.count ?? 0), error: null });
+    }
+
+    let query = `SELECT ${select} FROM "${table}" ${whereClause}`;
+    if (orderField) query += ` ORDER BY "${orderField}" ${orderDirection}`;
+    if (limit) query += ` LIMIT ${limit}`;
+
+    const result = await queryDatabase(query, params);
+    if (req.query.single === "true") {
+      return res.json({ data: result.rows[0] ?? null, error: null });
+    }
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+// Everything below mutates data. contact_messages allows public INSERT only;
+// every other write requires an admin session.
+const gateWrite = (req, res, next) => {
+  const table = req.params.table;
+  if (table === INSERT_ONLY_PUBLIC_TABLE && req.method === "POST" && !req.path.endsWith("/upsert")) {
+    return next(); // public contact-form submission
+  }
+  return requireAdmin(req, res, next);
+};
+
+app.post(
+  "/api/db/:table",
+  writeLimiter,
+  gateWrite,
+  (req, res, next) => {
+    // Extra-strict, dedicated limiter for the public, unauthenticated
+    // contact form path only - admin writes to other tables keep the
+    // regular writeLimiter above.
+    if (req.params.table === INSERT_ONLY_PUBLIC_TABLE) {
+      return contactFormLimiter(req, res, next);
+    }
+    return next();
+  },
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    const payload = req.body;
+    let entries = Array.isArray(payload) ? payload : [payload];
+    if (table === INSERT_ONLY_PUBLIC_TABLE && entries.length > 1) {
+      // The public contact form should only ever submit one message at a
+      // time. Without this cap, a single request could smuggle in an array
+      // of hundreds of rows, inserting them all and firing an email for
+      // each one - bypassing the rate limiter above entirely.
+      throw new HttpError(400, "Tek seferde yalnızca bir kayıt eklenebilir");
+    }
+    if (entries.length === 0 || !entries[0] || typeof entries[0] !== "object") {
+      throw new HttpError(400, "Eklenecek veri bulunamadı");
+    }
+    const columns = Object.keys(entries[0]).map(sanitizeField);
+    const values = [];
+    const placeholders = entries
+      .map((item, rowIndex) =>
+        `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(",")})`,
+      )
+      .join(",");
+    for (const item of entries) {
+      for (const column of columns) values.push(item[column]);
+    }
+    const query = `INSERT INTO "${table}" (${columns.map((c) => `"${c}"`).join(",")}) VALUES ${placeholders} RETURNING *`;
+    const result = await queryDatabase(query, values);
+
+    if (table === INSERT_ONLY_PUBLIC_TABLE) {
+      result.rows.forEach((row) => notifyNewContactMessage(row));
+    }
+
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+app.post(
+  "/api/db/:table/upsert",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    const onConflict = req.query.onConflict ? sanitizeField(String(req.query.onConflict)) : null;
+    const payload = req.body;
+    const entries = Array.isArray(payload) ? payload : [payload];
+    if (!onConflict) throw new HttpError(400, "onConflict parametresi gereklidir");
+    if (entries.length === 0) throw new HttpError(400, "Eklenecek veri bulunamadı");
+
+    const columns = Object.keys(entries[0]).map(sanitizeField);
+    const values = [];
+    const placeholders = entries
+      .map((item, rowIndex) =>
+        `(${columns.map((_, columnIndex) => `$${rowIndex * columns.length + columnIndex + 1}`).join(",")})`,
+      )
+      .join(",");
+    for (const item of entries) {
+      for (const column of columns) values.push(item[column]);
+    }
+    const updates = columns.map((col) => `"${col}" = EXCLUDED."${col}"`).join(", ");
+    const query = `INSERT INTO "${table}" (${columns.map((c) => `"${c}"`).join(",")}) VALUES ${placeholders} ON CONFLICT ("${onConflict}") DO UPDATE SET ${updates} RETURNING *`;
+    const result = await queryDatabase(query, values);
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+app.put(
+  "/api/db/:table/:id",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    const id = req.params.id;
+    const payload = req.body;
+    const columns = Object.keys(payload || {}).map(sanitizeField);
+    if (columns.length === 0) throw new HttpError(400, "Güncellenecek veri bulunamadı");
+    const setClause = columns.map((column, index) => `"${column}" = $${index + 1}`).join(", ");
+    const values = columns.map((column) => payload[column]);
+    values.push(id);
+    const query = `UPDATE "${table}" SET ${setClause} WHERE id = $${values.length} RETURNING *`;
+    const result = await queryDatabase(query, values);
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+app.delete(
+  "/api/db/:table/:id",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    const result = await queryDatabase(`DELETE FROM "${table}" WHERE id = $1 RETURNING *`, [req.params.id]);
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+app.delete(
+  "/api/db/:table",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    const { whereClause, params } = buildWhereClause(req.query);
+    if (!whereClause) throw new HttpError(400, "Silme işlemi için filtre gereklidir");
+    const result = await queryDatabase(`DELETE FROM "${table}" ${whereClause} RETURNING *`, params);
+    return res.json({ data: result.rows, error: null });
+  }),
+);
+
+// --- Görsel yükleme (base64 -> gerçek dosya) -------------------------------
+// Önceden yüklenen kapak görselleri ve içerik-içi görseller doğrudan base64
+// olarak veritabanına gömülüyordu: veritabanını şişiriyor, sayfayı
+// yavaşlatıyor ve WhatsApp/Facebook gibi paylaşım botlarının görseli
+// getirememesine (gerçek bir URL olmadığı için) sebep oluyordu. Bu uç nokta,
+// admin panelinden gönderilen base64 görseli gerçek bir dosyaya çevirip
+// herkese açık bir URL döndürür.
+const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const ALLOWED_UPLOAD_MIME = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+};
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB (rapor/PDF dosyaları görsellerden büyük olabiliyor)
+
+// Bir buffer'ı benzersiz bir isimle uploads/ klasörüne yazıp herkese açık
+// URL'ini döner - hem /api/upload hem de aşağıdaki Word dönüştürme (içine
+// gömülü görseller için) tarafından ortak kullanılır.
+const saveBufferToUploads = (buffer, extension) => {
+  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
+  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+  return `/uploads/${filename}`;
+};
+
+app.post(
+  "/api/upload",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { data } = req.body || {};
+    if (typeof data !== "string" || !data.startsWith("data:")) {
+      throw new HttpError(400, "Geçersiz dosya verisi");
+    }
+
+    const match = data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new HttpError(400, "Geçersiz base64 formatı");
+    }
+    const [, mime, base64Payload] = match;
+    const extension = ALLOWED_UPLOAD_MIME[mime];
+    if (!extension) {
+      throw new HttpError(400, "Desteklenmeyen dosya türü");
+    }
+
+    const buffer = Buffer.from(base64Payload, "base64");
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
+    }
+
+    return res.json({ data: { url: saveBufferToUploads(buffer, extension) }, error: null });
+  }),
+);
+
+// --- Word (.docx) belgesini içerik editörü HTML'ine çevirme ----------------
+// Admin, içeriği (resimler dahil) doğrudan Word'de yazıp tek bir .docx
+// dosyası olarak yükleyebilir - Word'ün kendi olgun resim/biçimlendirme
+// araçlarını yeniden icat etmek yerine kullanıyoruz. Belgedeki her gömülü
+// görsel gerçek bir dosyaya kaydedilip HTML'de gerçek bir URL ile
+// referans veriliyor (base64 olarak kalmıyor).
+app.post(
+  "/api/upload/docx-to-html",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { data } = req.body || {};
+    if (typeof data !== "string" || !data.startsWith("data:")) {
+      throw new HttpError(400, "Geçersiz dosya verisi");
+    }
+    const match = data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new HttpError(400, "Geçersiz base64 formatı");
+    }
+    const [, , base64Payload] = match;
+    const buffer = Buffer.from(base64Payload, "base64");
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
+    }
+
+    const imageHandler = mammoth.images.imgElement(async (image) => {
+      const contentTypeToExt = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/gif": "gif",
+        "image/bmp": "bmp",
+      };
+      const ext = contentTypeToExt[image.contentType] || "png";
+      const imgBuffer = Buffer.from(await image.read("base64"), "base64");
+      const url = saveBufferToUploads(imgBuffer, ext);
+      return { src: url };
+    });
+
+    const result = await mammoth.convertToHtml({ buffer }, { convertImage: imageHandler });
+    return res.json({ data: { html: result.value, warnings: result.messages }, error: null });
+  }),
+);
+// uploads/ klasörü dist/ İÇİNDE DEĞİL - her "npm run build" dist/ klasörünü
+// yeniden oluşturur ve içindekileri siler, uploads/ ayrı tutulmazsa her
+// deploy'da tüm yüklenen görseller kaybolurdu.
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+// --- Sosyal medya paylaşım önizlemeleri (WhatsApp, Facebook vb.) ----------
+// Bu bir tek-sayfa uygulaması (SPA) olduğu için normalde her sayfa AYNI
+// index.html'i (ve dolayısıyla aynı sabit og:image/og:title'ı) döndürür.
+// WhatsApp/Facebook'un önizleme botları JavaScript çalıştırmadığı için
+// React'in sayfa başlığını/görselini sonradan değiştirmesini hiç görmezler.
+// Bu yüzden haber/etkinlik/proje/blog detay adresleri için, o içeriğe özel
+// meta etiketleriyle DEĞİŞTİRİLMİŞ bir index.html döndürüyoruz - normal
+// ziyaretçiler için site yine olağan şekilde çalışmaya devam ediyor,
+// React üstüne binip render ediyor.
+const DETAIL_META_ROUTES = [
+  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
+  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
+  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image" },
+  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image" },
+];
+const DEFAULT_OG_IMAGE = "https://spolder.org/og-image.png";
+const escapeHtmlAttr = (v) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+app.get(
+  /^\/(haber|etkinlik|proje|blog)\/[^/]+\/?$/,
+  asyncHandler(async (req, res, next) => {
+    const route = DETAIL_META_ROUTES.find((r) => req.path.startsWith(r.prefix));
+    const id = route ? req.path.slice(route.prefix.length).replace(/\/$/, "") : null;
+    if (!route || !id || !/^\d+$/.test(id)) return next();
+
+    const indexPath = path.join(__dirname, "..", "dist", "index.html");
+    let html;
+    try {
+      html = fs.readFileSync(indexPath, "utf-8");
+    } catch {
+      return next(); // dist henüz yoksa (ör. dev ortamı) normal akışa düş
+    }
+
+    const result = await queryDatabase(
+      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1`,
+      [id],
+    );
+    const item = result.rows[0];
+
+    if (item) {
+      const title = escapeHtmlAttr(item.title || "SPOLDER");
+      const description = escapeHtmlAttr(String(item.description || "").slice(0, 200));
+      // base64 (data:) görseller paylaşım botları tarafından getirilemez
+      // (gerçek bir URL değiller) - bu durumda varsayılan kapak görseline düşülür.
+      const rawImage = item.image || "";
+      const image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
+      const url = `https://spolder.org${req.path}`;
+
+      html = html
+        .replace(/<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`)
+        .replace(/<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`)
+        .replace(/<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`)
+        .replace(/<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`)
+        .replace(/<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(url)}" />`)
+        .replace(/<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${title}" />`)
+        .replace(/<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`)
+        .replace(/<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
+    }
+
+    res.set("Content-Type", "text/html; charset=UTF-8");
+    return res.send(html);
+  }),
+);
+
+// --- Static frontend (dist/) + SPA fallback --------------------------------
+app.use(express.static(path.join(__dirname, "..", "dist")));
+app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+});
+
+// --- Error handler (must be last) ------------------------------------------
+app.use((err, req, res, _next) => {
+  if (err instanceof HttpError) {
+    return res.status(err.status).json({ error: { message: err.message } });
+  }
+  console.error(err);
+  return res.status(500).json({ error: { message: "Sunucu hatası" } });
+});
+
+app.listen(PORT, "127.0.0.1", () => {
+  console.log(`SPOLDER backend listening on 127.0.0.1:${PORT}`);
+});

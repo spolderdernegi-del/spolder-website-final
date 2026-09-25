@@ -1,97 +1,153 @@
-import React from "react";
+﻿import React from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Button } from "@/components/ui/button";
-import { Target, Eye, Heart, Users, Award, Globe } from "lucide-react";
+import { Target, Eye, Heart } from "lucide-react";
+import CorporateIdentitySection from "@/components/about/CorporateIdentitySection";
+import { supabase } from "@/integrations/supabase/client";
 
-const boardMembers = [
-  {
-    name: "Dr. Ahmet Yılmaz",
-    role: "Başkan",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
-    bio: "Dr. Ahmet Yılmaz, spor politikaları alanında 20+ yıllık deneyime sahip bir araştırmacıdır. Spor yönetimi ve politika geliştirme üzerine çok sayıda yayını bulunmaktadır.",
-    education: "Doktora - Spor Yönetimi, Ankara Üniversitesi",
-  },
-  {
-    name: "Prof. Dr. Ayşe Kaya",
-    role: "Başkan Yardımcısı",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80",
-    bio: "Prof. Dr. Ayşe Kaya, spor sosyolojisi ve toplumsal spor katılımı çalışmalarında uzman bir akademisyendir.",
-    education: "Prof. Dr. - Spor Bilimleri, İstanbul Üniversitesi",
-  },
-  {
-    name: "Doç. Dr. Mehmet Demir",
-    role: "Genel Sekreter",
-    image:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=80",
-    bio: "Doç. Dr. Mehmet Demir, proje yönetimi ve kamu-özel işbirlikleri konusunda deneyim sahibidir.",
-    education: "Doçentlik - Kamu Politikası, Hacettepe Üniversitesi",
-  },
-  {
-    name: "Dr. Zeynep Çelik",
-    role: "Sayman",
-    image:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&auto=format&fit=crop&q=80",
-    bio: "Dr. Zeynep Çelik, finansal yönetim ve STK muhasebesi konularında uzmandır.",
-    education: "Doktora - Finans, Bilkent Üniversitesi",
-  },
-];
+interface BoardMember {
+  id: number;
+  name: string;
+  position: string;
+  bio: string;
+  image: string;
+  order: number;
+}
 
 const Hakkimizda = () => {
-  const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
+  const [selectedMember, setSelectedMember] = React.useState<BoardMember | null>(null);
+  const [boardMembers, setBoardMembers] = React.useState<BoardMember[]>([]);
+  const [presidentInfo, setPresidentInfo] = React.useState<BoardMember | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  // Yönetim kurulu üyelerini Supabase'den yükle
+  React.useEffect(() => {
+    const loadBoardMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('board')
+          .select('*')
+          .order('order', { ascending: true });
+
+        if (error) {
+          console.error('Yönetim kurulu yüklenirken hata:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setBoardMembers(data);
+          // Başkanı bul (order = 1)
+          const president = data.find((member: BoardMember) => member.order === 1 || member.position.toLowerCase().includes('başkan'));
+          setPresidentInfo(president || data[0]);
+        }
+      } catch (error) {
+        console.error('Yönetim kurulu yüklenirken hata:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBoardMembers();
+  }, []);
+
+  // SEO meta tags
+  React.useEffect(() => {
+    document.title = "Hakkımızda - SPOLDER Spor Politikaları Derneği";
+    
+    const setMetaTag = (name: string, content: string) => {
+      let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = name;
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+
+    const setPropertyTag = (property: string, content: string) => {
+      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("property", property);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+
+    setMetaTag("description", "SPOLDER Spor Politikaları Derneği hakkında detaylı bilgi, yönetim kurulu, misyon, vizyon ve kurumsal kimlik. Logo tasarımı, vektörel logo dosyaları, renk paleti ve marka rehberi.");
+    setMetaTag("keywords", "SPOLDER hakkında, spor derneği, yönetim kurulu, kurumsal kimlik, logo, vektör logo, renk paleti, marka, spor politikaları derneği");
+    setPropertyTag("og:title", "Hakkımızda - SPOLDER Spor Politikaları Derneği");
+    setPropertyTag("og:description", "SPOLDER'in misyon, vizyon, değerleri ve kurumsal kimlik sistemi hakkında bilgi alın.");
+    setPropertyTag("og:url", "https://spolder.org/hakkimizda");
+
+    return () => {
+      // Cleanup optional - sayfadan çıkışta varsayılan meta'ya dönmek istemiyoruz
+    };
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 pt-20">
         {/* Hero */}
         <section className="bg-gradient-green py-20">
-                  <div className="container-custom mx-auto px-4 md:px-8 text-center">
-                    <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-                      Hakkımızda
-                    </h1>
-                    <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-                      SPOlDER Spor Politikaları Derneği'ni tanıyın.
-                    </p>
-                  </div>
+          <div className="container-custom mx-auto px-4 md:px-8 text-center">
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
+              Hakkımızda
+            </h1>
+            <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
+              Spor Politikaları Derneği'ni tanıyın.
+            </p>
+          </div>
         </section>
 
         {/* President Message */}
         <section className="section-padding">
           <div className="container-custom mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <span className="text-sky-500 font-semibold text-sm uppercase tracking-wider">
-                  Başkan Mesajı
-                </span>
-                <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                  Sporun Gücüne İnanıyoruz
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  "SPOlDER olarak, sporun sadece bir fiziksel aktivite olmadığına, aynı zamanda toplumsal 
-                  dönüşümün önemli bir aracı olduğuna inanıyoruz. Kurulduğumuz günden bu yana, bilimsel 
-                  temelli spor politikalarının geliştirilmesi için çalışıyoruz."
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  "Amacımız, Türkiye'nin spor ekosistemini güçlendirmek ve herkesin spor yapma hakkını 
-                  savunmaktır. Bu yolda tüm paydaşlarımızla birlikte yürümeye devam edeceğiz."
-                </p>
-                <p className="font-display font-bold text-foreground">
-                  Dr. Ahmet Yılmaz
-                  <span className="font-normal text-muted-foreground block text-sm">
-                    SPOlDER Başkanı
+            {presidentInfo && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div className="space-y-6">
+                  <span className="text-sky-500 font-semibold text-sm uppercase tracking-wider">
+                    Başkanın Mesajı
                   </span>
-                </p>
+                  <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
+                    Sporu Sadece Konuşmuyor,<br />Geleceğini Birlikte Tasarlıyoruz
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Spor Politikaları Derneği olarak spora yalnızca müsabaka, başarı veya fiziksel aktivite üzerinden bakmıyoruz. Sporun; bireyden topluma, eğitimden yönetime, şehirlerden uluslararası ilişkilere kadar geniş bir alanda etkisi olduğuna inanıyor; bu alanlarda daha nitelikli, kapsayıcı ve sürdürülebilir bir spor anlayışının gelişmesine katkı sunmayı amaçlıyoruz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    SPOLDER; spor politikaları, spor yönetimi, spor eğitimi, spor ekonomisi, spor diplomasisi, sosyal sorumluluk ve toplumsal gelişim başlıklarında çalışmalar yürüten; akademiyi, kamu kurumlarını, yerel yönetimleri, spor kulüplerini, uzmanları ve sporun diğer paydaşlarını ortak bir zeminde buluşturmayı hedefleyen bir yapıdır.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Bizim için sahadaki ihtiyaç ile masa başındaki bilgi birbirinden ayrı değildir. Bu nedenle yalnızca görüş ortaya koymakla yetinmiyor; araştırıyor, sahayı gözlemliyor, projeler geliştiriyor, eğitimler düzenliyor, farklı paydaşlarla iş birlikleri kuruyor ve elde ettiğimiz deneyimleri spor kamuoyuyla paylaşmaya çalışıyoruz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Önümüzdeki dönemde de sporun bugününü anlamaya ve geleceğine dair fikir üretmeye; gençlerin, sporcuların, kulüplerin, yöneticilerin, antrenörlerin, akademisyenlerin ve sporla temas eden herkesin ihtiyaçlarına yönelik çalışmalar geliştirmeye devam edeceğiz.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    SPOLDER'in kapısı; fikir üretmek, bilgi paylaşmak, bir projeye katkı sunmak, bir soruna birlikte çözüm aramak veya sporun geleceğine dair söz söylemek isteyen herkese açıktır.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed italic">
+                    Çünkü bizce sporun geleceği, yalnızca spor sahalarında değil; üretilen fikirlerde, geliştirilen politikalarda ve kurulan iş birliklerinde şekillenir.
+                  </p>
+                  <p className="text-muted-foreground leading-relaxed italic">
+                    Sporun geleceğini birlikte düşünmek ve birlikte üretmek dileğiyle.
+                  </p>
+                  <p className="font-display font-bold text-foreground">
+                    {presidentInfo.name}
+                    <span className="font-normal text-muted-foreground block text-sm">Başkan</span>
+                  </p>
+                </div>
+                <div className="relative">
+                  <img
+                    src={presidentInfo.image}
+                    alt={presidentInfo.name}
+                    className="rounded-lg shadow-elevated w-full max-w-md mx-auto"
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80"
-                  alt="Başkan"
-                  className="rounded-lg shadow-elevated w-full max-w-md mx-auto"
-                />
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -100,20 +156,57 @@ const Hakkimizda = () => {
           <div className="container-custom mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { icon: Target, title: "Misyon", text: "Türkiye'de spor politikalarının bilimsel temellere dayalı olarak geliştirilmesine katkı sağlamak.", color: "primary" },
-                { icon: Eye, title: "Vizyon", text: "Spor politikaları alanında ulusal ve uluslararası düzeyde öncü bir sivil toplum kuruluşu olmak.", color: "secondary" },
-                { icon: Heart, title: "Değerler", text: "Bilimsellik, şeffaflık, katılımcılık, yenilikçilik ve sürdürülebilirlik.", color: "turquoise" },
+                {
+                  icon: Target,
+                  title: "Misyon",
+                  text:
+                    "Sporun farklı alanlarında bilgi, deneyim ve saha ihtiyaçlarını bir araya getirerek; araştıran, üreten, geliştiren ve çözüm odaklı çalışmalarla daha nitelikli bir spor ekosisteminin oluşmasına katkı sunmak.",
+                  color: "primary",
+                },
+                {
+                  icon: Eye,
+                  title: "Vizyon",
+                  text:
+                    "Spor politikaları ve yönetimi alanında güvenilir bir referans noktası olmak; Türkiye'de sporun geleceğine ilişkin fikir, politika ve modeller üreten öncü bir yapı haline gelmek.",
+                  color: "secondary",
+                },
+                {
+                  icon: Heart,
+                  title: "Değerler",
+                  text:
+                    "Bilimsellik • Şeffaflık • Liyakat • Katılımcılık • Eşitlik • Sürdürülebilirlik • İş Birliği • Toplumsal Fayda",
+                  color: "turquoise",
+                },
               ].map((item) => (
                 <div key={item.title} className="bg-card rounded-lg p-8 shadow-card text-center">
-                  <div className={`w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center ${
-                    item.color === "primary" ? "bg-primary/10 text-primary" :
-                    item.color === "secondary" ? "bg-secondary/10 text-secondary" :
-                    "bg-turquoise/10 text-turquoise"
-                  }`}>
+                  <div
+                    className={`w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center ${
+                      item.color === "primary"
+                        ? "bg-primary/10 text-primary"
+                        : item.color === "secondary"
+                        ? "bg-secondary/10 text-secondary"
+                        : "bg-turquoise/10 text-turquoise"
+                    }`}
+                  >
                     <item.icon className="w-8 h-8" />
                   </div>
                   <h3 className="font-display text-xl font-bold text-foreground mb-4">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.text}</p>
+                  {item.title === "Değerler" ? (
+                    <p className="text-muted-foreground">
+                      {(() => {
+                        const values = item.text.split("•").map((v) => v.trim()).filter(Boolean);
+                        const lowered = values.map((v, i) => (i === 0 ? v : v.toLocaleLowerCase("tr-TR")));
+                        const sentence = lowered.reduce((acc, v, i, arr) => {
+                          if (i === 0) return v;
+                          if (i === arr.length - 1) return `${acc} ve ${v}`;
+                          return `${acc}, ${v}`;
+                        }, "");
+                        return `${sentence}; bize yol gösteren temel değerlerdir.`;
+                      })()}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">{item.text}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -125,25 +218,40 @@ const Hakkimizda = () => {
           <div className="container-custom mx-auto">
             <div className="text-center mb-12">
               <span className="text-sky-500 font-semibold text-sm uppercase tracking-wider">Ekibimiz</span>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2">
-                Yönetim Kurulu
-              </h2>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mt-2">Yönetim Kurulu</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {boardMembers.map((member) => (
-                <button
-                  key={member.name}
-                  onClick={() => setSelectedMember(member)}
-                  className="bg-card rounded-lg overflow-hidden shadow-card card-hover text-center focus:outline-none"
-                >
-                  <img src={member.image} alt={member.name} className="w-full h-64 object-cover" />
-                  <div className="p-6">
-                    <h3 className="font-display font-bold text-lg text-foreground">{member.name}</h3>
-                    <p className="text-primary text-sm">{member.role}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Yükleniyor...</p>
+              </div>
+            ) : boardMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Henüz yönetim kurulu üyesi eklenmemiş.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {boardMembers.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => setSelectedMember(member)}
+                    className="bg-card rounded-lg overflow-hidden shadow-card card-hover text-center focus:outline-none"
+                  >
+                    <img src={member.image} alt={member.name} className="w-full h-64 object-cover" />
+                    <div className="p-6">
+                      <h3 className="font-display font-bold text-lg text-foreground">{member.name}</h3>
+                      <p className="text-primary text-sm">{member.position}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Kurumsal Kimlik */}
+        <section className="section-padding bg-muted">
+          <div className="container-custom mx-auto">
+            <CorporateIdentitySection />
           </div>
         </section>
       </main>
@@ -156,9 +264,8 @@ const Hakkimizda = () => {
               <img src={selectedMember.image} alt={selectedMember.name} className="w-40 h-40 object-cover rounded" />
               <div className="flex-1">
                 <h3 className="text-2xl font-bold">{selectedMember.name}</h3>
-                <p className="text-sm text-primary mb-3">{selectedMember.role}</p>
+                <p className="text-sm text-primary mb-3">{selectedMember.position}</p>
                 <p className="text-sm text-muted-foreground mb-2">{selectedMember.bio}</p>
-                <p className="text-xs text-muted-foreground">Eğitim: {selectedMember.education}</p>
               </div>
             </div>
             <div className="flex justify-end mt-4">
