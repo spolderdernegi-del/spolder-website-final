@@ -192,16 +192,18 @@ const Hakkimizda = () => {
                   </div>
                   <h3 className="font-display text-xl font-bold text-foreground mb-4">{item.title}</h3>
                   {item.title === "Değerler" ? (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {item.text.split("•").map((v) => v.trim()).filter(Boolean).map((value) => (
-                        <span
-                          key={value}
-                          className="text-sm font-medium px-3 py-1.5 rounded-full bg-muted text-foreground/80 border border-border"
-                        >
-                          {value}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-muted-foreground">
+                      {(() => {
+                        const values = item.text.split("•").map((v) => v.trim()).filter(Boolean);
+                        const lowered = values.map((v, i) => (i === 0 ? v : v.toLocaleLowerCase("tr-TR")));
+                        const sentence = lowered.reduce((acc, v, i, arr) => {
+                          if (i === 0) return v;
+                          if (i === arr.length - 1) return `${acc} ve ${v}`;
+                          return `${acc}, ${v}`;
+                        }, "");
+                        return `${sentence}; bize yol gösteren temel değerlerdir.`;
+                      })()}
+                    </p>
                   ) : (
                     <p className="text-muted-foreground">{item.text}</p>
                   )}
