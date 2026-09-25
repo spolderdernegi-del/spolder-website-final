@@ -102,6 +102,42 @@ const AdminContentEditor = () => {
     }
   }, []);
 
+  // Quill, editör ilk açıldığında verilen HTML'i kendi iç modeline (Delta)
+  // çevirirken görsellerin class/style gibi kendi tanımadığı öznitelik-
+  // lerini düşürebiliyor (kaydettikten sonra tekrar açınca hizalama/boyutun
+  // kaybolmasının sebebi buydu). Bunu düzeltmek için, orijinal kaydedilmiş
+  // HTML'i ayrı bir yerde ayrıştırıp, Quill render ettikten SONRA her
+  // görselin class/style'ını (sıraya göre eşleştirerek) geri uyguluyoruz.
+  useEffect(() => {
+    if (!content) return;
+
+    const patchImages = () => {
+      const editor = quillRef.current?.getEditor();
+      if (!editor) return;
+
+      const temp = document.createElement('div');
+      temp.innerHTML = content;
+      const originalImages = Array.from(temp.querySelectorAll('img'));
+      if (originalImages.length === 0) return;
+
+      const liveImages = Array.from(editor.root.querySelectorAll('img'));
+      originalImages.forEach((origImg, i) => {
+        const liveImg = liveImages[i];
+        if (!liveImg) return;
+        const cls = origImg.getAttribute('class');
+        const style = origImg.getAttribute('style');
+        if (cls && liveImg.getAttribute('class') !== cls) liveImg.setAttribute('class', cls);
+        if (style && liveImg.getAttribute('style') !== style) liveImg.setAttribute('style', style);
+      });
+    };
+
+    // Quill'in yeni "value" prop'unu işleyip kendi DOM'unu güncellemesini
+    // beklemek için bir sonraki çizim (frame) döngüsüne bırakılıyor.
+    requestAnimationFrame(() => requestAnimationFrame(patchImages));
+    // Sadece içerik ilk yüklendiğinde (boştan doluya geçince) çalışsın.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content === '']);
+
   // Editör içindeki görsellere tıklanmasını dinler; bir görsele tıklanınca
   // onun üstünde küçük bir hizalama/boyut araç çubuğu gösterir.
   useEffect(() => {
@@ -410,7 +446,7 @@ const AdminContentEditor = () => {
         </div>
       </div>
 
-      <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+      <div className="flex-1 max-w-3xl w-full mx-auto px-4 py-6">
         <div className="full-page-editor bg-card rounded-lg border shadow-sm">
           <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40">
             <span className="text-xs text-muted-foreground">Yazı Boyutu (px)</span>
