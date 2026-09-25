@@ -34,7 +34,7 @@ const HeroSlider = () => {
           .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
-          .order('created_at', { ascending: false });
+          .order('tarih', { ascending: false });
         
         if (!eventsError && events) {
           allSlides.push(...events.map(e => ({
@@ -50,7 +50,7 @@ const HeroSlider = () => {
           .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
-          .order('created_at', { ascending: false });
+          .order('tarih', { ascending: false });
         
         if (!newsError && news) {
           allSlides.push(...news.map(n => ({
@@ -66,7 +66,7 @@ const HeroSlider = () => {
           .select('id, title, description, image, start_date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
-          .order('created_at', { ascending: false });
+          .order('start_date', { ascending: false });
         
         if (!projectsError && projects) {
           allSlides.push(...projects.map(p => ({
@@ -89,7 +89,7 @@ const HeroSlider = () => {
           .select('id, title, excerpt, image, date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
-          .order('created_at', { ascending: false });
+          .order('date', { ascending: false });
         
         if (!blogsError && blogs) {
           allSlides.push(...blogs.map(b => ({

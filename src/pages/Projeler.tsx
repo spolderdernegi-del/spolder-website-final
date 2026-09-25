@@ -34,7 +34,7 @@ const Projeler = () => {
         .from("projects")
         .select("*")
         .eq('publishStatus', 'published')
-        .order("created_at", { ascending: false });
+        .order("start_date", { ascending: false });
       
       if (supabaseError) throw supabaseError;
       setProjects(data || []);

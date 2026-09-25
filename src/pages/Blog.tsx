@@ -35,7 +35,7 @@ const Blog = () => {
         .from("blog")
         .select("*")
         .eq('publishStatus', 'published')
-        .order("created_at", { ascending: false });
+        .order("date", { ascending: false });
       
       if (supabaseError) throw supabaseError;
       setPosts(data || []);

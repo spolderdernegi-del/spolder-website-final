@@ -36,7 +36,7 @@ const Haberler = () => {
         .from("news")
         .select("*")
         .eq('yayin_durumu', 'yayinlandi')
-        .order("created_at", { ascending: false });
+        .order("tarih", { ascending: false });
       
       if (supabaseError) throw supabaseError;
       setNews(data || []);

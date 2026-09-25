@@ -57,7 +57,7 @@ const HaberDetay = () => {
         .select('*')
         .eq('yayin_durumu', 'yayinlandi')
         .neq('id', id)
-        .order('created_at', { ascending: false })
+        .order('tarih', { ascending: false })
         .limit(3);
       
       if (error) throw error;

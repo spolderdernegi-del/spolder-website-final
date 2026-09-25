@@ -39,13 +39,13 @@ const NewsEventsSection = () => {
             .from('news')
             .select('id, baslik, ozet, gorsel, tarih, kategori')
             .eq('yayin_durumu', 'yayinlandi')
-            .order('created_at', { ascending: false })
+            .order('tarih', { ascending: false })
             .limit(4),
           supabase
             .from('events')
             .select('id, baslik, tarih, konum, kategori')
             .eq('yayin_durumu', 'yayinlandi')
-            .order('created_at', { ascending: false })
+            .order('tarih', { ascending: false })
             .limit(4),
         ]);
 
