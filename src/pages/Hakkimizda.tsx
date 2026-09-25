@@ -108,10 +108,10 @@ const Hakkimizda = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-6">
                   <span className="text-sky-500 font-semibold text-sm uppercase tracking-wider">
-                    Başkan Mesajı
+                    Başkanın Mesajı
                   </span>
                   <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                    Sporu Sadece Konuşmuyor, Geleceğini Birlikte Tasarlıyoruz
+                    Sporu Sadece Konuşmuyor,<br />Geleceğini Birlikte Tasarlıyoruz
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
                     Spor Politikaları Derneği olarak spora yalnızca müsabaka, başarı veya fiziksel aktivite üzerinden bakmıyoruz. Sporun; bireyden topluma, eğitimden yönetime, şehirlerden uluslararası ilişkilere kadar geniş bir alanda etkisi olduğuna inanıyor; bu alanlarda daha nitelikli, kapsayıcı ve sürdürülebilir bir spor anlayışının gelişmesine katkı sunmayı amaçlıyoruz.
@@ -191,7 +191,20 @@ const Hakkimizda = () => {
                     <item.icon className="w-8 h-8" />
                   </div>
                   <h3 className="font-display text-xl font-bold text-foreground mb-4">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.text}</p>
+                  {item.title === "Değerler" ? (
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {item.text.split("•").map((v) => v.trim()).filter(Boolean).map((value) => (
+                        <span
+                          key={value}
+                          className="text-sm font-medium px-3 py-1.5 rounded-full bg-turquoise/10 text-turquoise"
+                        >
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">{item.text}</p>
+                  )}
                 </div>
               ))}
             </div>
