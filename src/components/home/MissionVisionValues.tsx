@@ -69,7 +69,7 @@ const MissionVisionValues = () => {
                       if (i === arr.length - 1) return `${acc} ve ${v}`;
                       return `${acc}, ${v}`;
                     }, "");
-                    return `${sentence} ilkeleriyle çalışıyoruz.`;
+                    return `${sentence}; bize yol gösteren temel değerlerdir.`;
                   })()}
                 </p>
               ) : (
