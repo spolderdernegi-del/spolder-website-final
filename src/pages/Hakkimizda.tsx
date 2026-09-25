@@ -96,7 +96,7 @@ const Hakkimizda = () => {
               Hakkımızda
             </h1>
             <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-              SPOLDER Spor Politikaları Derneği'ni tanıyın.
+              Spor Politikaları Derneği'ni tanıyın.
             </p>
           </div>
         </section>
