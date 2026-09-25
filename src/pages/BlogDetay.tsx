@@ -24,6 +24,7 @@ const BlogDetay = () => {
   const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -44,7 +45,24 @@ const BlogDetay = () => {
       }
     };
 
+    const fetchRelatedPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('blog')
+          .select('id, title, excerpt, content, date, author, image, category, categories')
+          .eq('publishStatus', 'published')
+          .neq('id', parseInt(id || "0"))
+          .order('date', { ascending: false })
+          .limit(3);
+        if (error) throw error;
+        setRelatedPosts(data || []);
+      } catch (err) {
+        console.error('Related posts load error', err);
+      }
+    };
+
     fetchPost();
+    fetchRelatedPosts();
   }, [id]);
 
   if (loading) {
@@ -128,18 +146,44 @@ const BlogDetay = () => {
 
         <section className="section-padding">
           <div className="container-custom mx-auto">
-            <div className="max-w-3xl">
-              <article
-                className="prose prose-invert max-w-none mb-8 text-foreground/90 text-lg leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content || post.excerpt || '') }}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              {/* Main Content */}
+              <div className="lg:col-span-2">
+                <article
+                  className="prose prose-invert max-w-none mb-8 text-foreground/90 text-lg leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content || post.excerpt || '') }}
+                />
 
-              <div className="py-8 border-t border-border">
-                <Button onClick={() => window.history.back()} className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Geri Dön
-                </Button>
+                <div className="py-8 border-t border-border">
+                  <Button onClick={() => window.history.back()} className="gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    Geri Dön
+                  </Button>
+                </div>
               </div>
+
+              {/* Sidebar */}
+              {relatedPosts.length > 0 && (
+                <aside className="bg-card rounded-lg p-6 h-fit">
+                  <h3 className="font-display text-lg font-bold text-foreground mb-6">
+                    İlgili Yazılar
+                  </h3>
+                  <div className="space-y-4">
+                    {relatedPosts.map((relatedPost) => (
+                      <Link
+                        to={`/blog/${relatedPost.id}`}
+                        key={relatedPost.id}
+                        className="block p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
+                          {relatedPost.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-2">{relatedPost.date}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </aside>
+              )}
             </div>
           </div>
         </section>

@@ -24,6 +24,7 @@ const ProjeDetay = () => {
   const navigate = useNavigate();
   const [proje, setProje] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [relatedProjects, setRelatedProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -44,7 +45,24 @@ const ProjeDetay = () => {
       }
     };
 
+    const fetchRelatedProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, title, description, content, image, category, status:status, start_date')
+          .eq('publishStatus', 'published')
+          .neq('id', parseInt(id || "0"))
+          .order('start_date', { ascending: false })
+          .limit(3);
+        if (error) throw error;
+        setRelatedProjects((data as Project[]) || []);
+      } catch (err) {
+        console.error('Related projects load error', err);
+      }
+    };
+
     fetchProject();
+    fetchRelatedProjects();
   }, [id]);
 
   if (loading) {
@@ -123,20 +141,46 @@ const ProjeDetay = () => {
 
         <section className="section-padding">
           <div className="container-custom mx-auto">
-            <div className="max-w-3xl">
-              <article className="prose prose-lg dark:prose-invert max-w-none mb-8">
-                <div 
-                  className="text-foreground/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proje.content || '') }}
-                />
-              </article>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              {/* Main Content */}
+              <div className="lg:col-span-2">
+                <article className="prose prose-lg dark:prose-invert max-w-none mb-8">
+                  <div
+                    className="text-foreground/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(proje.content || '') }}
+                  />
+                </article>
 
-              <div className="py-8 border-t border-border">
-                <Button onClick={() => window.history.back()} className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Geri Dön
-                </Button>
+                <div className="py-8 border-t border-border">
+                  <Button onClick={() => window.history.back()} className="gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    Geri Dön
+                  </Button>
+                </div>
               </div>
+
+              {/* Sidebar */}
+              {relatedProjects.length > 0 && (
+                <aside className="bg-card rounded-lg p-6 h-fit">
+                  <h3 className="font-display text-lg font-bold text-foreground mb-6">
+                    İlgili Projeler
+                  </h3>
+                  <div className="space-y-4">
+                    {relatedProjects.map((relatedProject) => (
+                      <Link
+                        to={`/proje/${relatedProject.id}`}
+                        key={relatedProject.id}
+                        className="block p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
+                          {relatedProject.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-2">{relatedProject.start_date}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </aside>
+              )}
             </div>
           </div>
         </section>
