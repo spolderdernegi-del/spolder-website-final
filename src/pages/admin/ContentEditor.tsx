@@ -196,6 +196,22 @@ const AdminContentEditor = () => {
     return editor.getIndex(blot);
   };
 
+  // Quill her değişiklikten sonra o görselin blot'unu (ve dolayısıyla DOM
+  // node'unu) yeniden oluşturabiliyor - bu yüzden elimizdeki eski
+  // "selectedImage" referansı bir sonraki tıklamada geçersiz (stale)
+  // kalabiliyordu, ikinci tıklamanın sessizce hiçbir şey yapmamasına neden
+  // oluyordu. Her değişiklikten sonra bunu günceliyoruz.
+  const refreshSelectedImageRef = (index: number) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const [leafBlot] = editor.getLeaf(index);
+    const img = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+    if (img) {
+      setSelectedImage(img);
+      repositionToolbar(img);
+    }
+  };
+
   const applyWrap = (cls: string) => {
     if (!selectedImage) return;
     const editor = quillRef.current?.getEditor();
@@ -207,8 +223,8 @@ const AdminContentEditor = () => {
     existing.push(cls);
     editor.formatText(index, 1, 'class', existing.join(' '), 'user');
     forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
     syncContentFromDom();
+    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   const applyImageWidthPx = (px: number) => {
@@ -221,8 +237,8 @@ const AdminContentEditor = () => {
     setImageWidth(clamped);
     setImageWidthText(String(clamped));
     forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
     syncContentFromDom();
+    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
@@ -241,8 +257,8 @@ const AdminContentEditor = () => {
     setImageWidth(selectedImage.naturalWidth || 0);
     setImageWidthText(String(selectedImage.naturalWidth || 0));
     forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
     syncContentFromDom();
+    requestAnimationFrame(() => refreshSelectedImageRef(index));
   };
 
   const deleteSelectedImage = () => {
@@ -283,11 +299,10 @@ const AdminContentEditor = () => {
     setCropSrc(null);
 
     requestAnimationFrame(() => {
+      refreshSelectedImageRef(index);
       const [leafBlot] = editor.getLeaf(index);
       const newImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
       if (newImg) {
-        setSelectedImage(newImg);
-        repositionToolbar(newImg);
         setImageWidth(Math.round(newImg.getBoundingClientRect().width));
         setImageWidthText(String(Math.round(newImg.getBoundingClientRect().width)));
       }
