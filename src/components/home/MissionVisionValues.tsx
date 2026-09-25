@@ -60,16 +60,18 @@ const MissionVisionValues = () => {
                 {item.title}
               </h3>
               {item.title === "Değerlerimiz" ? (
-                <div className="flex flex-wrap gap-2">
-                  {item.description.split("•").map((v) => v.trim()).filter(Boolean).map((value) => (
-                    <span
-                      key={value}
-                      className="text-sm font-medium px-3 py-1.5 rounded-full bg-muted text-foreground/80 border border-border"
-                    >
-                      {value}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  {(() => {
+                    const values = item.description.split("•").map((v) => v.trim()).filter(Boolean);
+                    const lowered = values.map((v, i) => (i === 0 ? v : v.toLocaleLowerCase("tr-TR")));
+                    const sentence = lowered.reduce((acc, v, i, arr) => {
+                      if (i === 0) return v;
+                      if (i === arr.length - 1) return `${acc} ve ${v}`;
+                      return `${acc}, ${v}`;
+                    }, "");
+                    return `${sentence} ilkeleriyle çalışıyoruz.`;
+                  })()}
+                </p>
               ) : (
                 <p className="text-muted-foreground leading-relaxed">
                   {item.description}
