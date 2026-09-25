@@ -4,10 +4,9 @@ import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, AlignLeft, AlignRight, Rows3, Crop, Trash2, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Save, ChevronUp, ChevronDown, FileText, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { uploadImage } from '@/lib/uploadImage';
-import ImageCropDialog from '@/components/admin/ImageCropDialog';
 
 // Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden serbest
 // değerlerle çalışacak şekilde ayarlıyoruz (Word'deki gibi elle yazılabilir
@@ -18,44 +17,10 @@ const SizeStyle = Quill.import('attributors/style/size') as any;
 SizeStyle.whitelist = null; // whitelist yok = herhangi bir px değeri kabul edilir
 Quill.register(SizeStyle, true);
 
-// Quill'in varsayılan Görsel (Image) blot'u, class/style gibi kendi
-// tanımadığı öznitelikleri (attribute) sildiği için, araç çubuğundan
-// uyguladığımız hizalama/boyut class'ları ve kırpma sonrası değişen src,
-// Quill'in kontrollü render döngüsünde SIFIRLANIYORDU (kırpılan görsel
-// orijinaline dönüyordu). Bunu kalıcı olarak çözmek için Image blot'u,
-// bu öznitelikleri de koruyacak şekilde genişletiyoruz. Bu da Quill'in
-// resmi, dokümante edilmiş genişletme yöntemi.
-const ImageFormat = Quill.import('formats/image') as any;
-const IMAGE_ATTRIBUTES = ['alt', 'height', 'width', 'style', 'class'];
-class CustomImage extends ImageFormat {
-  static formats(domNode: HTMLElement) {
-    return IMAGE_ATTRIBUTES.reduce((formats: Record<string, string>, attribute) => {
-      if (domNode.hasAttribute(attribute)) {
-        formats[attribute] = domNode.getAttribute(attribute) || '';
-      }
-      return formats;
-    }, {});
-  }
-  format(name: string, value: any) {
-    if (IMAGE_ATTRIBUTES.indexOf(name) > -1) {
-      if (value) {
-        (this as any).domNode.setAttribute(name, value);
-      } else {
-        (this as any).domNode.removeAttribute(name);
-      }
-    } else {
-      super.format(name, value);
-    }
-  }
-}
-Quill.register(CustomImage, true);
-
 const INFLIGHT_KEY = 'spolder_admin_content_inflight';
 const RESULT_KEY = 'spolder_admin_content_result';
 const MAX_INLINE_IMAGE_MB = 3;
-
-// Görsele uygulanabilecek metin sarma (wrap) sınıfları - birbirini dışlar.
-const WRAP_CLASSES = ['img-float-left', 'img-float-right', 'img-align-center', 'img-inline', 'img-wrap-topbottom'];
+const MAX_DOCX_MB = 15;
 
 interface InflightDraft {
   content: string;
@@ -69,12 +34,7 @@ const AdminContentEditor = () => {
   const [draft, setDraft] = useState<InflightDraft | null>(null);
   const [content, setContent] = useState('');
   const [notFound, setNotFound] = useState(false);
-
-  // Editör içinde tıklanan görsel ve onun için gösterilen küçük araç çubuğu.
-  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
-  const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [, forceRerender] = useState(0);
+  const [importingDocx, setImportingDocx] = useState(false);
 
   // Word'deki gibi, imlecin bulunduğu yerin yazı boyutunu gösteren/değiştiren
   // sayısal kutu. "...Text" olanlar serbestçe yazılabilsin diye ayrı tutuluyor;
@@ -83,9 +43,6 @@ const AdminContentEditor = () => {
   // yazılamıyordu.
   const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [fontSizeText, setFontSizeText] = useState(String(DEFAULT_FONT_SIZE));
-  // Seçili görselin genişliği (px) - araç çubuğundaki sayısal kutuda gösterilir.
-  const [imageWidth, setImageWidth] = useState(0);
-  const [imageWidthText, setImageWidthText] = useState('');
 
   useEffect(() => {
     const raw = sessionStorage.getItem(INFLIGHT_KEY);
@@ -101,68 +58,6 @@ const AdminContentEditor = () => {
       setNotFound(true);
     }
   }, []);
-
-  // Quill, editör ilk açıldığında verilen HTML'i kendi iç modeline (Delta)
-  // çevirirken görsellerin class/style gibi kendi tanımadığı öznitelik-
-  // lerini düşürebiliyor (kaydettikten sonra tekrar açınca hizalama/boyutun
-  // kaybolmasının sebebi buydu). Bunu düzeltmek için, orijinal kaydedilmiş
-  // HTML'i ayrı bir yerde ayrıştırıp, Quill render ettikten SONRA her
-  // görselin class/style'ını (sıraya göre eşleştirerek) geri uyguluyoruz.
-  useEffect(() => {
-    if (!content) return;
-
-    const patchImages = () => {
-      const editor = quillRef.current?.getEditor();
-      if (!editor) return;
-
-      const temp = document.createElement('div');
-      temp.innerHTML = content;
-      const originalImages = Array.from(temp.querySelectorAll('img'));
-      if (originalImages.length === 0) return;
-
-      const liveImages = Array.from(editor.root.querySelectorAll('img'));
-      originalImages.forEach((origImg, i) => {
-        const liveImg = liveImages[i];
-        if (!liveImg) return;
-        const cls = origImg.getAttribute('class');
-        const style = origImg.getAttribute('style');
-        if (cls && liveImg.getAttribute('class') !== cls) liveImg.setAttribute('class', cls);
-        if (style && liveImg.getAttribute('style') !== style) liveImg.setAttribute('style', style);
-      });
-    };
-
-    // Quill'in yeni "value" prop'unu işleyip kendi DOM'unu güncellemesini
-    // beklemek için bir sonraki çizim (frame) döngüsüne bırakılıyor.
-    requestAnimationFrame(() => requestAnimationFrame(patchImages));
-    // Sadece içerik ilk yüklendiğinde (boştan doluya geçince) çalışsın.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content === '']);
-
-  // Editör içindeki görsellere tıklanmasını dinler; bir görsele tıklanınca
-  // onun üstünde küçük bir hizalama/boyut araç çubuğu gösterir.
-  useEffect(() => {
-    const editor = quillRef.current?.getEditor();
-    const root = editor?.root;
-    if (!root) return;
-
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'IMG') {
-        const img = target as HTMLImageElement;
-        const r = img.getBoundingClientRect();
-        setSelectedImage(img);
-        setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
-        setImageWidth(Math.round(img.getBoundingClientRect().width));
-        setImageWidthText(String(Math.round(img.getBoundingClientRect().width)));
-      } else {
-        setSelectedImage(null);
-        setToolbarPos(null);
-      }
-    };
-
-    root.addEventListener('click', onClick);
-    return () => root.removeEventListener('click', onClick);
-  }, [content === '']); // İçerik ilk yüklendiğinde editör hazır olunca yeniden bağlan
 
   // İmlecin bulunduğu yerin yazı boyutunu izler, Word'deki punto kutusunu günceller.
   useEffect(() => {
@@ -209,106 +104,18 @@ const AdminContentEditor = () => {
     applyFontSize(Number.isNaN(parsed) ? fontSize : parsed);
   };
 
-  const repositionToolbar = (img: HTMLImageElement) => {
-    const r = img.getBoundingClientRect();
-    setToolbarPos({ top: r.top + window.scrollY - 48, left: r.left + window.scrollX });
-  };
-
   const syncContentFromDom = () => {
     const editor = quillRef.current?.getEditor();
     if (editor) setContent(editor.root.innerHTML);
   };
 
-  // Görsel değişiklikleri (hizalama, boyut, kırpma, silme) doğrudan DOM
-  // üzerinde yapılır - Quill.find()/getIndex() üzerinden "bu görsel belgede
-  // kaçıncı sırada" bulmaya çalışmak güvenilmez çıktı (bazen ikinci
-  // tıklamada, bazen arka planda görsel yüklenip src değiştiğinde
-  // bozuluyordu). class/style/src doğrudan img elementi üzerinde
-  // değiştirilip son hali syncContentFromDom() ile React state'ine
-  // yazılıyor - CustomImage blot'u bu öznitelikleri koruduğu için Quill
-  // bunu bir sonraki render'da silmiyor.
-  const applyWrap = (cls: string) => {
-    if (!selectedImage) return;
-    WRAP_CLASSES.forEach((c) => selectedImage.classList.remove(c));
-    selectedImage.classList.add(cls);
-    forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
-    syncContentFromDom();
-  };
-
-  const applyImageWidthPx = (px: number) => {
-    if (!selectedImage) return;
-    const clamped = Math.max(20, Math.min(2000, Math.round(px)));
-    selectedImage.style.width = `${clamped}px`;
-    selectedImage.style.height = 'auto';
-    setImageWidth(clamped);
-    setImageWidthText(String(clamped));
-    forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
-    syncContentFromDom();
-  };
-
-  // Kutudan çıkılınca (blur) veya Enter'a basılınca çağrılır; o ana kadar
-  // kullanıcı sınırlanmadan istediği sayıyı serbestçe yazabilir.
-  const commitImageWidth = () => {
-    const parsed = parseInt(imageWidthText, 10);
-    applyImageWidthPx(Number.isNaN(parsed) ? imageWidth : parsed);
-  };
-
-  const resetImageSize = () => {
-    if (!selectedImage) return;
-    selectedImage.style.width = '';
-    selectedImage.style.height = '';
-    setImageWidth(selectedImage.naturalWidth || 0);
-    setImageWidthText(String(selectedImage.naturalWidth || 0));
-    forceRerender((n) => n + 1);
-    repositionToolbar(selectedImage);
-    syncContentFromDom();
-  };
-
-  const deleteSelectedImage = () => {
-    if (!selectedImage) return;
-    selectedImage.remove();
-    setSelectedImage(null);
-    setToolbarPos(null);
-    syncContentFromDom();
-  };
-
-  const openCrop = () => {
-    if (!selectedImage) return;
-    setCropSrc(selectedImage.src);
-  };
-
-  // Bir görselin src'sini doğrudan değiştirir (kırpma sonrası ve arka
-  // planda base64 -> gerçek URL takası için ortak kullanılır). src, tek
-  // bir öznitelik değişikliği olduğu için Quill'in belge yapısına hiç
-  // dokunulmuyor, herhangi bir node yeniden oluşturma riski yok.
-  const swapImageSrc = (img: HTMLImageElement, newSrc: string) => {
-    img.src = newSrc;
-    syncContentFromDom();
-  };
-
-  const handleCropDone = (croppedDataUrl: string) => {
-    if (!selectedImage) {
-      setCropSrc(null);
-      return;
-    }
-    const img = selectedImage;
-    img.src = croppedDataUrl;
-    setCropSrc(null);
-    forceRerender((n) => n + 1);
-    repositionToolbar(img);
-    setImageWidth(Math.round(img.getBoundingClientRect().width));
-    setImageWidthText(String(Math.round(img.getBoundingClientRect().width)));
-    syncContentFromDom();
-
-    // Kırpılan görsel de gerçek bir dosyaya yüklenip src arka planda
-    // değiştirilir - base64 olarak kalmasın diye.
-    uploadImage(croppedDataUrl)
-      .then((url) => swapImageSrc(img, url))
-      .catch((err) => console.error('Kırpılan görsel yüklenemedi, base64 olarak kalacak:', err));
-  };
-
+  // Basitleştirilmiş görsel ekleme: resim imlecin olduğu yere, tam
+  // genişlikte, metnin arasına düz bir şekilde eklenir - hizalama/sarma/
+  // kırpma gibi özel durumlar yok. Bu, önceki karmaşık sürümde tekrar
+  // tekrar hatalara sebep olan kısımdı; basit ve garanti çalışan bir
+  // davranış tercih edildi. Görsel arka planda gerçek bir dosyaya
+  // yüklenip src'si (yalnızca bir öznitelik değişikliği, belge yapısına
+  // dokunmuyor) güncelleniyor.
   const imageHandler = () => {
     const editor = quillRef.current?.getEditor();
     const range = editor?.getSelection(true);
@@ -336,22 +143,18 @@ const AdminContentEditor = () => {
         // Önce base64 olarak hemen eklenir (beklemeden görünsün diye),
         // arka planda gerçek dosyaya yüklenip src ile değiştirilir.
         ed.insertEmbed(insertIndex, 'image', dataUrl);
-        // Kullanıcı ayrıca "Sola Yasla" demek zorunda kalmasın diye,
-        // eklenen her görsel varsayılan olarak zaten sola yaslı ve makul
-        // boyutta gelir - metin hemen yanına sarmaya başlar.
-        ed.formatText(insertIndex, 1, 'class', 'img-float-left', 'user');
-        ed.formatText(insertIndex, 1, 'style', 'width: 320px; height: auto;', 'user');
         ed.setSelection(insertIndex + 1, 0);
         syncContentFromDom();
 
-        // Az sonra (bir sonraki tık) bu görsele DOM üzerinden erişebilmek
-        // için gerçek node'u burada saklıyoruz.
         requestAnimationFrame(() => {
           const [leafBlot] = ed.getLeaf(insertIndex);
           const insertedImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
           if (!insertedImg) return;
           uploadImage(dataUrl)
-            .then((url) => swapImageSrc(insertedImg, url))
+            .then((url) => {
+              insertedImg.src = url;
+              syncContentFromDom();
+            })
             .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
         });
       };
@@ -359,10 +162,59 @@ const AdminContentEditor = () => {
     };
   };
 
+  // Word (.docx) belgesi yükleme: admin, içeriği (resimler, başlıklar,
+  // kalın/italik metin dahil) Word'de yazıp tek bir dosya olarak
+  // yükleyebilir. Backend bunu HTML'e çevirir, gömülü görselleri gerçek
+  // dosyalara kaydedip gerçek URL'lerle referanslar. Mevcut içeriğin
+  // TAMAMININ yerini alır.
+  const docxHandler = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', '.docx');
+    input.click();
+
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      if (file.size > MAX_DOCX_MB * 1024 * 1024) {
+        alert(`Dosya çok büyük (max ${MAX_DOCX_MB}MB).`);
+        return;
+      }
+
+      if (content.trim() && !confirm('Bu, mevcut içeriğin TAMAMININ yerini alacak. Devam edilsin mi?')) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        setImportingDocx(true);
+        try {
+          const dataUrl = reader.result as string;
+          const res = await fetch('/api/upload/docx-to-html', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: dataUrl }),
+          });
+          const json = await res.json();
+          if (!res.ok || json.error) {
+            throw new Error(json?.error?.message || 'Word dosyası dönüştürülemedi');
+          }
+          setContent(json.data.html);
+          toast.success('Word belgesi başarıyla içe aktarıldı');
+        } catch (err: any) {
+          toast.error('Word dosyası içe aktarılamadı: ' + err.message);
+        } finally {
+          setImportingDocx(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+  };
+
   // Word'e benzer, genişletilmiş ama yalnızca Quill'in kendi çekirdek
-  // (native) formatlarını kullanan bir araç çubuğu. Geçen seferki çökme
-  // üçüncü parti bir eklentiden kaynaklandığı için, burada sadece
-  // Quill'in kendi test edilmiş özellikleri kullanılıyor.
+  // (native) formatlarını kullanan bir araç çubuğu.
   const modules = useMemo(() => ({
     toolbar: {
       container: [
@@ -391,9 +243,6 @@ const AdminContentEditor = () => {
 
   const handleSave = () => {
     if (!draft) return;
-    // Görsel araç çubuğundaki değişiklikler React state'ine anlık
-    // yansıtılmıyor (yukarıdaki not), o yüzden burada gerçek/güncel
-    // HTML'i doğrudan editörün DOM'undan okuyoruz.
     const editor = quillRef.current?.getEditor();
     const finalContent = editor ? editor.root.innerHTML : content;
     sessionStorage.setItem(RESULT_KEY, JSON.stringify({ content: finalContent }));
@@ -439,10 +288,16 @@ const AdminContentEditor = () => {
               </p>
             </div>
           </div>
-          <Button type="button" onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" />
-            Kaydet ve Geri Dön
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" onClick={docxHandler} disabled={importingDocx} className="gap-2">
+              {importingDocx ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+              {importingDocx ? 'Aktarılıyor...' : 'Word Dosyası Yükle'}
+            </Button>
+            <Button type="button" onClick={handleSave} className="gap-2">
+              <Save className="w-4 h-4" />
+              Kaydet ve Geri Dön
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -487,65 +342,10 @@ const AdminContentEditor = () => {
             onChange={setContent}
             modules={modules}
             formats={formats}
-            placeholder="İçeriğinizi buraya yazın..."
+            placeholder="İçeriğinizi buraya yazın, veya sağ üstteki 'Word Dosyası Yükle' ile Word'de hazırladığınız belgeyi içe aktarın..."
           />
         </div>
       </div>
-
-      {/* Görsele tıklanınca çıkan hizalama/boyut araç çubuğu (Word'deki "Resim Biçimi" mantığına benzer, sadeleştirilmiş) */}
-      {selectedImage && toolbarPos && (
-        <div
-          className="fixed z-30 bg-card border rounded-md shadow-lg p-1.5 flex items-center gap-1 flex-wrap max-w-sm"
-          style={{ top: toolbarPos.top, left: toolbarPos.left }}
-        >
-          <span className="text-[10px] text-muted-foreground px-1 w-full">Metin Sarma</span>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel sola, metin sağından devam etsin" onClick={() => applyWrap('img-float-left')}>
-            <AlignLeft className="w-3.5 h-3.5" />
-            Sola Yasla
-          </Button>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel sağa, metin solundan devam etsin" onClick={() => applyWrap('img-float-right')}>
-            <AlignRight className="w-3.5 h-3.5" />
-            Sağa Yasla
-          </Button>
-          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" title="Görsel kendi satırında, tam genişlikte dursun, metin sarmasın" onClick={() => applyWrap('img-wrap-topbottom')}>
-            <Rows3 className="w-3.5 h-3.5" />
-            Tam Genişlik
-          </Button>
-
-          <span className="text-[10px] text-muted-foreground px-1 w-full mt-1">Genişlik (px)</span>
-          <div className="flex items-center gap-1 w-full">
-            <Input
-              type="number"
-              value={imageWidthText}
-              onChange={(e) => setImageWidthText(e.target.value)}
-              onBlur={commitImageWidth}
-              onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur())}
-              className="h-7 text-xs px-2 w-20"
-            />
-            <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={resetImageSize}>
-              Orijinal
-            </Button>
-          </div>
-
-          <div className="w-full flex justify-between mt-1 pt-1 border-t">
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Görseli kırp" onClick={openCrop}>
-              <Crop className="w-3.5 h-3.5" />
-            </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Görseli sil" onClick={deleteSelectedImage}>
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" title="Kapat" onClick={() => { setSelectedImage(null); setToolbarPos(null); }}>
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <ImageCropDialog
-        imageSrc={cropSrc}
-        onClose={() => setCropSrc(null)}
-        onCropDone={handleCropDone}
-      />
 
       <style>{`
         .full-page-editor .ql-toolbar {
@@ -564,47 +364,11 @@ const AdminContentEditor = () => {
           min-height: calc(100vh - 260px);
           padding: 2rem 3rem;
         }
-        .full-page-editor .ql-editor p {
-          margin-bottom: 0.4em;
-        }
-        .full-page-editor .ql-editor::after {
-          content: '';
-          display: block;
-          clear: both;
-        }
         .full-page-editor .ql-editor img {
           max-width: 100%;
           height: auto;
           border-radius: 0.375rem;
           margin: 0.5rem 0;
-          cursor: pointer;
-        }
-        .full-page-editor .ql-editor img.img-float-left {
-          float: left !important;
-          margin: 0.25rem 2rem 1rem 0 !important;
-          max-width: 45%;
-        }
-        .full-page-editor .ql-editor img.img-float-right {
-          float: right !important;
-          margin: 0.25rem 0 1rem 2rem !important;
-          max-width: 45%;
-        }
-        .full-page-editor .ql-editor img.img-align-center {
-          display: block;
-          margin-left: auto !important;
-          margin-right: auto !important;
-          float: none;
-        }
-        .full-page-editor .ql-editor img.img-inline {
-          float: none;
-          display: inline-block;
-          margin: 0.5rem 0;
-        }
-        .full-page-editor .ql-editor img.img-wrap-topbottom {
-          display: block;
-          float: none;
-          clear: both;
-          margin: 1rem 0;
         }
         .dark .full-page-editor .ql-toolbar {
           border-color: #334155;

@@ -12,6 +12,7 @@ import { Pool } from "pg";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
+import mammoth from "mammoth";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -641,6 +642,15 @@ const ALLOWED_UPLOAD_MIME = {
 };
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB (rapor/PDF dosyaları görsellerden büyük olabiliyor)
 
+// Bir buffer'ı benzersiz bir isimle uploads/ klasörüne yazıp herkese açık
+// URL'ini döner - hem /api/upload hem de aşağıdaki Word dönüştürme (içine
+// gömülü görseller için) tarafından ortak kullanılır.
+const saveBufferToUploads = (buffer, extension) => {
+  const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
+  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+  return `/uploads/${filename}`;
+};
+
 app.post(
   "/api/upload",
   writeLimiter,
@@ -666,10 +676,50 @@ app.post(
       throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
     }
 
-    const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
-    fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+    return res.json({ data: { url: saveBufferToUploads(buffer, extension) }, error: null });
+  }),
+);
 
-    return res.json({ data: { url: `/uploads/${filename}` }, error: null });
+// --- Word (.docx) belgesini içerik editörü HTML'ine çevirme ----------------
+// Admin, içeriği (resimler dahil) doğrudan Word'de yazıp tek bir .docx
+// dosyası olarak yükleyebilir - Word'ün kendi olgun resim/biçimlendirme
+// araçlarını yeniden icat etmek yerine kullanıyoruz. Belgedeki her gömülü
+// görsel gerçek bir dosyaya kaydedilip HTML'de gerçek bir URL ile
+// referans veriliyor (base64 olarak kalmıyor).
+app.post(
+  "/api/upload/docx-to-html",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { data } = req.body || {};
+    if (typeof data !== "string" || !data.startsWith("data:")) {
+      throw new HttpError(400, "Geçersiz dosya verisi");
+    }
+    const match = data.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new HttpError(400, "Geçersiz base64 formatı");
+    }
+    const [, , base64Payload] = match;
+    const buffer = Buffer.from(base64Payload, "base64");
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
+    }
+
+    const imageHandler = mammoth.images.imgElement(async (image) => {
+      const contentTypeToExt = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/gif": "gif",
+        "image/bmp": "bmp",
+      };
+      const ext = contentTypeToExt[image.contentType] || "png";
+      const imgBuffer = Buffer.from(await image.read("base64"), "base64");
+      const url = saveBufferToUploads(imgBuffer, ext);
+      return { src: url };
+    });
+
+    const result = await mammoth.convertToHtml({ buffer }, { convertImage: imageHandler });
+    return res.json({ data: { html: result.value, warnings: result.messages }, error: null });
   }),
 );
 // uploads/ klasörü dist/ İÇİNDE DEĞİL - her "npm run build" dist/ klasörünü
