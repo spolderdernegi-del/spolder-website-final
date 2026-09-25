@@ -5,6 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import "dotenv/config";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { Pool } from "pg";
 import jwt from "jsonwebtoken";
@@ -612,6 +613,75 @@ app.delete(
     if (!whereClause) throw new HttpError(400, "Silme işlemi için filtre gereklidir");
     const result = await queryDatabase(`DELETE FROM "${table}" ${whereClause} RETURNING *`, params);
     return res.json({ data: result.rows, error: null });
+  }),
+);
+
+// --- Sosyal medya paylaşım önizlemeleri (WhatsApp, Facebook vb.) ----------
+// Bu bir tek-sayfa uygulaması (SPA) olduğu için normalde her sayfa AYNI
+// index.html'i (ve dolayısıyla aynı sabit og:image/og:title'ı) döndürür.
+// WhatsApp/Facebook'un önizleme botları JavaScript çalıştırmadığı için
+// React'in sayfa başlığını/görselini sonradan değiştirmesini hiç görmezler.
+// Bu yüzden haber/etkinlik/proje/blog detay adresleri için, o içeriğe özel
+// meta etiketleriyle DEĞİŞTİRİLMİŞ bir index.html döndürüyoruz - normal
+// ziyaretçiler için site yine olağan şekilde çalışmaya devam ediyor,
+// React üstüne binip render ediyor.
+const DETAIL_META_ROUTES = [
+  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
+  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
+  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image" },
+  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image" },
+];
+const DEFAULT_OG_IMAGE = "https://spolder.org/og-image.png";
+const escapeHtmlAttr = (v) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+app.get(
+  /^\/(haber|etkinlik|proje|blog)\/[^/]+\/?$/,
+  asyncHandler(async (req, res, next) => {
+    const route = DETAIL_META_ROUTES.find((r) => req.path.startsWith(r.prefix));
+    const id = route ? req.path.slice(route.prefix.length).replace(/\/$/, "") : null;
+    if (!route || !id || !/^\d+$/.test(id)) return next();
+
+    const indexPath = path.join(__dirname, "..", "dist", "index.html");
+    let html;
+    try {
+      html = fs.readFileSync(indexPath, "utf-8");
+    } catch {
+      return next(); // dist henüz yoksa (ör. dev ortamı) normal akışa düş
+    }
+
+    const result = await queryDatabase(
+      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1`,
+      [id],
+    );
+    const item = result.rows[0];
+
+    if (item) {
+      const title = escapeHtmlAttr(item.title || "SPOLDER");
+      const description = escapeHtmlAttr(String(item.description || "").slice(0, 200));
+      // base64 (data:) görseller paylaşım botları tarafından getirilemez
+      // (gerçek bir URL değiller) - bu durumda varsayılan kapak görseline düşülür.
+      const rawImage = item.image || "";
+      const image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
+      const url = `https://spolder.org${req.path}`;
+
+      html = html
+        .replace(/<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`)
+        .replace(/<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`)
+        .replace(/<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`)
+        .replace(/<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`)
+        .replace(/<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(url)}" />`)
+        .replace(/<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${title}" />`)
+        .replace(/<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`)
+        .replace(/<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
+    }
+
+    res.set("Content-Type", "text/html; charset=UTF-8");
+    return res.send(html);
   }),
 );
 
