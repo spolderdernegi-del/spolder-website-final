@@ -247,7 +247,7 @@ const AdminContentEditor = () => {
     const finalContent = editor ? editor.root.innerHTML : content;
     sessionStorage.setItem(RESULT_KEY, JSON.stringify({ content: finalContent }));
     sessionStorage.removeItem(INFLIGHT_KEY);
-    toast.success('İçerik güncellendi, geri dönülüyor...');
+    toast.success('İçerik forma aktarıldı - kalıcı olması için "Kaydet" butonuna basmayı unutmayın!');
     navigate(draft.returnPath || '/admin');
   };
 
@@ -283,8 +283,9 @@ const AdminContentEditor = () => {
               <h1 className="font-semibold text-foreground leading-tight">
                 {draft?.title || 'İçerik Düzenle'}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Değişiklikler yalnızca "Kaydet ve Geri Dön" ile kalıcı olur.
+              <p className="text-xs text-amber-600 dark:text-amber-500 font-medium">
+                ⚠️ Bu buton içeriği forma aktarır. KALICI olması için geri döndüğünüzde
+                formdaki asıl "Kaydet" butonuna da basmanız gerekir.
               </p>
             </div>
           </div>
@@ -295,7 +296,7 @@ const AdminContentEditor = () => {
             </Button>
             <Button type="button" onClick={handleSave} className="gap-2">
               <Save className="w-4 h-4" />
-              Kaydet ve Geri Dön
+              İçeriği Aktar ve Geri Dön
             </Button>
           </div>
         </div>
