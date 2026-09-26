@@ -865,7 +865,7 @@ app.get(
     );
 
     const contentQueries = [
-      { table: "news", prefix: "/haber/", dateCol: "tarih", statusCol: "publishStatus", publishedVal: "published" },
+      { table: "news", prefix: "/haber/", dateCol: "tarih", statusCol: "yayin_durumu", publishedVal: "yayinlandi" },
       { table: "events", prefix: "/etkinlik/", dateCol: "tarih", statusCol: "yayin_durumu", publishedVal: "yayinlandi" },
       { table: "projects", prefix: "/proje/", dateCol: "start_date", statusCol: "publishStatus", publishedVal: "published" },
       { table: "blog", prefix: "/blog/", dateCol: "date", statusCol: "publishStatus", publishedVal: "published" },
