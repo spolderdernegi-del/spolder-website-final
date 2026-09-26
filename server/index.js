@@ -765,7 +765,15 @@ app.post(
 // uploads/ klasörü dist/ İÇİNDE DEĞİL - her "npm run build" dist/ klasörünü
 // yeniden oluşturur ve içindekileri siler, uploads/ ayrı tutulmazsa her
 // deploy'da tüm yüklenen görseller kaybolurdu.
-app.use("/uploads", express.static(UPLOADS_DIR));
+// Yüklenen dosyaların adı zaten benzersiz (zaman damgası + rastgele hex),
+// yani bir dosya yolu asla farklı bir içerikle değişmez - uzun süre
+// cache'lenmesi güvenli.
+app.use(
+  "/uploads",
+  express.static(UPLOADS_DIR, {
+    setHeaders: (res) => res.setHeader("Cache-Control", "public, max-age=31536000, immutable"),
+  }),
+);
 
 // --- Sosyal medya paylaşım önizlemeleri (WhatsApp, Facebook vb.) ----------
 // Bu bir tek-sayfa uygulaması (SPA) olduğu için normalde her sayfa AYNI
@@ -894,8 +902,27 @@ app.get(
   }),
 );
 
-app.use(express.static(path.join(__dirname, "..", "dist")));
+// Vite, her build'de dist/assets/ içine yeni hash'li dosya adları
+// (ör. index-DIphAxY9.js) üretip eskilerini siler. Bu yüzden:
+//  - /assets/* dosyaları TARAYICIDA UZUN SÜRE (1 yıl, immutable) cache'lenebilir;
+//    hash değiştiği için içerik değiştiğinde zaten yeni bir dosya adı gelir.
+//  - index.html ASLA cache'lenmemeli; yoksa bir deploy sonrası tarayıcısında
+//    eski index.html duran bir ziyaretçi, artık sunucuda olmayan eski hash'li
+//    JS/CSS dosyasını ister ve sayfa bozuk/yavaş açılır.
+// Önceden ikisi de aynı (zayıf, varsayılan) şekilde cache'leniyordu.
+app.use(
+  express.static(path.join(__dirname, "..", "dist"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  }),
+);
 app.get(/^\/(?!api\/).*/, (req, res) => {
+  res.set("Cache-Control", "no-cache");
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
 
