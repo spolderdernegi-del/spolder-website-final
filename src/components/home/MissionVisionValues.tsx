@@ -47,9 +47,7 @@ const MissionVisionValues = () => {
               }`} />
               
               {/* Icon */}
-              <div className={`w-16 h-16 rounded-lg flex items-center justify-center mb-6 ${
-                item.title === "Değerlerimiz" ? "mx-auto" : ""
-              } ${
+              <div className={`w-16 h-16 rounded-lg flex items-center justify-center mb-6 mx-auto ${
                 item.color === "primary" ? "bg-primary/10 text-primary" :
                 item.color === "secondary" ? "bg-secondary/10 text-secondary" :
                 "bg-turquoise/10 text-turquoise"
@@ -58,9 +56,7 @@ const MissionVisionValues = () => {
               </div>
 
               {/* Content */}
-              <h3 className={`font-display text-xl font-bold text-foreground mb-4 ${
-                item.title === "Değerlerimiz" ? "text-center" : ""
-              }`}>
+              <h3 className="font-display text-xl font-bold text-foreground mb-4 text-center">
                 {item.title}
               </h3>
               {item.title === "Değerlerimiz" ? (

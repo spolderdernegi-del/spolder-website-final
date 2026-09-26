@@ -205,7 +205,7 @@ const Hakkimizda = () => {
                       })()}
                     </p>
                   ) : (
-                    <p className="text-muted-foreground">{item.text}</p>
+                    <p className="text-muted-foreground text-left">{item.text}</p>
                   )}
                 </div>
               ))}
