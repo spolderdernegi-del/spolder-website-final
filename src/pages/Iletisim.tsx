@@ -90,6 +90,20 @@ const Iletisim = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Telefon alanı sadece rakam, boşluk, +, -, ( ) karakterlerine izin
+    // verir - "tel" tipi girişte harf yazılmasını engellemediği için bunu
+    // ayrıca kontrol ediyoruz.
+    const phonePattern = /^[0-9+\-()\s]+$/;
+    if (!phonePattern.test(formData.phone.trim())) {
+      toast.error("Lütfen geçerli bir telefon numarası girin (sadece rakam ve +, -, ( ) karakterleri).");
+      return;
+    }
+    if (formData.phone.replace(/[^0-9]/g, "").length < 10) {
+      toast.error("Lütfen geçerli bir telefon numarası girin (en az 10 haneli).");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.from('contact_messages').insert([
@@ -273,6 +287,8 @@ const Iletisim = () => {
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           placeholder="05XX XXX XX XX"
+                          pattern="[0-9+\-()\s]{10,}"
+                          title="Lütfen geçerli bir telefon numarası girin (sadece rakam, en az 10 haneli)"
                           required
                         />
                       </div>
