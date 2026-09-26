@@ -13,6 +13,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import mammoth from "mammoth";
+import JSZip from "jszip";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -719,7 +720,45 @@ app.post(
     });
 
     const result = await mammoth.convertToHtml({ buffer }, { convertImage: imageHandler });
-    return res.json({ data: { html: result.value, warnings: result.messages }, error: null });
+    let html = result.value;
+
+    // mammoth, Word'de bir görsele belirlenen GÖRÜNTÜLEME boyutunu
+    // (wp:extent) yok sayıp resmi ham/orijinal piksel boyutuyla
+    // döndürüyor - bu da Word'de göründüğünden farklı (genelde daha
+    // büyük/farklı en-boy oranlı) görünmesine sebep oluyordu. Bunu
+    // .docx'in kendi XML'inden ayrıca okuyup, sırayla eşleştirerek HTML'e
+    // geri uyguluyoruz.
+    try {
+      const zip = await JSZip.loadAsync(buffer);
+      const documentXml = await zip.file("word/document.xml")?.async("string");
+      if (documentXml) {
+        const extents = [];
+        const extentRegex = /<wp:extent\s+cx="(\d+)"\s+cy="(\d+)"/g;
+        let m;
+        while ((m = extentRegex.exec(documentXml)) !== null) {
+          // EMU -> CSS piksel: 914400 EMU = 1 inç = 96px
+          extents.push({
+            width: Math.round(Number(m[1]) / 9525),
+            height: Math.round(Number(m[2]) / 9525),
+          });
+        }
+
+        if (extents.length > 0) {
+          let imgIndex = 0;
+          html = html.replace(/<img([^>]*?)\/?>/g, (full, attrs) => {
+            const extent = extents[imgIndex];
+            imgIndex += 1;
+            if (!extent) return full;
+            const cleanAttrs = attrs.replace(/\/\s*$/, "").trim();
+            return `<img ${cleanAttrs} style="width: ${extent.width}px; height: ${extent.height}px;" />`;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Word görsel boyutları okunamadı, varsayılan boyut kullanılacak:", err.message);
+    }
+
+    return res.json({ data: { html, warnings: result.messages }, error: null });
   }),
 );
 // uploads/ klasörü dist/ İÇİNDE DEĞİL - her "npm run build" dist/ klasörünü
