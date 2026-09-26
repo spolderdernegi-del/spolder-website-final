@@ -836,6 +836,63 @@ app.get(
 );
 
 // --- Static frontend (dist/) + SPA fallback --------------------------------
+// --- Dinamik site haritası (sitemap.xml) -----------------------------------
+// Önceki statik dosya sadece liste sayfalarını (haberler, etkinlikler vb.)
+// içeriyordu, tek tek her haber/etkinlik/proje/blog yazısının kendi
+// adresini AYRI AYRI listemiyordu - bu da Google'ın bu sayfaları keşfetme
+// ve yeniden tarama hızını yavaşlatıyordu. Bu, veritabanından her istekte
+// güncel içerikle üretiliyor; yeni bir haber eklendiğinde otomatik olarak
+// site haritasına dahil olur, elle güncellemeye gerek kalmaz.
+const SITEMAP_STATIC_PAGES = [
+  { loc: "/", changefreq: "daily", priority: "1.0" },
+  { loc: "/hakkimizda", changefreq: "monthly", priority: "0.9" },
+  { loc: "/haberler", changefreq: "daily", priority: "0.8" },
+  { loc: "/etkinlikler", changefreq: "weekly", priority: "0.8" },
+  { loc: "/projeler", changefreq: "monthly", priority: "0.8" },
+  { loc: "/blog", changefreq: "weekly", priority: "0.7" },
+  { loc: "/yayinlar", changefreq: "monthly", priority: "0.7" },
+  { loc: "/iletisim", changefreq: "yearly", priority: "0.6" },
+  { loc: "/gizlilik", changefreq: "yearly", priority: "0.3" },
+  { loc: "/kvkk", changefreq: "yearly", priority: "0.3" },
+];
+
+app.get(
+  "/sitemap.xml",
+  asyncHandler(async (req, res) => {
+    const urls = SITEMAP_STATIC_PAGES.map(
+      (p) => `  <url>\n    <loc>https://spolder.org${p.loc}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`,
+    );
+
+    const contentQueries = [
+      { table: "news", prefix: "/haber/", dateCol: "tarih", statusCol: "publishStatus", publishedVal: "published" },
+      { table: "events", prefix: "/etkinlik/", dateCol: "tarih", statusCol: "yayin_durumu", publishedVal: "yayinlandi" },
+      { table: "projects", prefix: "/proje/", dateCol: "start_date", statusCol: "publishStatus", publishedVal: "published" },
+      { table: "blog", prefix: "/blog/", dateCol: "date", statusCol: "publishStatus", publishedVal: "published" },
+    ];
+
+    for (const q of contentQueries) {
+      try {
+        const result = await queryDatabase(
+          `SELECT id, "${q.dateCol}" AS d FROM "${q.table}" WHERE "${q.statusCol}" = $1 ORDER BY id DESC`,
+          [q.publishedVal],
+        );
+        result.rows.forEach((row) => {
+          const lastmod = row.d ? `\n    <lastmod>${String(row.d).slice(0, 10)}</lastmod>` : "";
+          urls.push(
+            `  <url>\n    <loc>https://spolder.org${q.prefix}${row.id}</loc>${lastmod}\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
+          );
+        });
+      } catch (err) {
+        console.error(`Sitemap: ${q.table} tablosu okunamadı:`, err.message);
+      }
+    }
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
+    res.set("Content-Type", "application/xml; charset=UTF-8");
+    return res.send(xml);
+  }),
+);
+
 app.use(express.static(path.join(__dirname, "..", "dist")));
 app.get(/^\/(?!api\/).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
