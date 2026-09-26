@@ -18,7 +18,7 @@ const KVKK = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">2. Veri Sorumlusu</h2>
-                <p>SPOLDER Spor Politikaları Derneği, web sitesi üzerinden toplanan kişisel verilerin sorumlusudur.</p>
+                <p>Spor Politikaları Derneği, web sitesi üzerinden toplanan kişisel verilerin sorumlusudur.</p>
               </div>
 
               <div>

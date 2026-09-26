@@ -13,7 +13,7 @@ const Gizlilik = () => {
             <div className="space-y-6 text-foreground/90">
               <div>
                 <h2 className="text-2xl font-bold mb-3">1. Genel Bilgiler</h2>
-                <p>SPOLDER Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
+                <p>Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
               </div>
 
               <div>
