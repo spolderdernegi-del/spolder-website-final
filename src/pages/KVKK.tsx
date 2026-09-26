@@ -13,7 +13,7 @@ const KVKK = () => {
             <div className="space-y-6 text-foreground/90">
               <div>
                 <h2 className="text-2xl font-bold mb-3">1. KVKK Uyum</h2>
-                <p>SPOLDER, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ile uyumlu olarak faaliyet göstermektedir.</p>
+                <p>Spor Politikaları Derneği, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ile uyumlu olarak faaliyet göstermektedir.</p>
               </div>
 
               <div>
