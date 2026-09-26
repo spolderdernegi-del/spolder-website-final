@@ -23,6 +23,7 @@ const Iletisim = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     subject: "",
     message: "",
   });
@@ -95,6 +96,7 @@ const Iletisim = () => {
         {
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           subject: formData.subject,
           message: formData.message,
         },
@@ -103,7 +105,7 @@ const Iletisim = () => {
       if (error) throw error;
 
       toast.success("Mesajınız başarıyla iletildi!");
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (err: any) {
       toast.error("Mesaj gönderilemedi: " + err.message);
     } finally {
@@ -238,7 +240,7 @@ const Iletisim = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
-                          Adınız Soyadınız
+                          Adınız Soyadınız <span className="text-destructive">*</span>
                         </label>
                         <Input
                           value={formData.name}
@@ -249,7 +251,7 @@ const Iletisim = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
-                          E-posta Adresiniz
+                          E-posta Adresiniz <span className="text-destructive">*</span>
                         </label>
                         <Input
                           type="email"
@@ -260,22 +262,36 @@ const Iletisim = () => {
                         />
                       </div>
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Konu
-                      </label>
-                      <Input
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        placeholder="Mesajınızın konusu"
-                        required
-                      />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Telefon Numaranız <span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="05XX XXX XX XX"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Konu <span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                          value={formData.subject}
+                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                          placeholder="Mesajınızın konusu"
+                          required
+                        />
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
-                        Mesajınız
+                        Mesajınız <span className="text-destructive">*</span>
                       </label>
                       <Textarea
                         value={formData.message}
@@ -285,6 +301,10 @@ const Iletisim = () => {
                         required
                       />
                     </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      <span className="text-destructive">*</span> ile işaretli alanların doldurulması zorunludur.
+                    </p>
 
                     <Button type="submit" variant="gradient" size="lg">
                       Mesaj Gönder

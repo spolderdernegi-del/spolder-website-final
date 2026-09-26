@@ -9,6 +9,7 @@ interface ContactMessage {
   id: number;
   name: string;
   email: string;
+  phone?: string;
   subject: string;
   message: string;
   created_at: string;
@@ -114,6 +115,7 @@ const AdminContactMessages = () => {
                         <div>
                           <div className="font-semibold text-foreground">{msg.name}</div>
                           <div className="text-xs text-muted-foreground">{msg.email}</div>
+                          {msg.phone && <div className="text-xs text-muted-foreground">📞 {msg.phone}</div>}
                         </div>
                       </div>
                     </td>

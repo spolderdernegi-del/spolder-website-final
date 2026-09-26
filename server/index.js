@@ -90,6 +90,7 @@ function notifyNewContactMessage(entry) {
         <h3>Web sitesinden yeni bir iletişim mesajı var</h3>
         <p><strong>Ad Soyad:</strong> ${safe(entry.name)}</p>
         <p><strong>E-posta:</strong> ${safe(entry.email)}</p>
+        <p><strong>Telefon:</strong> ${safe(entry.phone) || "-"}</p>
         <p><strong>Konu:</strong> ${safe(entry.subject)}</p>
         <p><strong>Mesaj:</strong></p>
         <p>${safe(entry.message).replace(/\n/g, "<br/>")}</p>
