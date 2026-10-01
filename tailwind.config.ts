@@ -14,8 +14,13 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Başlıklar (font-display) ve metinler (font-sans) artık aynı tek
+        // font ailesini (Open Sans) kullanıyor, sadece farklı ağırlıklarda -
+        // önceden başlıklar ayrı bir aileydi (Nunito), bu da iki farklı
+        // yazı tipinin bir arada kullanılmasına (tutarsız görünüme) yol
+        // açıyordu.
         sans: ["Open Sans", "system-ui", "sans-serif"],
-        display: ["Nunito", "system-ui", "sans-serif"],
+        display: ["Open Sans", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
