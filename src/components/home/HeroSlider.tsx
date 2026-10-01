@@ -176,12 +176,17 @@ const HeroSlider = () => {
           </div>
 
           {/* Title */}
-          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
+          {/* Başlık ve alt metin uzun olursa (bkz. "Cumhuriyetimizin 100. Yılında..."
+              gibi uzun başlıklar), sabit yükseklikli slider alanını taşırıp tarih/
+              buton gibi altındaki her şeyi görünmez yapabiliyordu - satır sayısını
+              sınırlayarak (line-clamp) her ekran boyutunda güvenli bir üst sınır
+              koyuyoruz, taşan kısım "..." ile kesiliyor. */}
+          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight line-clamp-3">
             {slides[currentSlide].baslik}
           </h1>
 
           {/* Description */}
-          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl">
+          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl line-clamp-2">
             {slides[currentSlide].ozet}
           </p>
 
