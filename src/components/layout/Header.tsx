@@ -17,6 +17,16 @@ const navItems = [
   { label: "İletişim", href: "/iletisim" },
 ];
 
+// Menü çubuğundaki logo alanında sırayla dönen öğeler: logo + iki slogan.
+// Statik metin/logo olduğu için ağır bir kaynak eklemiyor, sadece CSS
+// opacity geçişiyle (performansı etkilemeyen, GPU-hızlandırmalı bir
+// özellik) değişiyor.
+const logoRotationItems = [
+  { type: "logo" as const },
+  { type: "text" as const, text: "Sporun Yeni Nesli" },
+  { type: "text" as const, text: "Spor Geleceğimizdir" },
+];
+
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -27,12 +37,21 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [logoRotateIndex, setLogoRotateIndex] = useState(0);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogoRotateIndex((prev) => (prev + 1) % logoRotationItems.length);
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -177,13 +196,35 @@ const Header = () => {
     >
       <div className="container-custom mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <img
-              src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
-              alt="SPOLDER Logo"
-              className="h-10 w-auto transition-all duration-300"
-            />
+          {/* Logo + dönen sloganlar */}
+          <Link
+            to="/"
+            className="relative flex items-center h-10 w-36 sm:w-44 md:w-56 shrink-0 overflow-hidden"
+          >
+            {logoRotationItems.map((item, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 flex items-center transition-opacity duration-700 ease-in-out ${
+                  index === logoRotateIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              >
+                {item.type === "logo" ? (
+                  <img
+                    src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
+                    alt="SPOLDER Logo"
+                    className="h-10 w-auto transition-all duration-300"
+                  />
+                ) : (
+                  <span
+                    className={`font-display font-bold whitespace-nowrap truncate text-sm sm:text-base md:text-lg transition-colors duration-300 ${
+                      isDarkHeader ? "text-white" : "text-foreground"
+                    }`}
+                  >
+                    {item.text}
+                  </span>
+                )}
+              </div>
+            ))}
           </Link>
 
           {/* Desktop Navigation */}
