@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 // Logonun altında harf harf yazılıp silinen sloganlar.
-const headerSlogans = ["Sporun Yeni Nesli", "Spor Geleceğimizdir"];
+const headerSlogans = ["Sporun Yeni Nesli!", "Spor Geleceğimizdir!"];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -215,14 +215,14 @@ const Header = () => {
       <div className="container-custom mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo (sabit) + altında harf harf yazılan slogan */}
-          <Link to="/" className="flex flex-col justify-center shrink-0 max-w-[55vw] sm:max-w-none">
+          <Link to="/" className="flex flex-col justify-center shrink-0 max-w-[65vw] sm:max-w-none">
             <img
               src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
               alt="SPOLDER Logo"
               className="h-8 sm:h-9 md:h-10 w-auto transition-all duration-300"
             />
             <span
-              className={`mt-0.5 text-[10px] sm:text-xs font-medium whitespace-nowrap truncate transition-colors duration-300 ${
+              className={`mt-0.5 text-xs sm:text-sm md:text-base font-semibold whitespace-nowrap transition-colors duration-300 ${
                 isDarkHeader ? "text-white/80" : "text-foreground/70"
               }`}
             >
