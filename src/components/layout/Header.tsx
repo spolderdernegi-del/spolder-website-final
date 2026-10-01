@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 // Logonun altında harf harf yazılıp silinen sloganlar.
-const headerSlogans = ["Sporun Yeni Nesli!", "Spor Geleceğimizdir!"];
+const headerSlogans = ["Sporun Yeni Nesli !", "Spor Geleceğimizdir !"];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
