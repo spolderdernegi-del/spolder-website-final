@@ -17,15 +17,8 @@ const navItems = [
   { label: "İletişim", href: "/iletisim" },
 ];
 
-// Menü çubuğundaki logo alanında sırayla dönen öğeler: logo + iki slogan.
-// Statik metin/logo olduğu için ağır bir kaynak eklemiyor, sadece CSS
-// opacity geçişiyle (performansı etkilemeyen, GPU-hızlandırmalı bir
-// özellik) değişiyor.
-const logoRotationItems = [
-  { type: "logo" as const },
-  { type: "text" as const, text: "Sporun Yeni Nesli" },
-  { type: "text" as const, text: "Spor Geleceğimizdir" },
-];
+// Logonun altında harf harf yazılıp silinen sloganlar.
+const headerSlogans = ["Sporun Yeni Nesli", "Spor Geleceğimizdir"];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -37,7 +30,11 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [logoRotateIndex, setLogoRotateIndex] = useState(0);
+  // Slogan yazma makinesi efekti: ilgili slogan harf harf yazılır, bir süre
+  // beklenir, harf harf silinir, sıradaki slogana geçilir.
+  const [sloganIndex, setSloganIndex] = useState(0);
+  const [typedSlogan, setTypedSlogan] = useState("");
+  const [isDeletingSlogan, setIsDeletingSlogan] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,11 +45,32 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLogoRotateIndex((prev) => (prev + 1) % logoRotationItems.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    const currentSlogan = headerSlogans[sloganIndex];
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    if (!isDeletingSlogan && typedSlogan.length < currentSlogan.length) {
+      // Yazıyor
+      timeoutId = setTimeout(() => {
+        setTypedSlogan(currentSlogan.slice(0, typedSlogan.length + 1));
+      }, 90);
+    } else if (!isDeletingSlogan && typedSlogan.length === currentSlogan.length) {
+      // Tam yazıldı, bir süre ekranda kalsın
+      timeoutId = setTimeout(() => setIsDeletingSlogan(true), 2000);
+    } else if (isDeletingSlogan && typedSlogan.length > 0) {
+      // Siliniyor
+      timeoutId = setTimeout(() => {
+        setTypedSlogan(currentSlogan.slice(0, typedSlogan.length - 1));
+      }, 45);
+    } else {
+      // Tamamen silindi, sıradaki slogana geç
+      timeoutId = setTimeout(() => {
+        setIsDeletingSlogan(false);
+        setSloganIndex((prev) => (prev + 1) % headerSlogans.length);
+      }, 400);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [typedSlogan, isDeletingSlogan, sloganIndex]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -196,35 +214,21 @@ const Header = () => {
     >
       <div className="container-custom mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo + dönen sloganlar */}
-          <Link
-            to="/"
-            className="relative flex items-center h-10 w-36 sm:w-44 md:w-56 shrink-0 overflow-hidden"
-          >
-            {logoRotationItems.map((item, index) => (
-              <div
-                key={index}
-                className={`absolute inset-0 flex items-center transition-opacity duration-700 ease-in-out ${
-                  index === logoRotateIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-                }`}
-              >
-                {item.type === "logo" ? (
-                  <img
-                    src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
-                    alt="SPOLDER Logo"
-                    className="h-10 w-auto transition-all duration-300"
-                  />
-                ) : (
-                  <span
-                    className={`font-display font-bold whitespace-nowrap truncate text-sm sm:text-base md:text-lg transition-colors duration-300 ${
-                      isDarkHeader ? "text-white" : "text-foreground"
-                    }`}
-                  >
-                    {item.text}
-                  </span>
-                )}
-              </div>
-            ))}
+          {/* Logo (sabit) + altında harf harf yazılan slogan */}
+          <Link to="/" className="flex flex-col justify-center shrink-0 max-w-[55vw] sm:max-w-none">
+            <img
+              src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
+              alt="SPOLDER Logo"
+              className="h-8 sm:h-9 md:h-10 w-auto transition-all duration-300"
+            />
+            <span
+              className={`mt-0.5 text-[10px] sm:text-xs font-medium whitespace-nowrap truncate transition-colors duration-300 ${
+                isDarkHeader ? "text-white/80" : "text-foreground/70"
+              }`}
+            >
+              {typedSlogan}
+              <span className="animate-pulse">|</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
