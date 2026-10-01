@@ -3,11 +3,24 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Download, Upload, Trash2, Key, Activity } from "lucide-react";
+import { ArrowLeft, Download, Upload, Trash2, Key, Activity, Plus, X } from "lucide-react";
 import { exportAllData, importData, clearAllData } from "@/lib/dataManager";
 import { toast } from "@/lib/toast";
 import { getActivityLogs, getActionText, getContentTypeText, type ActivityLog } from "@/lib/activityLog";
 import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
+
+const FOOTER_SERVICES_MAX = 5;
+// Footer'da "settings" tablosunda henüz hiç kayıt yoksa (ilk kurulum veya
+// admin hiç kaydetmemişse) gösterilecek varsayılanlar - Footer.tsx'te daha
+// önce sabit kodlanmış olan 5 öğeyle birebir aynı, böylece bu özelliği
+// eklemek sitede görünen hiçbir şeyi değiştirmiyor.
+const DEFAULT_FOOTER_SERVICES: { label: string; query: string }[] = [
+  { label: "Araştırma & Analiz", query: "araştırma analiz" },
+  { label: "Eğitim Programları", query: "eğitim programları" },
+  { label: "Politika Önerileri", query: "politika önerileri" },
+  { label: "Spor Danışmanlığı", query: "spor danışmanlığı" },
+  { label: "Uluslararası İşbirlikleri", query: "uluslararası işbirlikleri" },
+];
 
 const AdminSettings = () => {
   const navigate = useNavigate();
@@ -41,6 +54,8 @@ const AdminSettings = () => {
     iban_tl: "",
     iban_eur: ""
   });
+  const [footerServices, setFooterServices] = useState(DEFAULT_FOOTER_SERVICES);
+  const [savingFooterServices, setSavingFooterServices] = useState(false);
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -62,6 +77,7 @@ const AdminSettings = () => {
     loadMapEmbed();
     loadOrganizationLocation();
     loadContactInfo();
+    loadFooterServices();
   }, []);
 
   const loadCounts = async () => {
@@ -341,6 +357,68 @@ const AdminSettings = () => {
       toast.success('İletişim bilgileri başarıyla güncellendi');
     } catch (err: any) {
       toast.error('İletişim bilgileri güncellenemedi: ' + err.message);
+    }
+  };
+
+  const loadFooterServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'footer_services')
+        .single();
+
+      if (!error && data?.value) {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFooterServices(parsed.slice(0, FOOTER_SERVICES_MAX));
+        }
+      }
+    } catch (err) {
+      console.error("Faaliyetlerimiz listesi yüklenemedi:", err);
+      // Hata/kayıt yoksa DEFAULT_FOOTER_SERVICES (başlangıç state'i) kalır.
+    }
+  };
+
+  const updateFooterService = (index: number, field: "label" | "query", value: string) => {
+    setFooterServices((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
+  };
+
+  const addFooterService = () => {
+    if (footerServices.length >= FOOTER_SERVICES_MAX) {
+      toast.warning(`En fazla ${FOOTER_SERVICES_MAX} öğe eklenebilir`);
+      return;
+    }
+    setFooterServices((prev) => [...prev, { label: "", query: "" }]);
+  };
+
+  const removeFooterService = (index: number) => {
+    setFooterServices((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFooterServicesSave = async () => {
+    const cleaned = footerServices
+      .map((item) => ({ label: item.label.trim(), query: item.query.trim() }))
+      .filter((item) => item.label && item.query)
+      .slice(0, FOOTER_SERVICES_MAX); // ekstra güvenlik: ne olursa olsun 5'i geçemez
+
+    if (cleaned.length === 0) {
+      toast.warning('En az bir öğe girilmeli (başlık ve arama kelimesi)');
+      return;
+    }
+
+    setSavingFooterServices(true);
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'footer_services', value: JSON.stringify(cleaned), updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw error;
+      setFooterServices(cleaned);
+      toast.success('Faaliyetlerimiz listesi güncellendi');
+    } catch (err: any) {
+      toast.error('Liste kaydedilemedi: ' + err.message);
+    } finally {
+      setSavingFooterServices(false);
     }
   };
 
@@ -627,6 +705,62 @@ const AdminSettings = () => {
           </div>
 
           <Button onClick={handleContactInfoChange} className="w-full mt-4">İletişim Bilgilerini Kaydet</Button>
+        </div>
+
+        {/* Faaliyetlerimiz (Footer) */}
+        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+          <h2 className="text-xl font-bold text-foreground mb-4">Faaliyetlerimiz (Site Altlığı)</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğe tıklanınca arama kelimesiyle
+            site içi aramaya götürür. En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir.
+          </p>
+
+          <div className="space-y-3">
+            {footerServices.map((item, index) => (
+              <div key={index} className="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                <div className="flex-1 w-full">
+                  <label className="block text-xs text-muted-foreground mb-1">Görünen Başlık</label>
+                  <Input
+                    value={item.label}
+                    onChange={(e) => updateFooterService(index, "label", e.target.value)}
+                    placeholder="Örn. Araştırma & Analiz"
+                  />
+                </div>
+                <div className="flex-1 w-full">
+                  <label className="block text-xs text-muted-foreground mb-1">Arama Kelimesi</label>
+                  <Input
+                    value={item.query}
+                    onChange={(e) => updateFooterService(index, "query", e.target.value)}
+                    placeholder="Örn. araştırma analiz"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="mt-5 shrink-0"
+                  onClick={() => removeFooterService(index)}
+                  title="Bu öğeyi kaldır"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <Button
+              variant="outline"
+              onClick={addFooterService}
+              disabled={footerServices.length >= FOOTER_SERVICES_MAX}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Öğe Ekle {footerServices.length >= FOOTER_SERVICES_MAX ? `(limit: ${FOOTER_SERVICES_MAX})` : `(${footerServices.length}/${FOOTER_SERVICES_MAX})`}
+            </Button>
+            <Button onClick={handleFooterServicesSave} disabled={savingFooterServices}>
+              {savingFooterServices ? 'Kaydediliyor...' : 'Listeyi Kaydet'}
+            </Button>
+          </div>
         </div>
 
         {/* Aktivite Logu */}

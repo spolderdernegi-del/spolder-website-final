@@ -9,19 +9,38 @@ interface ContactInfo {
   email: string;
 }
 
+interface FooterService {
+  label: string;
+  query: string;
+}
+
+const FOOTER_SERVICES_MAX = 5;
+// Admin panelden "Faaliyetlerimiz" hiç kaydedilmemişse (ayar tablosunda
+// kayıt yoksa) gösterilecek varsayılanlar - önceden bu liste burada sabit
+// kodluydu, admin panelden düzenlenebilir hale getirdik ama ilk kurulumda
+// sitede hiçbir şey değişmesin diye aynı 5 öğe varsayılan olarak kaldı.
+const DEFAULT_FOOTER_SERVICES: FooterService[] = [
+  { label: "Araştırma & Analiz", query: "araştırma analiz" },
+  { label: "Eğitim Programları", query: "eğitim programları" },
+  { label: "Politika Önerileri", query: "politika önerileri" },
+  { label: "Spor Danışmanlığı", query: "spor danışmanlığı" },
+  { label: "Uluslararası İşbirlikleri", query: "uluslararası işbirlikleri" },
+];
+
 const Footer = () => {
   const [contact, setContact] = useState<ContactInfo>({
     address: "Atatürk Bulvarı No: 123, Çankaya, Ankara",
     phone: "+90 (312) 123 45 67",
     email: "info@spolider.org.tr",
   });
+  const [footerServices, setFooterServices] = useState<FooterService[]>(DEFAULT_FOOTER_SERVICES);
 
   useEffect(() => {
     const fetchContact = async () => {
       const { data, error } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["organization_location", "contact_phone", "contact_email"]);
+        .in("key", ["organization_location", "contact_phone", "contact_email", "footer_services"]);
 
       if (error || !data) return;
 
@@ -31,6 +50,18 @@ const Footer = () => {
         phone: map.contact_phone || prev.phone,
         email: map.contact_email || prev.email,
       }));
+
+      if (map.footer_services) {
+        try {
+          const parsed = JSON.parse(map.footer_services);
+          // Veride ne olursa olsun en fazla 5 öğe gösterilir.
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setFooterServices(parsed.slice(0, FOOTER_SERVICES_MAX));
+          }
+        } catch {
+          // Bozuk veri varsa varsayılan listede kalınır.
+        }
+      }
     };
 
     fetchContact();
@@ -119,31 +150,16 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-bold text-lg mb-6">Faaliyetlerimiz</h4>
             <ul className="space-y-3">
-              <li>
-                <Link to="/search?q=araştırma analiz" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                  Araştırma & Analiz
-                </Link>
-              </li>
-              <li>
-                <Link to="/search?q=eğitim programları" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                  Eğitim Programları
-                </Link>
-              </li>
-              <li>
-                <Link to="/search?q=politika önerileri" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                  Politika Önerileri
-                </Link>
-              </li>
-              <li>
-                <Link to="/search?q=spor danışmanlığı" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                  Spor Danışmanlığı
-                </Link>
-              </li>
-              <li>
-                <Link to="/search?q=uluslararası işbirlikleri" className="text-sm text-primary-foreground/80 hover:text-primary transition-colors">
-                  Uluslararası İşbirlikleri
-                </Link>
-              </li>
+              {footerServices.map((service, index) => (
+                <li key={index}>
+                  <Link
+                    to={`/search?q=${encodeURIComponent(service.query)}`}
+                    className="text-sm text-primary-foreground/80 hover:text-primary transition-colors"
+                  >
+                    {service.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

@@ -134,6 +134,7 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "organization_location",
   "organization_lat",
   "organization_lng",
+  "footer_services",
 ]);
 
 app.set("trust proxy", 1); // behind Nginx
