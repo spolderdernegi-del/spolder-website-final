@@ -227,7 +227,7 @@ const Header = () => {
               }`}
             >
               {typedSlogan}
-              <span className="animate-pulse">|</span>
+              <span className="animate-pulse ml-1">|</span>
             </span>
           </Link>
 
