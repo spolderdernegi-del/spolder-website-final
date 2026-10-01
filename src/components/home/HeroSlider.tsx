@@ -159,7 +159,7 @@ const HeroSlider = () => {
 
       {/* Content */}
       <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
-        <div className="max-w-2xl space-y-6 animate-fade-up">
+        <div className="w-full min-w-0 max-w-2xl space-y-6 animate-fade-up">
           {/* Category Badges */}
           <div className="flex flex-wrap gap-2">
             {slides[currentSlide].categories && slides[currentSlide].categories.length > 0 ? (
@@ -181,12 +181,12 @@ const HeroSlider = () => {
               buton gibi altındaki her şeyi görünmez yapabiliyordu - satır sayısını
               sınırlayarak (line-clamp) her ekran boyutunda güvenli bir üst sınır
               koyuyoruz, taşan kısım "..." ile kesiliyor. */}
-          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight line-clamp-3">
+          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight line-clamp-3 break-words">
             {slides[currentSlide].baslik}
           </h1>
 
           {/* Description */}
-          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl line-clamp-2">
+          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl line-clamp-2 break-words">
             {slides[currentSlide].ozet}
           </p>
 
@@ -197,7 +197,7 @@ const HeroSlider = () => {
           </div>
 
           {/* CTA */}
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-wrap gap-4 pt-4">
             <Link to={slides[currentSlide].link}>
               <Button variant="hero" size="lg">
                 Devamını Oku
