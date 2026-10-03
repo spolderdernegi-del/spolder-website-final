@@ -674,7 +674,7 @@ const AdminSettings = () => {
           </div>
 
           <div className="mt-4">
-            <label className="block text-sm font-medium text-foreground mb-2">Çalışma Saatleri</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Çalışma Düzeni</label>
             <textarea
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               rows={2}

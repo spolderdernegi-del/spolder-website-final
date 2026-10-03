@@ -234,7 +234,7 @@ const Iletisim = () => {
                       <Clock className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Çalışma Saatleri</h3>
+                      <h3 className="font-semibold text-foreground">Çalışma Düzeni</h3>
                       <p className="text-muted-foreground text-sm whitespace-pre-line">
                         {contactInfo.working_hours}
                       </p>
