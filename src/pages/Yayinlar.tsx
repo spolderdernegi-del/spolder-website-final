@@ -6,6 +6,8 @@ import { FileText, Download, Calendar, ExternalLink, Loader } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
+import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface Publication {
   id: number;
@@ -18,30 +20,15 @@ interface Publication {
   file_size: number;
   created_at: string;
 }
-
-
-
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case "Rapor":
-      return "bg-primary/10 text-primary";
-    case "Araştırma":
-      return "bg-secondary/10 text-secondary";
-    case "Politika Belgesi":
-      return "bg-accent/10 text-accent";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
-
 const Yayinlar = () => {
   const [searchParams] = useSearchParams();
   const kategoriParam = searchParams.get("kategori");
   
   const [publications, setPublications] = useState<Publication[]>([]);
-  const [activeFilter, setActiveFilter] = useState("Tümü");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const categoryColors = useCategoryColors("files");
 
   useEffect(() => {
     fetchPublications();
@@ -49,7 +36,7 @@ const Yayinlar = () => {
 
   useEffect(() => {
     if (kategoriParam) {
-      setActiveFilter(kategoriParam);
+      setSelectedCategory(kategoriParam);
     }
   }, [kategoriParam]);
 
@@ -72,24 +59,15 @@ const Yayinlar = () => {
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Rapor":
-        return "bg-primary/10 text-primary";
-      case "Araştırma":
-        return "bg-secondary/10 text-secondary";
-      case "Politika Belgesi":
-        return "bg-accent/10 text-accent";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
-  };
+  const availableCategories = Array.from(
+    new Set(publications.flatMap((pub) => (pub.categories && pub.categories.length > 0 ? pub.categories : pub.category ? [pub.category] : [])))
+  ).sort((a, b) => a.localeCompare(b, "tr"));
 
-  const filteredPublications = activeFilter === "Tümü" 
-    ? publications 
-    : publications.filter(pub => 
-        pub.categories?.includes(activeFilter) || pub.category === activeFilter
-      );
+  const filteredPublications = selectedCategory
+    ? publications.filter(pub =>
+        pub.categories?.includes(selectedCategory) || pub.category === selectedCategory
+      )
+    : publications;
 
   const formatFileSize = (bytes: number) => {
     if (!bytes) return "0 KB";
@@ -257,40 +235,16 @@ const Yayinlar = () => {
           </div>
         </section>
 
-      {/* Filter Tabs */}
-      {!loading && (
+      {/* Filter */}
+      {!loading && publications.length > 0 && (
         <section className="py-8 border-b border-border">
           <div className="container-custom mx-auto px-4">
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={activeFilter === "Tümü" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Tümü")}
-              >
-                Tümü
-              </Button>
-              <Button 
-                variant={activeFilter === "Rapor" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Rapor")}
-              >
-                Raporlar
-              </Button>
-              <Button 
-                variant={activeFilter === "Araştırma" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Araştırma")}
-              >
-                Araştırmalar
-              </Button>
-              <Button 
-                variant={activeFilter === "Politika Belgesi" ? "gradient" : "outline"} 
-                size="sm"
-                onClick={() => setActiveFilter("Politika Belgesi")}
-              >
-                Politika Belgeleri
-              </Button>
-            </div>
+            <CategoryFilterBar
+              categories={availableCategories}
+              categoryColors={categoryColors}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
           </div>
         </section>
       )}
@@ -335,9 +289,10 @@ const Yayinlar = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {(pub.categories && pub.categories.length > 0 ? pub.categories : pub.category ? [pub.category] : ['Genel']).map((cat, idx) => (
-                        <span 
+                        <span
                           key={idx}
-                          className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getTypeColor(cat)}`}
+                          className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground"
+                          style={getCategoryBadgeStyle(categoryColors[cat])}
                         >
                           {cat}
                         </span>
