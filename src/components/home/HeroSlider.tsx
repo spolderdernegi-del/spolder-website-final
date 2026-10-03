@@ -181,7 +181,7 @@ const HeroSlider = () => {
               buton gibi altındaki her şeyi görünmez yapabiliyordu - satır sayısını
               sınırlayarak (line-clamp) her ekran boyutunda güvenli bir üst sınır
               koyuyoruz, taşan kısım "..." ile kesiliyor. */}
-          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal line-clamp-3 break-words pb-1">
+          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal line-clamp-3 break-words pb-3">
             {slides[currentSlide].baslik}
           </h1>
 
