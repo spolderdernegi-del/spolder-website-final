@@ -373,7 +373,17 @@ const AdminBlog = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Kategoriler * (Birden fazla seçebilirsiniz)</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-foreground">Kategoriler * (Birden fazla seçebilirsiniz)</label>
+                    <Link
+                      to="/admin/categories"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Kategori Yönet
+                    </Link>
+                  </div>
                   {categories.length === 0 ? (
                     <div className="text-sm text-red-500 p-2 border border-red-300 rounded-md bg-red-50">
                       ⚠️ Henüz kategori oluşturulmamış. <Link to="/admin/categories" className="underline font-medium">Kategoriler sayfasına</Link> gidip blog kategorisi ekleyin.
