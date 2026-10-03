@@ -63,7 +63,7 @@ const CategoryFilterBar = ({
       </button>
 
       {open && (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="mt-2 w-64 max-w-full rounded-lg border border-border bg-card shadow-card overflow-hidden">
           {statusOptions?.map((status) => {
             const isActive = selectedStatus === status;
             return (
@@ -74,10 +74,8 @@ const CategoryFilterBar = ({
                   onSelectStatus?.(isActive ? null : status);
                   setOpen(false);
                 }}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-foreground border-border hover:bg-muted"
+                className={`w-full text-left px-4 py-2.5 text-sm font-medium border-b border-border last:border-b-0 transition-colors ${
+                  isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
                 }`}
               >
                 {status}
@@ -85,20 +83,18 @@ const CategoryFilterBar = ({
             );
           })}
           {categories.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              onSelect(null);
-              setOpen(false);
-            }}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              selected === null
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background text-foreground border-border hover:bg-muted"
-            }`}
-          >
-            Tümü
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect(null);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2.5 text-sm font-medium border-b border-border last:border-b-0 transition-colors ${
+                selected === null ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+              }`}
+            >
+              Tümü
+            </button>
           )}
           {categories.map((cat) => {
             const isActive = selected === cat;
@@ -111,11 +107,11 @@ const CategoryFilterBar = ({
                   onSelect(isActive ? null : cat);
                   setOpen(false);
                 }}
-                className="px-3 py-1.5 rounded-full text-sm font-medium border transition-colors"
+                className="w-full text-left px-4 py-2.5 text-sm font-medium border-b border-border last:border-b-0 transition-colors hover:brightness-95"
                 style={
                   isActive
-                    ? { backgroundColor: color, color: "#fff", borderColor: color }
-                    : { backgroundColor: `${color}1A`, color, borderColor: `${color}55` }
+                    ? { backgroundColor: color, color: "#fff" }
+                    : { backgroundColor: "transparent", color }
                 }
               >
                 {cat}
