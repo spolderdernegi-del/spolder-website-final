@@ -47,7 +47,10 @@ const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: C
         <div className="flex flex-wrap gap-2 mt-3">
           <button
             type="button"
-            onClick={() => onSelect(null)}
+            onClick={() => {
+              onSelect(null);
+              setOpen(false);
+            }}
             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
               selected === null
                 ? "bg-primary text-primary-foreground border-primary"
@@ -63,7 +66,10 @@ const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: C
               <button
                 type="button"
                 key={cat}
-                onClick={() => onSelect(isActive ? null : cat)}
+                onClick={() => {
+                  onSelect(isActive ? null : cat);
+                  setOpen(false);
+                }}
                 className="px-3 py-1.5 rounded-full text-sm font-medium border transition-colors"
                 style={
                   isActive
