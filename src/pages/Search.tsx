@@ -6,6 +6,7 @@ import { Calendar, User, Loader } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { matchStaticPages } from "@/lib/staticPages";
+import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface SearchResult {
   id: string;
@@ -25,6 +26,9 @@ const Search = () => {
   const query = searchParams.get("q")?.toLowerCase() || "";
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
+  // Arama sonuçları tüm içerik türlerini (haber/etkinlik/proje/blog)
+  // karışık gösterdiği için tüm türlerdeki kategori renklerini kullanıyoruz.
+  const categoryColors = useCategoryColors();
 
   useEffect(() => {
     searchAllContent();
@@ -209,12 +213,19 @@ const Search = () => {
                           </span>
                           {item.categories && item.categories.length > 0 ? (
                             item.categories.map((cat, index) => (
-                              <span key={index} className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded">
+                              <span
+                                key={index}
+                                className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded"
+                                style={getCategoryBadgeStyle(categoryColors[cat])}
+                              >
                                 {cat}
                               </span>
                             ))
                           ) : item.category ? (
-                            <span className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded">
+                            <span
+                              className="inline-block px-2 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded"
+                              style={getCategoryBadgeStyle(categoryColors[item.category])}
+                            >
                               {item.category}
                             </span>
                           ) : null}

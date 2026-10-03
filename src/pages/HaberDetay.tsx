@@ -6,6 +6,7 @@ import { Calendar, User, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface News {
   id: number;
@@ -25,6 +26,7 @@ const HaberDetay = () => {
   const [haber, setHaber] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
+  const categoryColors = useCategoryColors("news");
 
   useEffect(() => {
     fetchHaber();
@@ -111,9 +113,10 @@ const HaberDetay = () => {
           <div className="relative container-custom mx-auto px-4 md:px-8 h-full flex flex-col justify-end pb-12">
             <div className="flex flex-wrap gap-2 mb-4">
               {(haber.categories && haber.categories.length > 0 ? haber.categories : haber.kategori ? [haber.kategori] : []).map((cat, idx) => (
-                <span 
+                <span
                   key={idx}
                   className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full"
+                  style={getSolidCategoryBadgeStyle(categoryColors[cat])}
                 >
                   {cat}
                 </span>

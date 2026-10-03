@@ -5,6 +5,7 @@ import { Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface Project {
   id: number;
@@ -22,6 +23,7 @@ const Projeler = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const categoryColors = useCategoryColors("projects");
 
   useEffect(() => {
     fetchProjects();
@@ -104,9 +106,10 @@ const Projeler = () => {
                     {project.categories && project.categories.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {project.categories.map((cat, idx) => (
-                          <span 
+                          <span
                             key={idx}
                             className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                            style={getCategoryBadgeStyle(categoryColors[cat])}
                           >
                             {cat}
                           </span>

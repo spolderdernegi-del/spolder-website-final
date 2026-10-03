@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DOMPurify from "dompurify";
+import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface Project {
   id: number;
@@ -25,6 +26,7 @@ const ProjeDetay = () => {
   const [proje, setProje] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedProjects, setRelatedProjects] = useState<Project[]>([]);
+  const categoryColors = useCategoryColors("projects");
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -110,9 +112,10 @@ const ProjeDetay = () => {
             <div className="container-custom mx-auto">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {(proje.categories && proje.categories.length > 0 ? proje.categories : proje.category ? [proje.category] : []).map((cat, idx) => (
-                  <span 
+                  <span
                     key={idx}
                     className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full"
+                    style={getSolidCategoryBadgeStyle(categoryColors[cat])}
                   >
                     {cat}
                   </span>

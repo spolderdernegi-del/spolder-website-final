@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface SlideItem {
   id: number;
@@ -36,6 +37,9 @@ const HeroSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Slider haber/etkinlik/proje/blog içeriklerini karışık gösterdiği için
+  // tüm türlerdeki kategori renklerini tek haritada topluyoruz.
+  const categoryColors = useCategoryColors();
 
   useEffect(() => {
     // Supabase'den tüm slider içeriklerini yükle (events, news, projects)
@@ -179,12 +183,19 @@ const HeroSlider = () => {
           <div className="flex flex-wrap gap-2">
             {slides[currentSlide].categories && slides[currentSlide].categories.length > 0 ? (
               slides[currentSlide].categories.slice(0, 3).map((cat, idx) => (
-                <span key={idx} className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium"
+                  style={getSolidCategoryBadgeStyle(categoryColors[cat])}
+                >
                   {cat}
                 </span>
               ))
             ) : (
-              <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+              <span
+                className="inline-flex items-center px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium"
+                style={getSolidCategoryBadgeStyle(categoryColors[slides[currentSlide].kategori])}
+              >
                 {slides[currentSlide].kategori}
               </span>
             )}

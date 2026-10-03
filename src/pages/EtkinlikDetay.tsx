@@ -6,6 +6,7 @@ import { Calendar, Clock, MapPin, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface Event {
   id: number;
@@ -27,6 +28,7 @@ const EtkinlikDetay = () => {
   const navigate = useNavigate();
   const [etkinlik, setEtkinlik] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const categoryColors = useCategoryColors("events");
 
   useEffect(() => {
     fetchEtkinlik();
@@ -104,9 +106,10 @@ const EtkinlikDetay = () => {
             <div className="container-custom mx-auto">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {(etkinlik.categories && etkinlik.categories.length > 0 ? etkinlik.categories : []).map((cat, idx) => (
-                  <span 
+                  <span
                     key={idx}
                     className="inline-block px-3 py-1 bg-secondary text-primary-foreground text-xs font-medium rounded-full"
+                    style={getSolidCategoryBadgeStyle(categoryColors[cat])}
                   >
                     {cat}
                   </span>

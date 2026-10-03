@@ -5,6 +5,7 @@ import { Calendar, User, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface BlogPost {
   id: number;
@@ -23,6 +24,7 @@ const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const categoryColors = useCategoryColors("blog");
 
   useEffect(() => {
     fetchBlogPosts();
@@ -99,9 +101,10 @@ const Blog = () => {
                 <div className="p-8 flex flex-col justify-center">
                   <div className="flex flex-wrap gap-2 mb-4">
                     {(posts[0].categories && posts[0].categories.length > 0 ? posts[0].categories : posts[0].category ? [posts[0].category] : []).map((cat, idx) => (
-                      <span 
+                      <span
                         key={idx}
                         className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
+                        style={getCategoryBadgeStyle(categoryColors[cat])}
                       >
                         {cat}
                       </span>
@@ -156,9 +159,10 @@ const Blog = () => {
                   <div className="p-6">
                     <div className="flex flex-wrap gap-2 mb-3">
                       {(post.categories && post.categories.length > 0 ? post.categories : post.category ? [post.category] : []).map((cat, idx) => (
-                        <span 
+                        <span
                           key={idx}
                           className="inline-block px-3 py-1 bg-secondary/10 text-secondary text-xs font-medium rounded-full"
+                          style={getCategoryBadgeStyle(categoryColors[cat])}
                         >
                           {cat}
                         </span>
