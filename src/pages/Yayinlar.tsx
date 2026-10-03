@@ -242,20 +242,20 @@ const Yayinlar = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-secondary/10 via-primary/5 to-background">
-        <div className="container-custom mx-auto px-4">
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Yayınlar
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Derneğimizin hazırladığı raporlar, araştırmalar ve politika belgeleri.
-          </p>
-        </div>
-      </section>
+      <main className="flex-1 pt-20">
+        {/* Hero */}
+        <section className="bg-gradient-green py-20">
+          <div className="container-custom mx-auto px-4 md:px-8 text-center">
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
+              Yayınlar
+            </h1>
+            <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
+              Derneğimizin hazırladığı raporlar, araştırmalar ve politika belgeleri
+            </p>
+          </div>
+        </section>
 
       {/* Filter Tabs */}
       {!loading && (
@@ -415,7 +415,7 @@ const Yayinlar = () => {
           </div>
         </section>
       )}
-
+      </main>
       <Footer />
     </div>
   );

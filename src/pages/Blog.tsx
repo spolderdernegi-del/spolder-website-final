@@ -51,20 +51,20 @@ const Blog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 bg-gradient-to-br from-primary/10 via-secondary/5 to-background">
-        <div className="container-custom mx-auto px-4">
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Blog
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler.
-          </p>
-        </div>
-      </section>
+      <main className="flex-1 pt-20">
+        {/* Hero */}
+        <section className="bg-gradient-blue py-20">
+          <div className="container-custom mx-auto px-4 md:px-8 text-center">
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
+              Blog
+            </h1>
+            <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
+              Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler
+            </p>
+          </div>
+        </section>
 
       {/* Loading State */}
       {loading && (
@@ -191,7 +191,7 @@ const Blog = () => {
           </div>
         </section>
       )}
-
+      </main>
       <Footer />
     </div>
   );
