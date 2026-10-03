@@ -11,6 +11,12 @@ interface CategoryFilterBarProps {
   categoryColors: Record<string, string>;
   selected: string | null;
   onSelect: (category: string | null) => void;
+  // Opsiyonel: kategori rozetlerinin yanında aynı panelde gösterilen ek
+  // durum filtresi (örn. Etkinlikler'de "Devam Eden" / "Süresi Geçen").
+  // Seçili olana tekrar tıklanınca seçim kalkar (tüm durumlar gösterilir).
+  statusOptions?: string[];
+  selectedStatus?: string | null;
+  onSelectStatus?: (status: string | null) => void;
 }
 
 const DEFAULT_COLOR = "#3B82F6";
@@ -19,10 +25,18 @@ const DEFAULT_COLOR = "#3B82F6";
 // panelindeki renkleriyle) rozet listesi olarak gösteren, tıklanınca
 // seçili kategoriye göre filtreleyen paylaşılan bileşen. Haberler,
 // Etkinlikler, Projeler ve Blog listeleme sayfalarında kullanılıyor.
-const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: CategoryFilterBarProps) => {
+const CategoryFilterBar = ({
+  categories,
+  categoryColors,
+  selected,
+  onSelect,
+  statusOptions,
+  selectedStatus,
+  onSelectStatus,
+}: CategoryFilterBarProps) => {
   const [open, setOpen] = useState(false);
 
-  if (categories.length === 0) return null;
+  if (categories.length === 0 && (!statusOptions || statusOptions.length === 0)) return null;
 
   return (
     <div className="mb-8">
@@ -33,6 +47,11 @@ const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: C
       >
         <Filter className="w-4 h-4" />
         Filtrele
+        {selectedStatus && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+            {selectedStatus}
+          </span>
+        )}
         {selected && (
           <span
             className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
@@ -45,6 +64,27 @@ const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: C
 
       {open && (
         <div className="flex flex-wrap gap-2 mt-3">
+          {statusOptions?.map((status) => {
+            const isActive = selectedStatus === status;
+            return (
+              <button
+                type="button"
+                key={status}
+                onClick={() => {
+                  onSelectStatus?.(isActive ? null : status);
+                  setOpen(false);
+                }}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-foreground border-border hover:bg-muted"
+                }`}
+              >
+                {status}
+              </button>
+            );
+          })}
+          {categories.length > 0 && (
           <button
             type="button"
             onClick={() => {
@@ -59,6 +99,7 @@ const CategoryFilterBar = ({ categories, categoryColors, selected, onSelect }: C
           >
             Tümü
           </button>
+          )}
           {categories.map((cat) => {
             const isActive = selected === cat;
             const color = categoryColors[cat] || DEFAULT_COLOR;

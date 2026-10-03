@@ -26,7 +26,7 @@ interface Event {
 
 const Etkinlikler = () => {
   const [events, setEvents] = useState<Event[]>([]);
-  const [activeFilter, setActiveFilter] = useState("Tümü");
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -145,38 +145,18 @@ const Etkinlikler = () => {
           </section>
         )}
 
-        {/* Filter Buttons */}
+        {/* Filter */}
         {!loading && events.length > 0 && (
           <section className="py-8">
             <div className="container-custom mx-auto">
-              <div className="flex flex-wrap gap-3 justify-center mb-6">
-                <Button
-                  variant={activeFilter === "Tümü" ? "gradient" : "outline"}
-                  size="lg"
-                  onClick={() => setActiveFilter("Tümü")}
-                >
-                  Tümü
-                </Button>
-                <Button
-                  variant={activeFilter === "Devam Eden" ? "gradient" : "outline"}
-                  size="lg"
-                  onClick={() => setActiveFilter("Devam Eden")}
-                >
-                  Devam Eden
-                </Button>
-                <Button
-                  variant={activeFilter === "Süresi Geçen" ? "gradient" : "outline"}
-                  size="lg"
-                  onClick={() => setActiveFilter("Süresi Geçen")}
-                >
-                  Süresi Geçen
-                </Button>
-              </div>
               <CategoryFilterBar
                 categories={availableCategories}
                 categoryColors={categoryColors}
                 selected={selectedCategory}
                 onSelect={setSelectedCategory}
+                statusOptions={["Devam Eden", "Süresi Geçen"]}
+                selectedStatus={activeFilter}
+                onSelectStatus={setActiveFilter}
               />
             </div>
           </section>
@@ -188,7 +168,7 @@ const Etkinlikler = () => {
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Etkinlik bulunamadı</h3>
               <p className="text-muted-foreground">
-                {events.length > 0 ? "Bu filtreyle eşleşen bir etkinlik yok." : "Şu anda gösterilecek bir etkinlik yok."}
+                {events.length > 0 && (activeFilter || selectedCategory) ? "Bu filtreyle eşleşen bir etkinlik yok." : "Şu anda gösterilecek bir etkinlik yok."}
               </p>
             </div>
           </section>
