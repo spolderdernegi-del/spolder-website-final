@@ -17,6 +17,21 @@ interface SlideItem {
   link: string;
 }
 
+// CSS ile satır sınırlama (line-clamp), tarayıcıda bazen "ğ", "j" gibi alt
+// çıkıntılı harflerin görsel olarak kesilmesine yol açıyordu (ve bunu
+// düzeltmeye çalışırken eklenen güvenlik boşluğu da 4. satırın yarısının
+// alttaki metne sızmasına sebep oldu). Bunun yerine metni burada, kelime
+// sınırından kesip "…" ekliyoruz - tam başlık/özet zaten haberin/etkinliğin
+// kendi detay sayfasında gösteriliyor, slider sadece kısa bir önizleme.
+const truncateText = (text: string, maxLength: number) => {
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  const sliced = text.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(" ");
+  const safeCut = lastSpace > maxLength * 0.6 ? sliced.slice(0, lastSpace) : sliced;
+  return safeCut.trimEnd() + "…";
+};
+
 const HeroSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides, setSlides] = useState<SlideItem[]>([]);
@@ -176,18 +191,13 @@ const HeroSlider = () => {
           </div>
 
           {/* Title */}
-          {/* Başlık ve alt metin uzun olursa (bkz. "Cumhuriyetimizin 100. Yılında..."
-              gibi uzun başlıklar), sabit yükseklikli slider alanını taşırıp tarih/
-              buton gibi altındaki her şeyi görünmez yapabiliyordu - satır sayısını
-              sınırlayarak (line-clamp) her ekran boyutunda güvenli bir üst sınır
-              koyuyoruz, taşan kısım "..." ile kesiliyor. */}
-          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal line-clamp-3 break-words">
-            {slides[currentSlide].baslik}
+          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal break-words">
+            {truncateText(slides[currentSlide].baslik, 58)}
           </h1>
 
           {/* Description */}
-          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl line-clamp-2 break-words">
-            {slides[currentSlide].ozet}
+          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl break-words">
+            {truncateText(slides[currentSlide].ozet, 110)}
           </p>
 
           {/* Date */}
