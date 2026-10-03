@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface Project {
   id: number;
@@ -23,6 +24,7 @@ const Projeler = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const categoryColors = useCategoryColors("projects");
 
   useEffect(() => {
@@ -49,6 +51,14 @@ const Projeler = () => {
     }
   };
 
+  const availableCategories = Array.from(
+    new Set(projects.flatMap((project) => project.categories || []))
+  ).sort((a, b) => a.localeCompare(b, "tr"));
+
+  const filteredProjects = selectedCategory
+    ? projects.filter((project) => (project.categories || []).includes(selectedCategory))
+    : projects;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -74,22 +84,38 @@ const Projeler = () => {
           </section>
         )}
 
+        {/* Filter */}
+        {!loading && projects.length > 0 && (
+          <section className="pt-8">
+            <div className="container-custom mx-auto">
+              <CategoryFilterBar
+                categories={availableCategories}
+                categoryColors={categoryColors}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Empty State */}
-        {!loading && projects.length === 0 && (
+        {!loading && filteredProjects.length === 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Proje bulunamadı</h3>
-              <p className="text-muted-foreground">Şu anda gösterilecek bir proje yok.</p>
+              <p className="text-muted-foreground">
+                {selectedCategory ? "Bu kategoride gösterilecek bir proje yok." : "Şu anda gösterilecek bir proje yok."}
+              </p>
             </div>
           </section>
         )}
 
         {/* Projects Grid */}
-        {!loading && projects.length > 0 && (
+        {!loading && filteredProjects.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {projects.map((project) => (
+                {filteredProjects.map((project) => (
                 <article key={project.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover group">
                   <div className="relative h-52 overflow-hidden">
                     <img

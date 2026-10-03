@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface NewsItem {
   id: number;
@@ -25,6 +26,7 @@ const Haberler = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(6);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const categoryColors = useCategoryColors("news");
 
   useEffect(() => {
@@ -54,9 +56,20 @@ const Haberler = () => {
   const loadMore = () => {
     setVisibleCount(prev => Math.min(prev + 3, news.length));
   };
-  
-  const visibleNews = news.slice(0, visibleCount);
-  const hasMore = visibleCount < news.length;
+
+  const getItemCategories = (item: NewsItem) =>
+    item.categories && item.categories.length > 0 ? item.categories : item.kategori ? [item.kategori] : [];
+
+  const availableCategories = Array.from(
+    new Set(news.flatMap((item) => getItemCategories(item)))
+  ).sort((a, b) => a.localeCompare(b, "tr"));
+
+  const filteredNews = selectedCategory
+    ? news.filter((item) => getItemCategories(item).includes(selectedCategory))
+    : news;
+
+  const visibleNews = filteredNews.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredNews.length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -83,18 +96,34 @@ const Haberler = () => {
           </section>
         )}
 
+        {/* Filter */}
+        {!loading && news.length > 0 && (
+          <section className="pt-8">
+            <div className="container-custom mx-auto">
+              <CategoryFilterBar
+                categories={availableCategories}
+                categoryColors={categoryColors}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Empty State */}
-        {!loading && news.length === 0 && (
+        {!loading && filteredNews.length === 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Haber bulunamadı</h3>
-              <p className="text-muted-foreground">Şu anda gösterilecek bir haber yok.</p>
+              <p className="text-muted-foreground">
+                {selectedCategory ? "Bu kategoride gösterilecek bir haber yok." : "Şu anda gösterilecek bir haber yok."}
+              </p>
             </div>
           </section>
         )}
 
         {/* News Grid */}
-        {!loading && news.length > 0 && (
+        {!loading && filteredNews.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

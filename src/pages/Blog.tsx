@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface BlogPost {
   id: number;
@@ -24,6 +25,7 @@ const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const categoryColors = useCategoryColors("blog");
 
   useEffect(() => {
@@ -50,6 +52,16 @@ const Blog = () => {
     }
   };
 
+  const availableCategories = Array.from(
+    new Set(posts.flatMap((post) => (post.categories && post.categories.length > 0 ? post.categories : post.category ? [post.category] : [])))
+  ).sort((a, b) => a.localeCompare(b, "tr"));
+
+  const filteredPosts = selectedCategory
+    ? posts.filter((post) =>
+        (post.categories && post.categories.length > 0 ? post.categories : post.category ? [post.category] : []).includes(selectedCategory)
+      )
+    : posts;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -75,32 +87,48 @@ const Blog = () => {
         </section>
       )}
 
+      {/* Filter */}
+      {!loading && posts.length > 0 && (
+        <section className="pt-4">
+          <div className="container-custom mx-auto px-4">
+            <CategoryFilterBar
+              categories={availableCategories}
+              categoryColors={categoryColors}
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Empty State */}
-      {!loading && posts.length === 0 && (
+      {!loading && filteredPosts.length === 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4 text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">Blog yazısı bulunamadı</h3>
-            <p className="text-muted-foreground">Şu anda gösterilecek bir blog yazısı yok.</p>
+            <p className="text-muted-foreground">
+              {selectedCategory ? "Bu kategoride gösterilecek bir blog yazısı yok." : "Şu anda gösterilecek bir blog yazısı yok."}
+            </p>
           </div>
         </section>
       )}
 
       {/* Featured Post */}
-      {!loading && posts.length > 0 && (
+      {!loading && filteredPosts.length > 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4">
             <div className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300">
               <div className="grid md:grid-cols-2 gap-0">
                 <div className="aspect-video md:aspect-auto">
                   <img
-                    src={posts[0].image}
-                    alt={posts[0].title}
+                    src={filteredPosts[0].image}
+                    alt={filteredPosts[0].title}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="p-8 flex flex-col justify-center">
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {(posts[0].categories && posts[0].categories.length > 0 ? posts[0].categories : posts[0].category ? [posts[0].category] : []).map((cat, idx) => (
+                    {(filteredPosts[0].categories && filteredPosts[0].categories.length > 0 ? filteredPosts[0].categories : filteredPosts[0].category ? [filteredPosts[0].category] : []).map((cat, idx) => (
                       <span
                         key={idx}
                         className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
@@ -111,22 +139,22 @@ const Blog = () => {
                     ))}
                   </div>
                   <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                    {posts[0].title}
+                    {filteredPosts[0].title}
                   </h2>
                   <p className="text-muted-foreground mb-6">
-                    {posts[0].excerpt}
+                    {filteredPosts[0].excerpt}
                   </p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
                     <span className="flex items-center gap-1">
                       <User className="w-4 h-4" />
-                      {posts[0].author}
+                      {filteredPosts[0].author}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {posts[0].date}
+                      {filteredPosts[0].date}
                     </span>
                   </div>
-                  <Link to={`/blog/${posts[0].id}`}>
+                  <Link to={`/blog/${filteredPosts[0].id}`}>
                     <Button variant="gradient" className="w-fit">
                       Devamını Oku
                     </Button>
@@ -139,11 +167,11 @@ const Blog = () => {
       )}
 
       {/* Blog Grid */}
-      {!loading && posts.length > 0 && (
+      {!loading && filteredPosts.length > 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {posts.slice(1).map((post) => (
+              {filteredPosts.slice(1).map((post) => (
                 <Link
                   to={`/blog/${post.id}`}
                   key={post.id}

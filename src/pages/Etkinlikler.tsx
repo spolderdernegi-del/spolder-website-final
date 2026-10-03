@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface Event {
   id: number;
@@ -28,6 +29,7 @@ const Etkinlikler = () => {
   const [activeFilter, setActiveFilter] = useState("Tümü");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const categoryColors = useCategoryColors("events");
 
   useEffect(() => {
@@ -54,16 +56,19 @@ const Etkinlikler = () => {
     }
   };
 
+  const getItemCategories = (event: Event) =>
+    event.categories && event.categories.length > 0 ? event.categories : event.kategori ? [event.kategori] : [];
+
   const filterEvents = () => {
     const now = new Date();
-    
-    if (activeFilter === "Tümü") return events;
-    
+
+    let result = events;
+
     if (activeFilter === "Devam Eden") {
-      return events.filter(event => {
+      result = result.filter(event => {
         // Durum kontrolü
         if (event.durum === "Tamamlandı") return false;
-        
+
         // Tarih ve saat kontrolü
         try {
           // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
@@ -74,13 +79,11 @@ const Etkinlikler = () => {
           return event.tarih >= now.toISOString().split('T')[0];
         }
       });
-    }
-    
-    if (activeFilter === "Süresi Geçen") {
-      return events.filter(event => {
+    } else if (activeFilter === "Süresi Geçen") {
+      result = result.filter(event => {
         // Durum kontrolü
         if (event.durum === "Tamamlandı") return true;
-        
+
         // Tarih ve saat kontrolü
         try {
           // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
@@ -92,9 +95,17 @@ const Etkinlikler = () => {
         }
       });
     }
-    
-    return events;
+
+    if (selectedCategory) {
+      result = result.filter((event) => getItemCategories(event).includes(selectedCategory));
+    }
+
+    return result;
   };
+
+  const availableCategories = Array.from(
+    new Set(events.flatMap((event) => getItemCategories(event)))
+  ).sort((a, b) => a.localeCompare(b, "tr"));
 
   const formatEventDate = (dateStr: string) => {
     try {
@@ -134,21 +145,11 @@ const Etkinlikler = () => {
           </section>
         )}
 
-        {/* Empty State */}
-        {!loading && events.length === 0 && (
-          <section className="section-padding">
-            <div className="container-custom mx-auto text-center">
-              <h3 className="text-xl font-bold text-foreground mb-2">Etkinlik bulunamadı</h3>
-              <p className="text-muted-foreground">Şu anda gösterilecek bir etkinlik yok.</p>
-            </div>
-          </section>
-        )}
-
         {/* Filter Buttons */}
         {!loading && events.length > 0 && (
           <section className="py-8">
             <div className="container-custom mx-auto">
-              <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex flex-wrap gap-3 justify-center mb-6">
                 <Button
                   variant={activeFilter === "Tümü" ? "gradient" : "outline"}
                   size="lg"
@@ -171,12 +172,30 @@ const Etkinlikler = () => {
                   Süresi Geçen
                 </Button>
               </div>
+              <CategoryFilterBar
+                categories={availableCategories}
+                categoryColors={categoryColors}
+                selected={selectedCategory}
+                onSelect={setSelectedCategory}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Empty State */}
+        {!loading && (events.length === 0 || filterEvents().length === 0) && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Etkinlik bulunamadı</h3>
+              <p className="text-muted-foreground">
+                {events.length > 0 ? "Bu filtreyle eşleşen bir etkinlik yok." : "Şu anda gösterilecek bir etkinlik yok."}
+              </p>
             </div>
           </section>
         )}
 
         {/* Events Grid */}
-        {!loading && events.length > 0 && (
+        {!loading && filterEvents().length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
               <div className="space-y-8">
