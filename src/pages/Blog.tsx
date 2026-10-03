@@ -113,65 +113,12 @@ const Blog = () => {
         </section>
       )}
 
-      {/* Featured Post */}
-      {!loading && filteredPosts.length > 0 && (
-        <section className="py-12">
-          <div className="container-custom mx-auto px-4">
-            <div className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300">
-              <div className="grid md:grid-cols-2 gap-0">
-                <div className="aspect-video md:aspect-auto">
-                  <img
-                    src={filteredPosts[0].image}
-                    alt={filteredPosts[0].title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-8 flex flex-col justify-center">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {(filteredPosts[0].categories && filteredPosts[0].categories.length > 0 ? filteredPosts[0].categories : filteredPosts[0].category ? [filteredPosts[0].category] : []).map((cat, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
-                        style={getCategoryBadgeStyle(categoryColors[cat])}
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                  <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                    {filteredPosts[0].title}
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
-                    {filteredPosts[0].excerpt}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-                    <span className="flex items-center gap-1">
-                      <User className="w-4 h-4" />
-                      {filteredPosts[0].author}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {filteredPosts[0].date}
-                    </span>
-                  </div>
-                  <Link to={`/blog/${filteredPosts[0].id}`}>
-                    <Button variant="gradient" className="w-fit">
-                      Devamını Oku
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Blog Grid */}
       {!loading && filteredPosts.length > 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPosts.slice(1).map((post) => (
+              {filteredPosts.map((post) => (
                 <Link
                   to={`/blog/${post.id}`}
                   key={post.id}
