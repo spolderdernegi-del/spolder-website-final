@@ -175,11 +175,10 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "warn",
         title: "Bilmeniz gerekenler",
         items: [
-          "Yönetim listesindeki \"Tüm Durumlar / Taslak / Yayınlanmış\" menüsü şu an etkinliklerde doğru çalışmıyor (Taslak veya Yayınlanmış seçince liste boş görünür). \"Tüm Durumlar\"da bırakın; hangisinin taslak olduğunu kayıttaki rozetten anlayabilirsiniz.",
-          "Formdaki \"Google Form Kayıt Linki\" alanı kaydedilir ama sitedeki \"Kayıt Ol\" butonunu şu an değiştirmez; buton sabit bir kayıt formuna gider.",
+          "\"Google Form Kayıt Linki\" alanına etkinliğe özel kayıt formunun adresini yazarsanız, sitedeki \"Kayıt Ol\" butonu o forma gider. Boş bırakırsanız buton derneğin genel kayıt formuna gider.",
+          "Yönetim listesindeki \"Tüm Durumlar / Taslak / Yayınlanmış\" menüsü ile taslak ve yayındaki etkinlikleri ayrı ayrı görebilirsiniz.",
           "Kapasite ve Kayıtlı sayısı sitede gösterilmez.",
           "Haritadan seçilen koordinatlar sitede harita olarak gösterilmez; ziyaretçiler yazdığınız konum adını görür. Bu yüzden konum adını mutlaka yazın.",
-          "Formda \"İçerik\" bölümü iki kez görünür; ikisi de aynı içeriği düzenler, birini kullanmanız yeterli.",
         ],
       },
     ],
@@ -196,6 +195,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         items: [
           "Kontrol Paneli'nde \"Projeler\" kartına, ardından \"Yeni Proje\" düğmesine tıklayın.",
           "Başlığı yazın, kategorileri seçin, görseli ekleyin.",
+          "\"Kısa Açıklama\" alanına liste kartında görünecek 1-2 cümleyi yazın.",
           "İsterseniz Başlangıç ve Bitiş Tarihi'ni girin.",
           "Durum olarak \"Planlanıyor\", \"Devam Ediyor\" veya \"Tamamlandı\" seçin. Bu bilgi proje kartında rozet olarak görünür.",
           "\"Detaylı İçerik\" için \"Tam Sayfa Düzenle (Word gibi)\" düğmesini kullanın.",
@@ -214,7 +214,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "warn",
         title: "Bilmeniz gerekenler",
         items: [
-          "Proje formunda, liste kartında görünen kısa açıklama için ayrı bir alan şu an yok; proje detayını \"Detaylı İçerik\" ile yazarsınız.",
           "Proje detay sayfasında kategorilerden yalnızca ilki gösterilir; liste sayfasında hepsi görünür.",
         ],
       },
@@ -233,6 +232,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "Kontrol Paneli'nde \"Blog\" kartına, ardından \"Yeni Blog Yazısı\" düğmesine tıklayın.",
           "Başlık, kategoriler, Yazar (varsayılan \"SPOLDER\") ve Tarih'i girin. Sitedeki sıralama bu tarihe göredir.",
           "\"Kapak Görseli\" ekleyin.",
+          "\"Özet (Kısa Açıklama)\" alanına liste kartında görünecek 1-2 cümleyi yazın.",
           "\"Tam Sayfa Düzenle (Word gibi)\" ile yazıyı hazırlayın.",
           "Yayın Durumu'nu \"Yayınla\" yapıp \"Kaydet\" deyin.",
         ],
@@ -559,9 +559,10 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         type: "warn",
-        title: "Şu anki sınırlama",
+        title: "Bilmeniz gerekenler",
         items: [
-          "Burada yaptığınız değişiklik şu an yalnızca kendi tarayıcınıza kaydedilir; sitenin ziyaretçilerine yansımaz. Ziyaretçiler varsayılan metni görür.",
+          "\"Kaydet\" dediğinizde yeni metin sitedeki tüm ziyaretçilere yansır.",
+          "Pop-up her ziyaretçiye yalnızca ilk girişinde (tarayıcı başına bir kez) açılır.",
         ],
       },
     ],
@@ -579,6 +580,23 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "Kontrol Paneli'nde \"Ayarlar\" kartına tıklayın.",
           "\"Şifre Değiştir\" bölümünde \"Mevcut Şifre\", \"Yeni Şifre\" ve \"Yeni Şifre (Tekrar)\" alanlarını doldurun. Yeni şifre en az 8 karakter olmalı ve iki alan aynı olmalıdır.",
           "\"Şifreyi Güncelle\" düğmesine basın. Başarılıysa \"Şifreniz başarıyla değiştirildi!\" mesajı çıkar.",
+        ],
+      },
+      {
+        type: "steps",
+        title: "Giriş e-postasını değiştirme",
+        items: [
+          "\"E-posta Adresi Güncelle\" bölümüne yeni e-posta adresini yazın.",
+          "Doğrulama için \"Mevcut şifreniz\" alanını doldurun ve \"E-postayı Güncelle\" düğmesine basın.",
+          "Bundan sonra yeni e-posta adresiyle giriş yaparsınız; şifreniz aynı kalır.",
+        ],
+      },
+      {
+        type: "steps",
+        title: "Yedek alma",
+        items: [
+          "\"Veri Yönetimi\" bölümündeki \"Yedeği İndir (JSON)\" düğmesine basın.",
+          "Etkinlik, haber, blog, proje, kategori, yönetim kurulu, dosya ve site ayarlarının tamamı tek bir dosya olarak inmiş olur. Dosyayı güvenli bir yerde saklayın.",
         ],
       },
       {
@@ -626,8 +644,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "warn",
         title: "Dikkat",
         items: [
-          "\"E-posta Adresi Güncelle\" bölümü, giriş yaptığınız e-posta adresini değiştirmez. Giriş e-postasını değiştirmek için sistem yöneticisine başvurun.",
-          "\"Veri Yönetimi\" (dışa aktar, içe aktar, tüm verileri temizle) sitenin gerçek içeriğini yedeklemez; yalnızca bu tarayıcıdaki eski verilerle çalışır. Haber, etkinlik, blog ve proje içeriklerinizin yedeği için sistem yöneticisine başvurun. \"Tüm Verileri Temizle\" düğmesine basmayın.",
+          "Yedek dosyası yalnızca içerik kayıtlarını ve görsel bağlantılarını içerir; görsel dosyalarının kendisini içermez. Yedeği bu panelden geri yükleyemezsiniz, gerekirse sistem yöneticisine verin.",
           "Aktivite Logu yalnızca bu tarayıcıda tutulur, son kayıtları gösterir ve başka bir bilgisayarda görünmez.",
         ],
       },

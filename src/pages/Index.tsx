@@ -7,6 +7,7 @@ import AboutSection from "@/components/home/AboutSection";
 import NewsEventsSection from "@/components/home/NewsEventsSection";
 import CTASection from "@/components/home/CTASection";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -27,11 +28,21 @@ const Index = () => {
       localStorage.setItem("hasVisitedSpolder", "true");
     }
     
-    // Load modal content from localStorage
-    const stored = localStorage.getItem('spolder_welcome_modal');
-    if (stored) {
-      setModalContent(JSON.parse(stored));
-    }
+    // Pop-up içeriğini sunucudaki ayarlardan (admin panelinden girilen) yükle.
+    supabase
+      .from("settings")
+      .select("key, value")
+      .eq("key", "welcome_modal")
+      .then(({ data }) => {
+        const raw = data?.[0]?.value;
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          setModalContent((prev) => ({ ...prev, ...parsed }));
+        } catch {
+          // Bozuk veri varsa varsayılan içerik kalır.
+        }
+      });
   }, []);
 
   const closeWelcomeModal = () => {

@@ -547,6 +547,16 @@ const AdminProjects = () => {
               )}
 
               <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Kısa Açıklama</label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Proje listesinde ve kartlarda görünecek 1-2 cümlelik açıklama"
+                  rows={3}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Detaylı İçerik</label>
                 <div className="border rounded-md p-4 bg-muted/30">
                   <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">

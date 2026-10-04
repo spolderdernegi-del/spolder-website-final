@@ -3,8 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Download, Upload, Trash2, Key, Activity, Plus, X } from "lucide-react";
-import { exportAllData, importData, clearAllData } from "@/lib/dataManager";
+import { ArrowLeft, Download, Key, Activity, Plus, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { getActivityLogs, getActionText, getContentTypeText, type ActivityLog } from "@/lib/activityLog";
 import GoogleMapPicker from "@/components/admin/GoogleMapPicker";
@@ -29,6 +28,9 @@ const AdminSettings = () => {
   const [showLogs, setShowLogs] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [currentEmail, setCurrentEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -107,20 +109,10 @@ const AdminSettings = () => {
 
   const loadCurrentEmail = async () => {
     try {
-      const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'admin_email')
-        .single();
-      
-      if (!error && data) {
-        setCurrentEmail(data.value);
-      } else {
-        setCurrentEmail('admin@spolder.org'); // Default email
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentEmail(session?.user?.email || "");
     } catch (err) {
       console.error("Email yüklenemedi:", err);
-      setCurrentEmail('admin@spolder.org');
     }
   };
 
@@ -140,63 +132,68 @@ const AdminSettings = () => {
     }
   };
 
-  const handleExport = () => {
-    try {
-      exportAllData();
-      toast.success('Tüm veriler başarıyla dışa aktarıldı!');
-    } catch (error) {
-      toast.error('Dışa aktarma sırasında hata oluştu');
-    }
-  };
+  // Veritabanındaki tüm içerik tablolarını tek bir JSON dosyası olarak indirir.
+  const BACKUP_TABLES = ["categories", "board", "bank_info", "events", "news", "blog", "projects", "files", "settings"];
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleExport = async () => {
+    setExporting(true);
     try {
-      setLoading(true);
-      await importData(file);
-      toast.success('Veriler başarıyla içe aktarıldı!');
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (error) {
-      toast.error('İçe aktarma sırasında hata oluştu');
+      const backup: Record<string, unknown> = {
+        exported_at: new Date().toISOString(),
+        site: "spolder.org",
+      };
+      for (const table of BACKUP_TABLES) {
+        const { data, error } = await supabase.from(table).select("*").limit(1000);
+        if (error) throw new Error(`${table}: ${error.message}`);
+        backup[table] = data || [];
+      }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `spolder-yedek-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Yedek indirildi!");
+    } catch (error: any) {
+      toast.error("Yedek alınamadı: " + (error?.message || "bilinmeyen hata"));
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClearData = () => {
-    const success = clearAllData();
-    if (success) {
-      toast.success('Tüm veriler temizlendi!');
-      setTimeout(() => window.location.reload(), 1500);
+      setExporting(false);
     }
   };
 
   const handleEmailChange = async () => {
-    if (!newEmail) {
-      toast.warning('Lütfen yeni e-posta adresini girin');
+    if (!newEmail || !emailPassword) {
+      toast.warning('Lütfen yeni e-posta adresini ve mevcut şifrenizi girin');
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
       toast.error('Geçerli bir e-posta adresi girin');
       return;
     }
 
+    setChangingEmail(true);
     try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ key: 'admin_email', value: newEmail, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-      if (error) throw error;
-      toast.success('E-posta başarıyla değiştirildi!');
-      setCurrentEmail(newEmail);
+      const response = await fetch('/api/auth/change-email', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: emailPassword, newEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error?.message || 'E-posta güncellenemedi');
+      }
+      toast.success('Giriş e-postası değiştirildi. Bundan sonra yeni adresle giriş yapın.');
+      setCurrentEmail(result.data?.email || newEmail);
       setNewEmail('');
-      localStorage.setItem("adminEmail", newEmail);
+      setEmailPassword('');
     } catch (err: any) {
-      toast.error('E-posta güncellenemedi: ' + err.message);
+      toast.error(err.message || 'E-posta güncellenemedi');
+    } finally {
+      setChangingEmail(false);
     }
   };
 
@@ -472,38 +469,15 @@ const AdminSettings = () => {
             Veri Yönetimi
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button onClick={handleExport} className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Verileri Dışa Aktar
-            </Button>
-
-            <div className="relative">
-              <Input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <Button variant="outline" className="w-full flex items-center gap-2 pointer-events-none">
-                <Upload className="w-4 h-4" />
-                Verileri İçe Aktar
-              </Button>
-            </div>
-
-            <Button 
-              onClick={handleClearData} 
-              variant="destructive"
-              className="flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Tüm Verileri Temizle
-            </Button>
-          </div>
+          <Button onClick={handleExport} disabled={exporting} className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            {exporting ? "Hazırlanıyor..." : "Yedeği İndir (JSON)"}
+          </Button>
 
           <p className="text-sm text-muted-foreground mt-4">
-            💡 Veri dışa aktarma özelliği ile tüm içeriklerinizi yedekleyebilirsiniz. 
-            İçe aktarma yapmadan önce mevcut verilerinizi yedeklemeyi unutmayın.
+            💡 Etkinlik, haber, blog, proje, kategori, yönetim kurulu, dosya ve site ayarlarının tamamını
+            tek bir JSON dosyası olarak indirir. Görsel dosyaları (uploads) bu yedeğe dahil değildir;
+            yalnızca bağlantıları kaydedilir.
           </p>
         </div>
 
@@ -516,20 +490,28 @@ const AdminSettings = () => {
           
           <div>
             <p className="text-sm text-muted-foreground mb-3">
-              Mevcut e-posta: <span className="font-medium text-foreground">{currentEmail}</span>
+              Giriş e-postası: <span className="font-medium text-foreground">{currentEmail}</span>
             </p>
-            <div className="flex gap-4 max-w-2xl">
-              <div className="flex-1">
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="yeni@email.com"
-                />
+            <div className="grid gap-3 max-w-2xl">
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="yeni@email.com"
+                autoComplete="off"
+              />
+              <Input
+                type="password"
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                placeholder="Mevcut şifreniz (doğrulama için)"
+                autoComplete="current-password"
+              />
+              <div>
+                <Button onClick={handleEmailChange} disabled={changingEmail}>
+                  {changingEmail ? "Güncelleniyor..." : "E-postayı Güncelle"}
+                </Button>
               </div>
-              <Button onClick={handleEmailChange}>
-                E-postayı Güncelle
-              </Button>
             </div>
           </div>
         </div>

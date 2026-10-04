@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 interface WelcomeModalContent {
   title: string;
@@ -42,22 +43,30 @@ const AdminWelcomeModal = () => {
     loadModalContent();
   }, [checkAuth]);
 
-  const loadModalContent = () => {
-    const stored = localStorage.getItem('spolder_welcome_modal');
-    if (stored) {
-      const content = JSON.parse(stored);
-      setFormData(content);
-    } else {
-      // Varsayılan değerler
-      setFormData({
-        title: "Hoş Geldiniz!",
-        description: "SPOLDER Spor Politikaları Derneği'ne hoş geldiniz. Türkiye'de spor politikalarının geliştirilmesi için çalışıyoruz.",
-        feature1: "508+ gönüllü ile spor camiasının güçlü sesi",
-        feature2: "Araştırmalar, etkinlikler ve politika önerileri",
-        feature3: "6+ yıllık deneyim ve uzmanlık",
-        buttonText: "Keşfetmeye Başla",
-      });
+  const DEFAULTS: WelcomeModalContent = {
+    title: "Hoş Geldiniz!",
+    description: "SPOLDER Spor Politikaları Derneği'ne hoş geldiniz. Türkiye'de spor politikalarının geliştirilmesi için çalışıyoruz.",
+    feature1: "508+ gönüllü ile spor camiasının güçlü sesi",
+    feature2: "Araştırmalar, etkinlikler ve politika önerileri",
+    feature3: "6+ yıllık deneyim ve uzmanlık",
+    buttonText: "Keşfetmeye Başla",
+  };
+
+  const loadModalContent = async () => {
+    const { data } = await supabase
+      .from("settings")
+      .select("key, value")
+      .eq("key", "welcome_modal");
+    const raw = data?.[0]?.value;
+    if (raw) {
+      try {
+        setFormData({ ...DEFAULTS, ...JSON.parse(raw) });
+        return;
+      } catch {
+        // bozuk veri: varsayılanlara dön
+      }
     }
+    setFormData(DEFAULTS);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,10 +74,16 @@ const AdminWelcomeModal = () => {
     setSaving(true);
 
     try {
-      localStorage.setItem('spolder_welcome_modal', JSON.stringify(formData));
-      alert("Hoş geldiniz pop-up içeriği başarıyla güncellendi!");
+      const { error } = await supabase
+        .from("settings")
+        .upsert(
+          { key: "welcome_modal", value: JSON.stringify(formData), updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+      if (error) throw error;
+      toast.success("Hoş geldiniz pop-up içeriği güncellendi. Ziyaretçiler artık yeni metni görecek.");
     } catch (error: any) {
-      alert("Hata: " + error.message);
+      toast.error("Hata: " + (error?.message || "Kaydedilemedi"));
     } finally {
       setSaving(false);
     }

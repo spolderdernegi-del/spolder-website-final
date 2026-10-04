@@ -448,6 +448,16 @@ const AdminBlog = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Özet (Kısa Açıklama)</label>
+                <Textarea
+                  value={formData.excerpt}
+                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  placeholder="Blog listesinde ve kartlarda görünecek 1-2 cümlelik özet"
+                  rows={3}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
                 <div className="border rounded-md p-4 bg-muted/30">
                   <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
@@ -554,21 +564,6 @@ const AdminBlog = () => {
                   </p>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <div className="border rounded-md p-4 bg-muted/30">
-                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
-                    {formData.content
-                      ? formData.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.content.length > 220 ? '…' : '')
-                      : <span className="italic">Henüz içerik girilmedi.</span>}
-                  </p>
-                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
-                    <FileEdit className="w-4 h-4" />
-                    Tam Sayfa Düzenle (Word gibi)
-                  </Button>
-                </div>
-              </div>
 
               <div className="flex gap-2">
                 <Button type="submit" disabled={loading || uploading} className="flex items-center gap-2">

@@ -356,7 +356,7 @@ const AdminEvents = () => {
     const matchesCategory = !filterCategory || 
                            event.categories?.includes(filterCategory) || 
                            event.kategori === filterCategory;
-    const matchesStatus = !filterStatus || event.durum === filterStatus;
+    const matchesStatus = !filterStatus || (event.yayin_durumu || 'yayinlandi') === filterStatus;
     
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -808,8 +808,8 @@ const AdminEvents = () => {
                 className="px-3 py-2 border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-950 text-foreground"
               >
                 <option value="">Tüm Durumlar</option>
-                <option value="draft">Taslak</option>
-                <option value="published">Yayınlanmış</option>
+                <option value="taslak">Taslak</option>
+                <option value="yayinlandi">Yayınlanmış</option>
               </select>
             </div>
 

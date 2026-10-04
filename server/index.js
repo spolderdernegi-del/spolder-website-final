@@ -135,6 +135,7 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "organization_lat",
   "organization_lng",
   "footer_services",
+  "welcome_modal",
 ]);
 
 app.set("trust proxy", 1); // behind Nginx
@@ -435,6 +436,55 @@ app.post(
     await queryDatabase(`UPDATE admin_users SET password_hash = $1 WHERE email = $2`, [newHash, admin.email]);
 
     return res.json({ data: { success: true }, error: null });
+  }),
+);
+
+// Lets a logged-in admin change the e-mail address they log in with.
+// Requires the current password, then reissues the session cookie so the
+// admin stays logged in under the new address.
+app.post(
+  "/api/auth/change-email",
+  authLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newEmail } = req.body || {};
+    if (!currentPassword || !newEmail) {
+      throw new HttpError(400, "Mevcut şifre ve yeni e-posta gereklidir");
+    }
+    const email = String(newEmail).toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpError(400, "Geçerli bir e-posta adresi giriniz");
+    }
+
+    const result = await queryDatabase(
+      `SELECT email, password_hash FROM admin_users WHERE email = $1`,
+      [req.session.email],
+    );
+    const admin = result.rows[0];
+    if (!admin) {
+      throw new HttpError(404, "Kullanıcı bulunamadı");
+    }
+
+    const passwordMatches = await bcrypt.compare(String(currentPassword), admin.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: { message: "Mevcut şifre yanlış" } });
+    }
+
+    const taken = await queryDatabase(`SELECT 1 FROM admin_users WHERE email = $1 AND email <> $2`, [email, admin.email]);
+    if (taken.rows.length > 0) {
+      throw new HttpError(409, "Bu e-posta adresi zaten kullanılıyor");
+    }
+
+    await queryDatabase(`UPDATE admin_users SET email = $1 WHERE email = $2`, [email, admin.email]);
+
+    const token = createSessionToken({ email, role: "admin" });
+    res.cookie("spolder_session", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      maxAge: 8 * 3600 * 1000,
+    });
+    return res.json({ data: { success: true, email }, error: null });
   }),
 );
 

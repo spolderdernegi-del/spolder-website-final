@@ -21,8 +21,13 @@ interface Event {
   kategori?: string;
   categories?: string[];
   slug?: string;
+  google_form_link?: string;
   created_at: string;
 }
+
+// Etkinliğe özel kayıt formu girilmemişse kullanılan genel form.
+const DEFAULT_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSfFMYRza3z7VlxwQ8H9FHtSx2ghoN1MjXQOtlFRuCAjGD20og/viewform?usp=publish-editor";
 
 const Etkinlikler = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -240,7 +245,7 @@ const Etkinlikler = () => {
                           </Button>
                         </Link>
                         <a
-                          href="https://docs.google.com/forms/d/e/1FAIpQLSfFMYRza3z7VlxwQ8H9FHtSx2ghoN1MjXQOtlFRuCAjGD20og/viewform?usp=publish-editor"
+                          href={event.google_form_link || DEFAULT_FORM_URL}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
