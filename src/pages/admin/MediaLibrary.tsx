@@ -3,7 +3,17 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Download, Image as ImageIcon, Search, Filter, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, Image as ImageIcon, Search, Filter, ExternalLink, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/lib/toast";
 import { loadMediaItems, type MediaItem } from "@/lib/mediaLibrary";
 
@@ -14,6 +24,8 @@ const AdminMediaLibrary = () => {
   const [uploadsError, setUploadsError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [toDelete, setToDelete] = useState<MediaItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -79,6 +91,42 @@ const AdminMediaLibrary = () => {
       }
     } catch (error) {
       toast.error('İndirme hatası');
+    }
+  };
+
+  // Sunucuya yüklenmiş dosyalar (/uploads/...) silinebilir; dış bağlantılar silinemez.
+  const uploadName = (url: string) => {
+    const path = url.replace(/^https?:\/\/[^/]+/i, "");
+    return path.startsWith("/uploads/") ? path.slice("/uploads/".length) : null;
+  };
+
+  const usageCount = (item: MediaItem) => {
+    const name = uploadName(item.url);
+    if (!name) return 0;
+    return media.filter((m) => m.type !== "upload" && uploadName(m.url) === name).length;
+  };
+
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    const name = uploadName(toDelete.url);
+    if (!name) return;
+    setDeleting(true);
+    try {
+      const response = await fetch("/api/media", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error?.message || "Görsel silinemedi");
+      toast.success("Görsel silindi");
+      setToDelete(null);
+      await loadMedia();
+    } catch (err: any) {
+      toast.error(err.message || "Görsel silinemedi");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -230,6 +278,16 @@ const AdminMediaLibrary = () => {
                     >
                       <Download className="w-4 h-4" />
                     </Button>
+                    {uploadName(item.url) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setToDelete(item)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="p-3">
@@ -249,6 +307,32 @@ const AdminMediaLibrary = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && !deleting && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Görsel silinsin mi?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu görsel sunucudan kalıcı olarak silinir ve geri alınamaz.
+              {toDelete && usageCount(toDelete) > 0
+                ? ` Görsel ${usageCount(toDelete)} içerikte kullanılıyor; bu içeriklerde SPOLDER logolu varsayılan görsel görünecek.`
+                : " Hiçbir içerikte kullanılmıyor."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
+              {deleting ? "Siliniyor..." : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

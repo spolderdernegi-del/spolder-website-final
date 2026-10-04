@@ -182,26 +182,26 @@ const Iletisim = () => {
                     <div className="w-12 h-12 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0">
                       <svg className="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground">Bizi Destekleyebilirsiniz</h3>
                       <p className="text-muted-foreground text-sm mb-2">Katkılarınızla çalışmalarımızı sürdürmemize yardımcı olabilirsiniz. Aşağıdaki IBAN bilgilerini kullanarak destek olabilirsiniz.</p>
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between bg-background p-3 rounded">
-                          <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
+                          <div className="min-w-0 flex-1">
                             <div className="text-xs text-muted-foreground">IBAN (TL)</div>
-                            <div className="font-mono text-sm">{donationIbanTL}</div>
+                            <div className="font-mono text-sm break-all">{donationIbanTL}</div>
                           </div>
-                          <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2">
+                          <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
                           </button>
                         </div>
 
-                        <div className="flex items-center justify-between bg-background p-3 rounded">
-                          <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
+                          <div className="min-w-0 flex-1">
                             <div className="text-xs text-muted-foreground">IBAN (EUR)</div>
-                            <div className="font-mono text-sm">{donationIbanEUR}</div>
+                            <div className="font-mono text-sm break-all">{donationIbanEUR}</div>
                           </div>
-                          <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2">
+                          <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
                           </button>
                         </div>

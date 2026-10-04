@@ -753,6 +753,82 @@ app.get(
   }),
 );
 
+// Medya kütüphanesinden görsel silme. Dosya uploads/ klasöründen silinir ve
+// siteye yayında olan her yerdeki kullanımı varsayılan logolu görselle
+// değiştirilir (kapak görselleri, yazı içindeki görseller, yönetim kurulu
+// fotoğrafı). Slider'a özel görseller boşaltılır; slider zaten kapak görseline
+// (artık varsayılan görsel) geri döner.
+const DEFAULT_SITE_IMAGE = "/og-image.png";
+app.delete(
+  "/api/media",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const name = String((req.body || {}).name || "");
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) || name.includes("..")) {
+      throw new HttpError(400, "Geçersiz dosya adı");
+    }
+    if (!MEDIA_IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) {
+      throw new HttpError(400, "Yalnızca görseller silinebilir");
+    }
+
+    const like = `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}`;
+    const regex = `(https?://[^/"'\\s]+)?/uploads/${name.replace(/[.\-]/g, "\\$&")}`;
+
+    // [tablo, kolon, yerine konacak değer] - kolon adları tırnaklıdır.
+    const coverColumns = [
+      ["news", "gorsel"],
+      ["events", "gorsel"],
+      ["blog", "image"],
+      ["projects", "image"],
+      ["board", "image"],
+    ];
+    const sliderColumns = [
+      ["news", "slider_gorsel"],
+      ["events", "slider_gorsel"],
+      ["blog", "sliderImage"],
+      ["projects", "sliderImage"],
+    ];
+    const htmlColumns = [
+      ["news", "icerik"],
+      ["events", "icerik"],
+      ["blog", "content"],
+      ["projects", "content"],
+    ];
+
+    let affected = 0;
+    const run = async (sql, params) => {
+      try {
+        const result = await queryDatabase(sql, params);
+        affected += result.rowCount || 0;
+      } catch (err) {
+        console.error("Medya silme güncellemesi başarısız:", sql, err.message);
+      }
+    };
+
+    for (const [table, col] of coverColumns) {
+      await run(`UPDATE "${table}" SET "${col}" = $1 WHERE "${col}" LIKE $2`, [DEFAULT_SITE_IMAGE, like]);
+    }
+    for (const [table, col] of sliderColumns) {
+      await run(`UPDATE "${table}" SET "${col}" = NULL WHERE "${col}" LIKE $1`, [like]);
+    }
+    for (const [table, col] of htmlColumns) {
+      await run(
+        `UPDATE "${table}" SET "${col}" = regexp_replace("${col}", $1, $2, 'g') WHERE "${col}" LIKE $3`,
+        [regex, DEFAULT_SITE_IMAGE, `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
+      );
+    }
+
+    try {
+      await fs.promises.unlink(path.join(UPLOADS_DIR, name));
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
+    }
+
+    return res.json({ data: { success: true, updatedRecords: affected }, error: null });
+  }),
+);
+
 // --- Word (.docx) belgesini içerik editörü HTML'ine çevirme ----------------
 // Admin, içeriği (resimler dahil) doğrudan Word'de yazıp tek bir .docx
 // dosyası olarak yükleyebilir - Word'ün kendi olgun resim/biçimlendirme
