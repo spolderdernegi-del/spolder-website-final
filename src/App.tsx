@@ -43,6 +43,7 @@ const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 const AdminBoard = lazy(() => import("./pages/admin/Board"));
 const AdminBankInfo = lazy(() => import("./pages/admin/BankInfo"));
 const AdminContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
+const AdminGuide = lazy(() => import("./pages/admin/Guide"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -91,6 +92,7 @@ const App = () => (
           <Route path="/admin/board" element={<ProtectedRoute><AdminBoard /></ProtectedRoute>} />
           <Route path="/admin/bank-info" element={<ProtectedRoute><AdminBankInfo /></ProtectedRoute>} />
           <Route path="/admin/messages" element={<ProtectedRoute><AdminContactMessages /></ProtectedRoute>} />
+          <Route path="/admin/guide" element={<ProtectedRoute><AdminGuide /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>

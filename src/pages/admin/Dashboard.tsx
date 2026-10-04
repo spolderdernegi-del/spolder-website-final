@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Briefcase, Download, LogOut, Users, Tag, BookOpen, MessageSquare, Settings, Image, UserCircle } from "lucide-react";
+import { Calendar, FileText, Briefcase, Download, LogOut, Users, Tag, BookOpen, MessageSquare, Settings, Image, UserCircle, GraduationCap } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -99,6 +99,13 @@ const AdminDashboard = () => {
   }
 
   const menuItems = [
+    {
+      title: "Kullanım Rehberi",
+      description: "Her sayfanın nasıl kullanılacağı",
+      icon: GraduationCap,
+      href: "/admin/guide",
+      color: "bg-rose-500",
+    },
     {
       title: "Etkinlikler",
       description: "Etkinlik ekle, düzenle, sil",
