@@ -28,6 +28,7 @@ interface BlogPost {
   metaTitle?: string;
   metaDescription?: string;
   showInSlider?: boolean;
+  sliderImage?: string | null;
 }
 
 const AdminBlog = () => {
@@ -55,6 +56,7 @@ const AdminBlog = () => {
     slug: "",
     metaTitle: "",
     showInSlider: false,
+    sliderImage: "",
     metaDescription: "",
   });
 
@@ -219,6 +221,7 @@ const AdminBlog = () => {
       metaTitle: post.metaTitle || '',
       metaDescription: post.metaDescription || '',
       showInSlider: post.showInSlider || false,
+      sliderImage: post.sliderImage || "",
     });
     setShowForm(true);
   };
@@ -322,6 +325,7 @@ const AdminBlog = () => {
       metaTitle: "",
       metaDescription: "",
       showInSlider: false,
+      sliderImage: "",
     });
   };
 
@@ -536,6 +540,20 @@ const AdminBlog = () => {
                   <span className="text-xs text-muted-foreground ml-2">(Ana sayfa blog sliderında görünür)</span>
                 </label>
               </div>
+
+              {formData.showInSlider && (
+                <div>
+                  <ImageUploadField
+                    label="Slider Görseli (Opsiyonel)"
+                    value={formData.sliderImage}
+                    onChange={(value) => setFormData({ ...formData, sliderImage: value })}
+                    aspectRatio={16 / 9}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Boş bırakılırsa slider'da ana görsel kullanılır. Slider'da farklı bir görsel (örn. logosuz/desensiz) göstermek için buraya yükleyin.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>

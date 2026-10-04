@@ -29,6 +29,7 @@ interface Project {
   metaTitle?: string;
   metaDescription?: string;
   showInSlider?: boolean;
+  sliderImage?: string | null;
 }
 
 const AdminProjects = () => {
@@ -53,6 +54,7 @@ const AdminProjects = () => {
     start_date: "",
     end_date: "",
     showInSlider: false,
+    sliderImage: "",
     publishStatus: 'draft' as 'draft' | 'published',
     slug: "",
     metaTitle: "",
@@ -214,6 +216,7 @@ const AdminProjects = () => {
       metaTitle: project.metaTitle || '',
       metaDescription: project.metaDescription || '',
       showInSlider: project.showInSlider || false,
+      sliderImage: project.sliderImage || "",
     });
     setShowForm(true);
   };
@@ -318,6 +321,7 @@ const AdminProjects = () => {
       metaTitle: "",
       metaDescription: "",
       showInSlider: false,
+      sliderImage: "",
     });
   };
 
@@ -527,6 +531,20 @@ const AdminProjects = () => {
                   <span className="text-xs text-muted-foreground ml-2">(Ana sayfa proje sliderında görünür)</span>
                 </label>
               </div>
+
+              {formData.showInSlider && (
+                <div>
+                  <ImageUploadField
+                    label="Slider Görseli (Opsiyonel)"
+                    value={formData.sliderImage}
+                    onChange={(value) => setFormData({ ...formData, sliderImage: value })}
+                    aspectRatio={16 / 9}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Boş bırakılırsa slider'da ana görsel kullanılır. Slider'da farklı bir görsel (örn. logosuz/desensiz) göstermek için buraya yükleyin.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Detaylı İçerik</label>

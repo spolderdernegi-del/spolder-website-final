@@ -50,7 +50,7 @@ const HeroSlider = () => {
         // Etkinlikler
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
+          .select('id, baslik, ozet, gorsel, slider_gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('tarih', { ascending: false });
@@ -58,6 +58,8 @@ const HeroSlider = () => {
         if (!eventsError && events) {
           allSlides.push(...events.map(e => ({
             ...e,
+            // Slider için ayrı görsel yüklenmişse onu, yoksa ana görseli kullan
+            gorsel: e.slider_gorsel || e.gorsel,
             contentType: 'event' as const,
             link: `/etkinlik/${e.id}`
           })));
@@ -66,7 +68,7 @@ const HeroSlider = () => {
         // Haberler
         const { data: news, error: newsError } = await supabase
           .from('news')
-          .select('id, baslik, ozet, gorsel, tarih, kategori, categories, sliderda_goster')
+          .select('id, baslik, ozet, gorsel, slider_gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('tarih', { ascending: false });
@@ -74,6 +76,7 @@ const HeroSlider = () => {
         if (!newsError && news) {
           allSlides.push(...news.map(n => ({
             ...n,
+            gorsel: n.slider_gorsel || n.gorsel,
             contentType: 'news' as const,
             link: `/haber/${n.id}`
           })));
@@ -82,7 +85,7 @@ const HeroSlider = () => {
         // Projeler
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, title, description, image, start_date, category, categories, "showInSlider"')
+          .select('id, title, description, image, "sliderImage", start_date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
           .order('start_date', { ascending: false });
@@ -92,7 +95,7 @@ const HeroSlider = () => {
             id: p.id,
             baslik: p.title,
             ozet: p.description,
-            gorsel: p.image,
+            gorsel: p.sliderImage || p.image,
             tarih: p.start_date,
             kategori: p.category,
             categories: p.categories,
@@ -105,7 +108,7 @@ const HeroSlider = () => {
         // Blog
         const { data: blogs, error: blogsError } = await supabase
           .from('blog')
-          .select('id, title, excerpt, image, date, category, categories, "showInSlider"')
+          .select('id, title, excerpt, image, "sliderImage", date, category, categories, "showInSlider"')
           .eq('showInSlider', true)
           .eq('publishStatus', 'published')
           .order('date', { ascending: false });
@@ -115,7 +118,7 @@ const HeroSlider = () => {
             id: b.id,
             baslik: b.title,
             ozet: b.excerpt,
-            gorsel: b.image,
+            gorsel: b.sliderImage || b.image,
             tarih: b.date,
             kategori: b.category,
             categories: b.categories,

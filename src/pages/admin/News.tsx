@@ -28,6 +28,7 @@ interface News {
   meta_baslik?: string;
   meta_aciklama?: string;
   sliderda_goster?: boolean;
+  slider_gorsel?: string | null;
 }
 
 const AdminNews = () => {
@@ -56,6 +57,7 @@ const AdminNews = () => {
     publishStatus: 'draft' as 'draft' | 'published',
     slug: "",
     showInSlider: false,
+    sliderImage: "",
     metaTitle: "",
     metaDescription: "",
   });
@@ -170,6 +172,7 @@ const AdminNews = () => {
         yayin_durumu: formData.publishStatus === 'draft' ? 'taslak' : 'yayinlandi',
         slug,
         sliderda_goster: formData.showInSlider,
+        slider_gorsel: formData.sliderImage || null,
         meta_baslik: formData.metaTitle,
         meta_aciklama: formData.metaDescription,
       };
@@ -226,6 +229,7 @@ const AdminNews = () => {
       metaTitle: newsItem.meta_baslik || '',
       metaDescription: newsItem.meta_aciklama || '',
       showInSlider: newsItem.sliderda_goster || false,
+      sliderImage: newsItem.slider_gorsel || '',
     });
     setImagePreview(newsItem.gorsel || "");
     setImageFile(null);
@@ -331,6 +335,7 @@ const AdminNews = () => {
       metaTitle: "",
       metaDescription: "",
       showInSlider: false,
+      sliderImage: "",
     });
     setImagePreview("");
     setImageFile(null);
@@ -553,6 +558,20 @@ const AdminNews = () => {
                   <span className="text-xs text-muted-foreground ml-2">(Ana sayfa haber sliderında görünür)</span>
                 </label>
               </div>
+
+              {formData.showInSlider && (
+                <div>
+                  <ImageUploadField
+                    label="Slider Görseli (Opsiyonel)"
+                    value={formData.sliderImage}
+                    onChange={(value) => setFormData({ ...formData, sliderImage: value })}
+                    aspectRatio={16 / 9}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Boş bırakılırsa slider'da yukarıdaki ana görsel kullanılır. Slider'da farklı bir görsel (örn. logosuz/desensiz) göstermek için buraya yükleyin.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Button type="submit" disabled={loading || uploading} className="flex items-center gap-2">

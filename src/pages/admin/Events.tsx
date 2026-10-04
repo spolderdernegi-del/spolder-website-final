@@ -34,6 +34,7 @@ interface Event {
   meta_baslik?: string;
   meta_aciklama?: string;
   sliderda_goster?: boolean;
+  slider_gorsel?: string | null;
   google_form_link?: string;
 }
 
@@ -70,6 +71,7 @@ const AdminEvents = () => {
     meta_baslik: "",
     meta_aciklama: "",
     sliderda_goster: false,
+    slider_gorsel: "",
     google_form_link: "",
   });
 
@@ -219,6 +221,7 @@ const AdminEvents = () => {
       meta_baslik: event.meta_baslik || '',
       meta_aciklama: event.meta_aciklama || '',
       sliderda_goster: event.sliderda_goster || false,
+      slider_gorsel: event.slider_gorsel || "",
       google_form_link: event.google_form_link || '',
     });
     if (event.konum_lat && event.konum_lng) {
@@ -341,6 +344,7 @@ const AdminEvents = () => {
       meta_baslik: "",
       meta_aciklama: "",
       sliderda_goster: false,
+      slider_gorsel: "",
       google_form_link: "",
     });
   };
@@ -680,6 +684,20 @@ const AdminEvents = () => {
                   <span className="text-xs text-muted-foreground ml-2">(Haber/Proje sliderlarında görünür)</span>
                 </label>
               </div>
+
+              {formData.sliderda_goster && (
+                <div>
+                  <ImageUploadField
+                    label="Slider Görseli (Opsiyonel)"
+                    value={formData.slider_gorsel}
+                    onChange={(value) => setFormData({ ...formData, slider_gorsel: value })}
+                    aspectRatio={16 / 9}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Boş bırakılırsa slider'da ana görsel kullanılır. Slider'da farklı bir görsel (örn. logosuz/desensiz) göstermek için buraya yükleyin.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
