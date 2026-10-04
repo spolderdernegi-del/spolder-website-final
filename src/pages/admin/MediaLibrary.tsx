@@ -24,7 +24,8 @@ const AdminMediaLibrary = () => {
   const [uploadsError, setUploadsError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [toDelete, setToDelete] = useState<MediaItem | null>(null);
+  const [deleteNames, setDeleteNames] = useState<string[] | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -100,34 +101,46 @@ const AdminMediaLibrary = () => {
     return path.startsWith("/uploads/") ? path.slice("/uploads/".length) : null;
   };
 
-  const usageCount = (item: MediaItem) => {
-    const name = uploadName(item.url);
-    if (!name) return 0;
-    return media.filter((m) => m.type !== "upload" && uploadName(m.url) === name).length;
+  const usageCountByName = (name: string) =>
+    media.filter((m) => m.type !== "upload" && uploadName(m.url) === name).length;
+
+  const toggleSelected = (name: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   };
 
   const handleDelete = async () => {
-    if (!toDelete) return;
-    const name = uploadName(toDelete.url);
-    if (!name) return;
+    if (!deleteNames || deleteNames.length === 0) return;
     setDeleting(true);
-    try {
-      const response = await fetch("/api/media", {
-        method: "DELETE",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result?.error?.message || "Görsel silinemedi");
-      toast.success("Görsel silindi");
-      setToDelete(null);
-      await loadMedia();
-    } catch (err: any) {
-      toast.error(err.message || "Görsel silinemedi");
-    } finally {
-      setDeleting(false);
+    let ok = 0;
+    let failed = 0;
+    let lastError = "";
+    for (const name of deleteNames) {
+      try {
+        const response = await fetch("/api/media", {
+          method: "DELETE",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.error?.message || "Görsel silinemedi");
+        ok++;
+      } catch (err: any) {
+        failed++;
+        lastError = err.message || "Görsel silinemedi";
+      }
     }
+    if (ok > 0) toast.success(ok === 1 ? "Görsel silindi" : `${ok} görsel silindi`);
+    if (failed > 0) toast.error(`${failed} görsel silinemedi: ${lastError}`);
+    setSelected(new Set());
+    setDeleteNames(null);
+    setDeleting(false);
+    await loadMedia();
   };
 
   const filteredMedia = media.filter(item => {
@@ -135,6 +148,11 @@ const AdminMediaLibrary = () => {
     const matchesType = filterType === 'all' || item.type === filterType;
     return matchesSearch && matchesType;
   });
+
+  const visibleNames = Array.from(
+    new Set(filteredMedia.map((item) => uploadName(item.url)).filter((n): n is string => !!n))
+  );
+  const allVisibleSelected = visibleNames.length > 0 && visibleNames.every((n) => selected.has(n));
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
@@ -247,6 +265,34 @@ const AdminMediaLibrary = () => {
           </div>
         )}
 
+        {visibleNames.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-3 mb-4 flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4"
+                checked={allVisibleSelected}
+                onChange={() =>
+                  setSelected(allVisibleSelected ? new Set() : new Set(visibleNames))
+                }
+              />
+              Görünenlerin tümünü seç ({visibleNames.length})
+            </label>
+            {selected.size > 0 && (
+              <>
+                <span className="text-sm text-gray-600">{selected.size} görsel seçildi</span>
+                <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+                  Seçimi Temizle
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setDeleteNames(Array.from(selected))}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Seçilenleri Sil ({selected.size})
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Media Grid */}
         {filteredMedia.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -256,6 +302,15 @@ const AdminMediaLibrary = () => {
                 className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow group"
               >
                 <div className="aspect-square relative overflow-hidden bg-gray-100">
+                  {uploadName(item.url) && (
+                    <input
+                      type="checkbox"
+                      aria-label="Görseli seç"
+                      className="absolute top-2 left-2 z-10 w-5 h-5 cursor-pointer"
+                      checked={selected.has(uploadName(item.url) as string)}
+                      onChange={() => toggleSelected(uploadName(item.url) as string)}
+                    />
+                  )}
                   <img
                     src={item.url}
                     alt={item.title}
@@ -283,7 +338,7 @@ const AdminMediaLibrary = () => {
                         size="sm"
                         variant="destructive"
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setToDelete(item)}
+                        onClick={() => setDeleteNames([uploadName(item.url) as string])}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -308,14 +363,16 @@ const AdminMediaLibrary = () => {
         )}
       </div>
 
-      <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && !deleting && setToDelete(null)}>
+      <AlertDialog open={!!deleteNames} onOpenChange={(open) => !open && !deleting && setDeleteNames(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Görsel silinsin mi?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteNames && deleteNames.length > 1 ? `${deleteNames.length} görsel silinsin mi?` : "Görsel silinsin mi?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Bu görsel sunucudan kalıcı olarak silinir ve geri alınamaz.
-              {toDelete && usageCount(toDelete) > 0
-                ? ` Görsel ${usageCount(toDelete)} içerikte kullanılıyor; bu içeriklerde SPOLDER logolu varsayılan görsel (varsayilan-gorsel.png) görünecek.`
+              {deleteNames && deleteNames.length > 1 ? "Seçilen görseller" : "Bu görsel"} sunucudan kalıcı olarak silinir ve geri alınamaz.
+              {deleteNames && deleteNames.reduce((sum, n) => sum + usageCountByName(n), 0) > 0
+                ? ` Silinecek görseller toplam ${deleteNames.reduce((sum, n) => sum + usageCountByName(n), 0)} içerikte kullanılıyor; bu içeriklerde SPOLDER logolu varsayılan görsel görünecek.`
                 : " Hiçbir içerikte kullanılmıyor."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -328,7 +385,7 @@ const AdminMediaLibrary = () => {
                 handleDelete();
               }}
             >
-              {deleting ? "Siliniyor..." : "Sil"}
+              {deleting ? "Siliniyor..." : deleteNames && deleteNames.length > 1 ? `${deleteNames.length} Görseli Sil` : "Sil"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

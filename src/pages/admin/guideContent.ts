@@ -381,13 +381,16 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "Üstteki düğmelerle süzme: Tümü, Etkinlikler, Haberler, Blog, Projeler, Yüklenenler.",
           "Görselin üzerine gelince çıkan simgelerle görseli yeni sekmede açma veya indirme.",
           "Bu listedeki görselleri, içerik formlarında ve editörde \"Medya Kütüphanesinden Seç\" ile yeniden kullanabilirsiniz.",
+          "Görsel silme: sunucuya yüklenmiş bir görselin üzerine gelip kırmızı çöp kutusuna basın ve onaylayın.",
+          "Toplu silme: kartların sol üstündeki kutucuklarla birden çok görsel seçin (veya \"Görünenlerin tümünü seç\"), sonra \"Seçilenleri Sil\" düğmesine basın. Arama ve tür süzgeciyle görünen listeyi daraltıp onu seçebilirsiniz.",
         ],
       },
       {
         type: "warn",
         title: "Yapamayacağınız şeyler",
         items: [
-          "Bu sayfadan görsel yükleyemez, silemez veya yeniden adlandıramazsınız. Yükleme, görselin kullanıldığı formlardan yapılır.",
+          "Bu sayfadan görsel yükleyemez veya yeniden adlandıramazsınız. Yükleme, görselin kullanıldığı formlardan yapılır.",
+          "Silme geri alınamaz. Silinen görsel hangi haber, etkinlik, blog, proje veya yönetim kurulu kaydında kullanılıyorsa orada SPOLDER logolu varsayılan görsel görünür; slider'a özel görsel ise boşalır ve slider kapak görseline döner. Başka sitelerden bağlantıyla eklenmiş görseller silinemez.",
           "PDF, Word gibi belgeler burada görünmez; onlar \"Dosyalar\" sayfasındadır.",
           "Bir haberi silseniz bile görseli sunucuda kalır ve \"Yüklenenler\" altında görünmeye devam eder.",
         ],
