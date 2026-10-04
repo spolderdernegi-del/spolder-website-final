@@ -9,7 +9,10 @@ interface ImageCropperDialogProps {
   onClose: () => void;
   imageUrl: string;
   onCropComplete: (croppedImage: string) => void;
-  aspectRatio?: number;
+  // undefined -> 1 (kare, eski davranış); null -> serbest kırpma (oran kilidi yok)
+  aspectRatio?: number | null;
+  // Verilirse "Olduğu gibi ekle" butonu çıkar (kırpmadan devam etmek için).
+  onUseOriginal?: () => void;
 }
 
 const ImageCropperDialog = ({
@@ -18,6 +21,7 @@ const ImageCropperDialog = ({
   imageUrl,
   onCropComplete,
   aspectRatio = 1,
+  onUseOriginal,
 }: ImageCropperDialogProps) => {
   const [crop, setCrop] = useState<Crop>({
     unit: "%",
@@ -41,19 +45,26 @@ const ImageCropperDialog = ({
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    // Çıktı, ekranda görünen küçük boyutta değil görselin gerçek çözünürlüğünde
+    // üretilir (aksi halde kırpılan görsel bulanık/küçük kalıyordu). Çok büyük
+    // fotoğraflar dosya boyutu şişmesin diye en uzun kenarda 2400px ile sınırlanır.
+    const srcW = completedCrop.width * scaleX;
+    const srcH = completedCrop.height * scaleY;
+    const MAX_SIDE = 2400;
+    const downscale = Math.min(1, MAX_SIDE / Math.max(srcW, srcH));
+    canvas.width = Math.round(srcW * downscale);
+    canvas.height = Math.round(srcH * downscale);
 
     ctx.drawImage(
       image,
       completedCrop.x * scaleX,
       completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      srcW,
+      srcH,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height
+      canvas.width,
+      canvas.height
     );
 
     return new Promise<string>((resolve) => {
@@ -91,7 +102,7 @@ const ImageCropperDialog = ({
             crop={crop}
             onChange={(c) => setCrop(c)}
             onComplete={(c) => setCompletedCrop(c)}
-            aspect={aspectRatio}
+            aspect={aspectRatio ?? undefined}
           >
             <img
               ref={imgRef}
@@ -106,6 +117,11 @@ const ImageCropperDialog = ({
           <Button variant="outline" onClick={onClose}>
             İptal
           </Button>
+          {onUseOriginal && (
+            <Button variant="outline" onClick={onUseOriginal}>
+              Olduğu Gibi Ekle
+            </Button>
+          )}
           <Button onClick={handleCropConfirm}>
             Kırp ve Kaydet
           </Button>

@@ -201,3 +201,14 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--green-mid));
 }
+
+
+/* Haber/etkinlik/proje/blog içeriğindeki görseller: her zaman ortalı, kırpıldığı
+   boyutta (büyütülmeden) gösterilir, sadece kutudan taşarsa küçülür. */
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-left: auto;
+  margin-right: auto;
+}

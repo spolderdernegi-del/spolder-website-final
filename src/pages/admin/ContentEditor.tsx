@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, ChevronUp, ChevronDown, FileText, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { uploadImage } from '@/lib/uploadImage';
+import ImageCropperDialog from '@/components/admin/ImageCropperDialog';
 
 // Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden serbest
 // değerlerle çalışacak şekilde ayarlıyoruz (Word'deki gibi elle yazılabilir
@@ -35,6 +36,13 @@ const AdminContentEditor = () => {
   const [content, setContent] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [importingDocx, setImportingDocx] = useState(false);
+  // Kırpma penceresi: yeni eklenen görsel ('insert') veya editörde zaten
+  // olan bir görsele tıklanarak ('replace') açılır.
+  const [pendingCrop, setPendingCrop] = useState<
+    | { kind: 'insert'; src: string; index: number }
+    | { kind: 'replace'; src: string; img: HTMLImageElement }
+    | null
+  >(null);
 
   // Word'deki gibi, imlecin bulunduğu yerin yazı boyutunu gösteren/değiştiren
   // sayısal kutu. "...Text" olanlar serbestçe yazılabilsin diye ayrı tutuluyor;
@@ -137,30 +145,71 @@ const AdminContentEditor = () => {
 
       const reader = new FileReader();
       reader.onload = () => {
-        const ed = quillRef.current?.getEditor();
-        if (!ed) return;
-        const dataUrl = reader.result as string;
-        // Önce base64 olarak hemen eklenir (beklemeden görünsün diye),
-        // arka planda gerçek dosyaya yüklenip src ile değiştirilir.
-        ed.insertEmbed(insertIndex, 'image', dataUrl);
-        ed.setSelection(insertIndex + 1, 0);
-        syncContentFromDom();
-
-        requestAnimationFrame(() => {
-          const [leafBlot] = ed.getLeaf(insertIndex);
-          const insertedImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
-          if (!insertedImg) return;
-          uploadImage(dataUrl)
-            .then((url) => {
-              insertedImg.src = url;
-              syncContentFromDom();
-            })
-            .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
-        });
+        // Görsel doğrudan eklenmez; önce kırpma penceresi açılır
+        // ("Olduğu Gibi Ekle" ile kırpmadan da eklenebilir).
+        setPendingCrop({ kind: 'insert', src: reader.result as string, index: insertIndex });
       };
       reader.readAsDataURL(file);
     };
   };
+
+  // Görseli (base64 olarak hemen, sonra gerçek dosyaya yükleyerek) imlecin
+  // olduğu yere ekler.
+  const insertImage = (dataUrl: string, insertIndex: number) => {
+    const ed = quillRef.current?.getEditor();
+    if (!ed) return;
+    ed.insertEmbed(insertIndex, 'image', dataUrl);
+    ed.setSelection(insertIndex + 1, 0);
+    syncContentFromDom();
+
+    requestAnimationFrame(() => {
+      const [leafBlot] = ed.getLeaf(insertIndex);
+      const insertedImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+      if (!insertedImg) return;
+      uploadImage(dataUrl)
+        .then((url) => {
+          insertedImg.src = url;
+          syncContentFromDom();
+        })
+        .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
+    });
+  };
+
+  const handleCropDone = (croppedDataUrl: string) => {
+    if (!pendingCrop) return;
+    if (pendingCrop.kind === 'insert') {
+      insertImage(croppedDataUrl, pendingCrop.index);
+    } else {
+      const img = pendingCrop.img;
+      img.src = croppedDataUrl;
+      syncContentFromDom();
+      uploadImage(croppedDataUrl)
+        .then((url) => {
+          img.src = url;
+          syncContentFromDom();
+        })
+        .catch((err) => console.error('Görsel yüklenemedi, base64 olarak kalacak:', err));
+    }
+  };
+
+  const handleUseOriginal = () => {
+    if (pendingCrop?.kind === 'insert') insertImage(pendingCrop.src, pendingCrop.index);
+    setPendingCrop(null);
+  };
+
+  // Editördeki bir görsele tıklayınca kırpma penceresi açılır.
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.tagName === 'IMG') {
+        setPendingCrop({ kind: 'replace', src: (target as HTMLImageElement).src, img: target as HTMLImageElement });
+      }
+    };
+    editor.root.addEventListener('click', onClick);
+    return () => editor.root.removeEventListener('click', onClick);
+  }, [content === '']);
 
   // Word (.docx) belgesi yükleme: admin, içeriği (resimler, başlıklar,
   // kalın/italik metin dahil) Word'de yazıp tek bir dosya olarak
@@ -333,7 +382,7 @@ const AdminContentEditor = () => {
               </div>
             </div>
             <span className="text-[11px] text-muted-foreground">
-              Metni seçip değiştirin, veya seçim yokken sonraki yazılacak metne uygulanır.
+              Metni seçip değiştirin. Eklenmiş bir görseli kırpmak için görsele tıklayın.
             </span>
           </div>
           <ReactQuill
@@ -347,6 +396,17 @@ const AdminContentEditor = () => {
           />
         </div>
       </div>
+
+      {pendingCrop && (
+        <ImageCropperDialog
+          open
+          onClose={() => setPendingCrop(null)}
+          imageUrl={pendingCrop.src}
+          onCropComplete={handleCropDone}
+          aspectRatio={null}
+          onUseOriginal={pendingCrop.kind === 'insert' ? handleUseOriginal : undefined}
+        />
+      )}
 
       <style>{`
         .full-page-editor .ql-toolbar {
@@ -366,10 +426,12 @@ const AdminContentEditor = () => {
           padding: 2rem 3rem;
         }
         .full-page-editor .ql-editor img {
+          display: block;
           max-width: 100%;
           height: auto;
           border-radius: 0.375rem;
-          margin: 0.5rem 0;
+          margin: 0.75rem auto;
+          cursor: pointer;
         }
         .dark .full-page-editor .ql-toolbar {
           border-color: #334155;
