@@ -758,7 +758,7 @@ app.get(
 // değiştirilir (kapak görselleri, yazı içindeki görseller, yönetim kurulu
 // fotoğrafı). Slider'a özel görseller boşaltılır; slider zaten kapak görseline
 // (artık varsayılan görsel) geri döner.
-const DEFAULT_SITE_IMAGE = "/og-image.png";
+const DEFAULT_SITE_IMAGE = "/varsayilan-gorsel.png";
 app.delete(
   "/api/media",
   writeLimiter,

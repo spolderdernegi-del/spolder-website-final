@@ -315,7 +315,7 @@ const AdminMediaLibrary = () => {
             <AlertDialogDescription>
               Bu görsel sunucudan kalıcı olarak silinir ve geri alınamaz.
               {toDelete && usageCount(toDelete) > 0
-                ? ` Görsel ${usageCount(toDelete)} içerikte kullanılıyor; bu içeriklerde SPOLDER logolu varsayılan görsel görünecek.`
+                ? ` Görsel ${usageCount(toDelete)} içerikte kullanılıyor; bu içeriklerde SPOLDER logolu varsayılan görsel (varsayilan-gorsel.png) görünecek.`
                 : " Hiçbir içerikte kullanılmıyor."}
             </AlertDialogDescription>
           </AlertDialogHeader>
