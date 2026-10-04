@@ -683,6 +683,26 @@ app.post(
   }),
 );
 
+// Medya kütüphanesi: uploads/ klasöründeki TÜM görselleri (hangi içeriğe
+// bağlı olursa olsun, hiç kullanılmayanlar dahil) listeler. Sadece admin.
+const MEDIA_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
+app.get(
+  "/api/media",
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    const names = await fs.promises.readdir(UPLOADS_DIR);
+    const items = [];
+    for (const name of names) {
+      if (!MEDIA_IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) continue;
+      const stat = await fs.promises.stat(path.join(UPLOADS_DIR, name));
+      if (!stat.isFile()) continue;
+      items.push({ url: `/uploads/${name}`, name, size: stat.size, modified: stat.mtimeMs });
+    }
+    items.sort((a, b) => b.modified - a.modified);
+    return res.json({ data: items, error: null });
+  }),
+);
+
 // --- Word (.docx) belgesini içerik editörü HTML'ine çevirme ----------------
 // Admin, içeriği (resimler dahil) doğrudan Word'de yazıp tek bir .docx
 // dosyası olarak yükleyebilir - Word'ün kendi olgun resim/biçimlendirme

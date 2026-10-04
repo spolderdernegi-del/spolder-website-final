@@ -8,6 +8,7 @@ import { ArrowLeft, Save, ChevronUp, ChevronDown, FileText, Loader2 } from 'luci
 import { toast } from '@/lib/toast';
 import { uploadImage } from '@/lib/uploadImage';
 import ImageCropperDialog from '@/components/admin/ImageCropperDialog';
+import ImageSourceDialog from '@/components/admin/ImageSourceDialog';
 
 // Quill'in kendi resmi "size" attributor'ünü, piksel cinsinden serbest
 // değerlerle çalışacak şekilde ayarlıyoruz (Word'deki gibi elle yazılabilir
@@ -36,6 +37,10 @@ const AdminContentEditor = () => {
   const [content, setContent] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [importingDocx, setImportingDocx] = useState(false);
+  // Toolbar'daki görsel butonu önce kaynak seçtiren pencereyi açar
+  // (Medya Kütüphanesi / Bilgisayardan / Link).
+  const [showImageSource, setShowImageSource] = useState(false);
+  const insertIndexRef = useRef(0);
   // Kırpma penceresi: yeni eklenen görsel ('insert') veya editörde zaten
   // olan bir görsele tıklanarak ('replace') açılır.
   const [pendingCrop, setPendingCrop] = useState<
@@ -127,30 +132,32 @@ const AdminContentEditor = () => {
   const imageHandler = () => {
     const editor = quillRef.current?.getEditor();
     const range = editor?.getSelection(true);
-    const insertIndex = range ? range.index : (editor?.getLength() ?? 0);
+    insertIndexRef.current = range ? range.index : (editor?.getLength() ?? 0);
+    setShowImageSource(true);
+  };
 
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.click();
-
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      if (file.size > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
-        alert(`Görsel çok büyük (max ${MAX_INLINE_IMAGE_MB}MB). Lütfen daha küçük bir görsel seçin.`);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Görsel doğrudan eklenmez; önce kırpma penceresi açılır
-        // ("Olduğu Gibi Ekle" ile kırpmadan da eklenebilir).
-        setPendingCrop({ kind: 'insert', src: reader.result as string, index: insertIndex });
-      };
-      reader.readAsDataURL(file);
+  const handlePickFile = (file: File) => {
+    if (file.size > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
+      alert(`Görsel çok büyük (max ${MAX_INLINE_IMAGE_MB}MB). Lütfen daha küçük bir görsel seçin.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Görsel doğrudan eklenmez; önce kırpma penceresi açılır
+      // ("Olduğu Gibi Ekle" ile kırpmadan da eklenebilir).
+      setPendingCrop({ kind: 'insert', src: reader.result as string, index: insertIndexRef.current });
     };
+    reader.readAsDataURL(file);
+  };
+
+  // Kütüphanedeki görsel: kırpılabilir veya olduğu gibi eklenebilir.
+  const handlePickLibrary = (url: string) => {
+    setPendingCrop({ kind: 'insert', src: url, index: insertIndexRef.current });
+  };
+
+  // Link ile eklenen görsel olduğu gibi (kırpma/yükleme yapılmadan) eklenir.
+  const handlePickUrl = (url: string) => {
+    insertImage(url, insertIndexRef.current);
   };
 
   // Görseli (base64 olarak hemen, sonra gerçek dosyaya yükleyerek) imlecin
@@ -161,6 +168,9 @@ const AdminContentEditor = () => {
     ed.insertEmbed(insertIndex, 'image', dataUrl);
     ed.setSelection(insertIndex + 1, 0);
     syncContentFromDom();
+
+    // Zaten gerçek bir adresi olan (kütüphane/link) görsel tekrar yüklenmez.
+    if (!dataUrl.startsWith('data:')) return;
 
     requestAnimationFrame(() => {
       const [leafBlot] = ed.getLeaf(insertIndex);
@@ -396,6 +406,14 @@ const AdminContentEditor = () => {
           />
         </div>
       </div>
+
+      <ImageSourceDialog
+        open={showImageSource}
+        onClose={() => setShowImageSource(false)}
+        onPickFile={handlePickFile}
+        onPickUrl={handlePickUrl}
+        onPickLibrary={handlePickLibrary}
+      />
 
       {pendingCrop && (
         <ImageCropperDialog

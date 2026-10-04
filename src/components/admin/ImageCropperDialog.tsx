@@ -3,6 +3,7 @@ import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 
 interface ImageCropperDialogProps {
   open: boolean;
@@ -80,10 +81,15 @@ const ImageCropperDialog = ({
   }, [completedCrop]);
 
   const handleCropConfirm = async () => {
-    const croppedImageUrl = await getCroppedImg();
-    if (croppedImageUrl) {
-      onCropComplete(croppedImageUrl);
-      onClose();
+    try {
+      const croppedImageUrl = await getCroppedImg();
+      if (croppedImageUrl) {
+        onCropComplete(croppedImageUrl);
+        onClose();
+      }
+    } catch {
+      // Başka bir siteden gelen görseller tarayıcı güvenliği yüzünden kırpılamaz.
+      toast.error("Bu görsel kırpılamadı (başka bir siteden geliyor olabilir). Önce kendi bilgisayarınızdan yükleyin.");
     }
   };
 

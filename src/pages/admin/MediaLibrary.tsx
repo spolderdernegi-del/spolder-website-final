@@ -5,20 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Download, Image as ImageIcon, Search, Filter, ExternalLink } from "lucide-react";
 import { toast } from "@/lib/toast";
-
-interface MediaItem {
-  id: string;
-  url: string;
-  type: 'event' | 'news' | 'blog' | 'project';
-  title: string;
-  date: string;
-  sourceId: number;
-}
+import { loadMediaItems, type MediaItem } from "@/lib/mediaLibrary";
 
 const AdminMediaLibrary = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const [uploadsError, setUploadsError] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -31,108 +24,15 @@ const AdminMediaLibrary = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
-      return;
     }
-    setLoading(false);
   };
 
   const loadMedia = async () => {
     try {
       setLoading(true);
-      const allMedia: MediaItem[] = [];
-
-      // Events'ten görselleri al
-      const { data: events } = await supabase
-        .from('events')
-        .select('id, baslik, gorsel, created_at')
-        .not('gorsel', 'is', null)
-        .not('gorsel', 'eq', '');
-      
-      if (events) {
-        events.forEach(event => {
-          if (event.gorsel) {
-            allMedia.push({
-              id: `event-${event.id}`,
-              url: event.gorsel,
-              type: 'event',
-              title: event.baslik,
-              date: event.created_at,
-              sourceId: event.id
-            });
-          }
-        });
-      }
-
-      // News'ten görselleri al
-      const { data: news } = await supabase
-        .from('news')
-        .select('id, baslik, gorsel, created_at')
-        .not('gorsel', 'is', null)
-        .not('gorsel', 'eq', '');
-      
-      if (news) {
-        news.forEach(item => {
-          if (item.gorsel) {
-            allMedia.push({
-              id: `news-${item.id}`,
-              url: item.gorsel,
-              type: 'news',
-              title: item.baslik,
-              date: item.created_at,
-              sourceId: item.id
-            });
-          }
-        });
-      }
-
-      // Blog'dan görselleri al
-      const { data: blogs } = await supabase
-        .from('blog')
-        .select('id, title, image, created_at')
-        .not('image', 'is', null)
-        .not('image', 'eq', '');
-      
-      if (blogs) {
-        blogs.forEach(blog => {
-          if (blog.image) {
-            allMedia.push({
-              id: `blog-${blog.id}`,
-              url: blog.image,
-              type: 'blog',
-              title: blog.title,
-              date: blog.created_at,
-              sourceId: blog.id
-            });
-          }
-        });
-      }
-
-      // Projects'ten görselleri al
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id, title, image, created_at')
-        .not('image', 'is', null)
-        .not('image', 'eq', '');
-      
-      if (projects) {
-        projects.forEach(project => {
-          if (project.image) {
-            allMedia.push({
-              id: `project-${project.id}`,
-              url: project.image,
-              type: 'project',
-              title: project.title,
-              date: project.created_at,
-              sourceId: project.id
-            });
-          }
-        });
-      }
-
-      // Tarihe göre sırala (en yeni en başta)
-      allMedia.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      setMedia(allMedia);
+      const { items, uploadsError: failed } = await loadMediaItems();
+      setMedia(items);
+      setUploadsError(failed);
     } catch (error) {
       console.error("Error fetching media:", error);
       toast.error('Medya yüklenirken hata oluştu');
@@ -147,6 +47,7 @@ const AdminMediaLibrary = () => {
       case 'news': return 'Haber';
       case 'blog': return 'Blog';
       case 'project': return 'Proje';
+      case 'upload': return 'Yüklenen';
       default: return type;
     }
   };
@@ -157,6 +58,7 @@ const AdminMediaLibrary = () => {
       case 'news': return 'bg-green-100 text-green-700';
       case 'blog': return 'bg-purple-100 text-purple-700';
       case 'project': return 'bg-orange-100 text-orange-700';
+      case 'upload': return 'bg-slate-100 text-slate-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -186,58 +88,10 @@ const AdminMediaLibrary = () => {
     return matchesSearch && matchesType;
   });
 
-  const handleDelete = async (id: number) => {
-    const item = media.find(m => m.id === id);
-    if (!confirm(`"${item?.name}" silinecek. Emin misiniz?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from('files')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      logActivity('delete', 'file', item?.name || String(id));
-      toast.success('Medya silindi!');
-      loadMedia();
-    } catch (err: any) {
-      toast.error('Silme sırasında hata oluştu: ' + err.message);
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedMedia.length === 0) {
-      toast.warning('Lütfen silinecek medyaları seçin');
-      return;
-    }
-
-    if (!confirm(`${selectedMedia.length} medya silinecek. Emin misiniz?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from('files')
-        .delete()
-        .in('id', selectedMedia);
-      if (error) throw error;
-      logActivity('delete', 'file', `${selectedMedia.length} medya`);
-      setSelectedMedia([]);
-      loadMedia();
-      toast.success(`${selectedMedia.length} medya silindi!`);
-    } catch (err: any) {
-      toast.error('Toplu silme sırasında hata: ' + err.message);
-    }
-  };
-
-  const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(url);
-    toast.success('URL kopyalandı!');
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   };
 
   if (loading) {
@@ -262,7 +116,7 @@ const AdminMediaLibrary = () => {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Medya Kütüphanesi</h1>
-              <p className="text-gray-600">Sitede kullanılan tüm görseller</p>
+              <p className="text-gray-600">Siteye yüklenen tüm görseller</p>
             </div>
           </div>
         </div>
@@ -319,9 +173,22 @@ const AdminMediaLibrary = () => {
               >
                 Projeler
               </Button>
+              <Button
+                variant={filterType === 'upload' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterType('upload')}
+              >
+                Yüklenenler
+              </Button>
             </div>
           </div>
         </div>
+
+        {uploadsError && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+            Sunucudaki yüklenmiş dosyaların listesi alınamadı; sadece içeriklere bağlı görseller gösteriliyor.
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredMedia.length === 0 && (
@@ -374,6 +241,7 @@ const AdminMediaLibrary = () => {
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">
                     {new Date(item.date).toLocaleDateString('tr-TR')}
+                    {item.size ? ` · ${formatFileSize(item.size)}` : ''}
                   </p>
                 </div>
               </div>

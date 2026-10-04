@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Upload, Scissors, Loader2 } from "lucide-react";
+import { Upload, Scissors, Loader2, Images } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { uploadImage } from "@/lib/uploadImage";
 import ImageCropperDialog from "./ImageCropperDialog";
+import MediaPickerDialog from "./MediaPickerDialog";
 
 interface ImageUploadFieldProps {
   label: string;
@@ -27,6 +28,7 @@ const ImageUploadField = ({
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,13 +88,11 @@ const ImageUploadField = ({
   return (
     <div className="space-y-2">
       <Label>{label} {required && "*"}</Label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="https://... veya dosya yükleyin"
-        required={required}
-      />
-      <div className="flex gap-2 mt-2">
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => setShowLibrary(true)} disabled={uploading}>
+          <Images className="w-4 h-4 mr-2" />
+          Medya Kütüphanesinden Seç
+        </Button>
         <div className="relative">
           <Input
             type="file"
@@ -102,7 +102,7 @@ const ImageUploadField = ({
           />
           <Button type="button" variant="outline" className="pointer-events-none" disabled={uploading}>
             {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-            {uploading ? "Yükleniyor..." : "Dosya Yükle"}
+            {uploading ? "Yükleniyor..." : "Bilgisayardan Yükle"}
           </Button>
         </div>
         {(imagePreview || value) && (
@@ -117,6 +117,15 @@ const ImageUploadField = ({
           </Button>
         )}
       </div>
+      <div>
+        <p className="text-xs text-muted-foreground mb-1">veya görsel bağlantısı (link) yapıştırın</p>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://..."
+          required={required}
+        />
+      </div>
       {(imagePreview || value) && (
         <div className="mt-2">
           <img
@@ -126,6 +135,15 @@ const ImageUploadField = ({
           />
         </div>
       )}
+
+      <MediaPickerDialog
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        onSelect={(url) => {
+          setImagePreview(url);
+          onChange(url);
+        }}
+      />
 
       <ImageCropperDialog
         open={showCropper}
