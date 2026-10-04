@@ -24,6 +24,28 @@ interface SearchResult {
 const Search = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q")?.toLowerCase() || "";
+  // Footer "Faaliyetlerimiz" bağlantıları ?kategori=eğitim,spor şeklinde gelir:
+  // metin araması yapılmaz, sadece virgülle ayrılmış kategorilerden en az
+  // birine sahip içerikler listelenir.
+  const kategoriParam = searchParams.get("kategori") || "";
+  const categoryList = kategoriParam
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+  const categoryMode = categoryList.length > 0;
+  const normalize = (v: string) => v.trim().toLocaleLowerCase("tr");
+  const wantedCategories = categoryList.map(normalize);
+  const matchesCategories = (item: any) => {
+    const cats: string[] =
+      item.categories && item.categories.length > 0
+        ? item.categories
+        : item.kategori
+          ? [item.kategori]
+          : item.category
+            ? [item.category]
+            : [];
+    return cats.some((c) => wantedCategories.includes(normalize(c)));
+  };
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   // Arama sonuçları tüm içerik türlerini (haber/etkinlik/proje/blog)
@@ -32,10 +54,10 @@ const Search = () => {
 
   useEffect(() => {
     searchAllContent();
-  }, [query]);
+  }, [query, kategoriParam]);
 
   const searchAllContent = async () => {
-    if (!query) {
+    if (!query && !categoryMode) {
       setResults([]);
       setLoading(false);
       return;
@@ -46,11 +68,13 @@ const Search = () => {
       setLoading(true);
 
       // Haberler
-      const { data: news } = await supabase
+      let newsQuery = supabase
         .from("news")
         .select("*")
-        .eq("yayin_durumu", "yayinlandi")
-        .or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+        .eq("yayin_durumu", "yayinlandi");
+      if (!categoryMode) newsQuery = newsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      const { data: newsRaw } = await newsQuery;
+      const news = categoryMode ? newsRaw?.filter(matchesCategories) : newsRaw;
       
       if (news) {
         news.forEach((item) => {
@@ -70,11 +94,13 @@ const Search = () => {
       }
 
       // Etkinlikler
-      const { data: events } = await supabase
+      let eventsQuery = supabase
         .from("events")
         .select("*")
-        .eq("yayin_durumu", "yayinlandi")
-        .or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+        .eq("yayin_durumu", "yayinlandi");
+      if (!categoryMode) eventsQuery = eventsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      const { data: eventsRaw } = await eventsQuery;
+      const events = categoryMode ? eventsRaw?.filter(matchesCategories) : eventsRaw;
       
       if (events) {
         events.forEach((item) => {
@@ -94,11 +120,13 @@ const Search = () => {
       }
 
       // Projeler
-      const { data: projects } = await supabase
+      let projectsQuery = supabase
         .from("projects")
         .select("*")
-        .eq("publishStatus", "published")
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+        .eq("publishStatus", "published");
+      if (!categoryMode) projectsQuery = projectsQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      const { data: projectsRaw } = await projectsQuery;
+      const projects = categoryMode ? projectsRaw?.filter(matchesCategories) : projectsRaw;
       
       if (projects) {
         projects.forEach((item) => {
@@ -118,11 +146,13 @@ const Search = () => {
       }
 
       // Blog
-      const { data: blogs } = await supabase
+      let blogsQuery = supabase
         .from("blog")
         .select("*")
-        .eq("publishStatus", "published")
-        .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+        .eq("publishStatus", "published");
+      if (!categoryMode) blogsQuery = blogsQuery.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      const { data: blogsRaw } = await blogsQuery;
+      const blogs = categoryMode ? blogsRaw?.filter(matchesCategories) : blogsRaw;
       
       if (blogs) {
         blogs.forEach((item) => {
@@ -146,7 +176,7 @@ const Search = () => {
     } finally {
       // Sabit sayfalar (Kurumsal Kimlik, KVKK, İletişim vb.) veritabanından gelmez,
       // ayrı olarak, hata durumundan etkilenmeden aranır.
-      const staticMatches = matchStaticPages(query);
+      const staticMatches = categoryMode ? [] : matchStaticPages(query);
 
       staticMatches.forEach((page) => {
         allResults.push({
@@ -178,7 +208,11 @@ const Search = () => {
               Arama Sonuçları
             </h1>
             <p className="text-muted-foreground">
-              "{query}" için <strong>{results.length}</strong> sonuç bulundu
+              {categoryMode ? (
+                <>Kategori: <strong>{categoryList.join(", ")}</strong> - <strong>{results.length}</strong> sonuç bulundu</>
+              ) : (
+                <>"{query}" için <strong>{results.length}</strong> sonuç bulundu</>
+              )}
             </p>
           </div>
         </section>
@@ -251,11 +285,13 @@ const Search = () => {
                   </Link>
                 ))}
               </div>
-            ) : query ? (
+            ) : query || categoryMode ? (
               <div className="text-center py-12">
                 <h2 className="text-2xl font-bold text-foreground mb-2">İçerik Bulunamadı</h2>
                 <p className="text-muted-foreground mb-6">
-                  "{query}" ile ilgili içerik bulunamadı. Lütfen farklı bir arama terimi deneyin.
+                  {categoryMode
+                    ? `"${categoryList.join(", ")}" kategorisinde henüz içerik yok.`
+                    : `"${query}" ile ilgili içerik bulunamadı. Lütfen farklı bir arama terimi deneyin.`}
                 </p>
               </div>
             ) : (

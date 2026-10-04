@@ -711,8 +711,9 @@ const AdminSettings = () => {
         <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="text-xl font-bold text-foreground mb-4">Faaliyetlerimiz (Site Altlığı)</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğe tıklanınca arama kelimesiyle
-            site içi aramaya götürür. En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir.
+            Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğe tıklanınca, yazdığınız
+            kategorilere ait içeriklerin listesine götürür. Birden fazla kategori eklemek için virgülle ayırın
+            (örn. Eğitim, Spor). En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir.
           </p>
 
           <div className="space-y-3">
@@ -727,11 +728,11 @@ const AdminSettings = () => {
                   />
                 </div>
                 <div className="flex-1 w-full">
-                  <label className="block text-xs text-muted-foreground mb-1">Arama Kelimesi</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Kategoriler (virgülle ayırın)</label>
                   <Input
                     value={item.query}
                     onChange={(e) => updateFooterService(index, "query", e.target.value)}
-                    placeholder="Örn. araştırma analiz"
+                    placeholder="Örn. Eğitim, Spor"
                   />
                 </div>
                 <Button

@@ -153,7 +153,7 @@ const Footer = () => {
               {footerServices.map((service, index) => (
                 <li key={index}>
                   <Link
-                    to={`/search?q=${encodeURIComponent(service.query)}`}
+                    to={`/search?kategori=${encodeURIComponent(service.query)}`}
                     className="text-sm text-primary-foreground/80 hover:text-primary transition-colors"
                   >
                     {service.label}
