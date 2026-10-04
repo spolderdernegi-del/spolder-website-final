@@ -184,12 +184,12 @@ const Iletisim = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground">Bizi Destekleyebilirsiniz</h3>
-                      <p className="text-muted-foreground text-sm mb-2">Katkılarınızla çalışmalarımızı sürdürmemize yardımcı olabilirsiniz. Aşağıdaki IBAN bilgilerini kullanarak destek olabilirsiniz.</p>
+                      <p className="text-muted-foreground text-sm mb-2">Katkılarınızla çalışmalarımızı sürdürmemize destek olabilirsiniz.</p>
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
-                          <div className="min-w-0 flex-1">
+                          <div className="flex-1 min-w-fit">
                             <div className="text-xs text-muted-foreground">IBAN (TL)</div>
-                            <div className="font-mono text-sm break-all">{donationIbanTL}</div>
+                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanTL}</div>
                           </div>
                           <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
@@ -197,9 +197,9 @@ const Iletisim = () => {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
-                          <div className="min-w-0 flex-1">
+                          <div className="flex-1 min-w-fit">
                             <div className="text-xs text-muted-foreground">IBAN (EUR)</div>
-                            <div className="font-mono text-sm break-all">{donationIbanEUR}</div>
+                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanEUR}</div>
                           </div>
                           <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
