@@ -67,14 +67,37 @@ const Search = () => {
     try {
       setLoading(true);
 
-      // Haberler
       let newsQuery = supabase
         .from("news")
-        .select("*")
+        .select("id, baslik, ozet, gorsel, kategori, categories, yazar, tarih, created_at")
         .eq("yayin_durumu", "yayinlandi");
       if (!categoryMode) newsQuery = newsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
-      const { data: newsRaw } = await newsQuery;
-      const news = categoryMode ? newsRaw?.filter(matchesCategories) : newsRaw;
+      let eventsQuery = supabase
+        .from("events")
+        .select("id, baslik, ozet, gorsel, kategori, categories, tarih, created_at")
+        .eq("yayin_durumu", "yayinlandi");
+      if (!categoryMode) eventsQuery = eventsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      let projectsQuery = supabase
+        .from("projects")
+        .select("id, title, description, image, category, categories, start_date, created_at")
+        .eq("publishStatus", "published");
+      if (!categoryMode) projectsQuery = projectsQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      let blogsQuery = supabase
+        .from("blog")
+        .select("id, title, excerpt, image, category, categories, author, date, created_at")
+        .eq("publishStatus", "published");
+      if (!categoryMode) blogsQuery = blogsQuery.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+
+      // Dört tablo aynı anda (sırayla beklemeden) sorgulanır.
+      const [newsRes, eventsRes, projectsRes, blogsRes] = await Promise.all([
+        newsQuery,
+        eventsQuery,
+        projectsQuery,
+        blogsQuery,
+      ]);
+
+      // Haberler
+      const news = categoryMode ? newsRes.data?.filter(matchesCategories) : newsRes.data;
       
       if (news) {
         news.forEach((item) => {
@@ -94,13 +117,7 @@ const Search = () => {
       }
 
       // Etkinlikler
-      let eventsQuery = supabase
-        .from("events")
-        .select("*")
-        .eq("yayin_durumu", "yayinlandi");
-      if (!categoryMode) eventsQuery = eventsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
-      const { data: eventsRaw } = await eventsQuery;
-      const events = categoryMode ? eventsRaw?.filter(matchesCategories) : eventsRaw;
+      const events = categoryMode ? eventsRes.data?.filter(matchesCategories) : eventsRes.data;
       
       if (events) {
         events.forEach((item) => {
@@ -120,13 +137,7 @@ const Search = () => {
       }
 
       // Projeler
-      let projectsQuery = supabase
-        .from("projects")
-        .select("*")
-        .eq("publishStatus", "published");
-      if (!categoryMode) projectsQuery = projectsQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
-      const { data: projectsRaw } = await projectsQuery;
-      const projects = categoryMode ? projectsRaw?.filter(matchesCategories) : projectsRaw;
+      const projects = categoryMode ? projectsRes.data?.filter(matchesCategories) : projectsRes.data;
       
       if (projects) {
         projects.forEach((item) => {
@@ -146,13 +157,7 @@ const Search = () => {
       }
 
       // Blog
-      let blogsQuery = supabase
-        .from("blog")
-        .select("*")
-        .eq("publishStatus", "published");
-      if (!categoryMode) blogsQuery = blogsQuery.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
-      const { data: blogsRaw } = await blogsQuery;
-      const blogs = categoryMode ? blogsRaw?.filter(matchesCategories) : blogsRaw;
+      const blogs = categoryMode ? blogsRes.data?.filter(matchesCategories) : blogsRes.data;
       
       if (blogs) {
         blogs.forEach((item) => {
