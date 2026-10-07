@@ -107,6 +107,13 @@ const AdminDashboard = () => {
       color: "bg-rose-500",
     },
     {
+      title: "İstatistikler",
+      description: "Kaç kişi girdi, nereden geldi",
+      icon: BarChart3,
+      href: "/admin/stats",
+      color: "bg-sky-500",
+    },
+    {
       title: "Etkinlikler",
       description: "Etkinlik ekle, düzenle, sil",
       icon: Calendar,

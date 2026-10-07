@@ -922,6 +922,120 @@ app.use(
   }),
 );
 
+// --- Ziyaretçi istatistikleri (çerezsiz, kimlik saklamayan sayaç) ----------
+// Her sayfa görüntülemesi için yalnızca: tarih, sayfa yolu, ülke/şehir (IP'den
+// tahmin edilir), cihaz türü, yönlendiren site ve GÜNLÜK DEĞİŞEN anonim bir
+// kod kaydedilir. IP adresi ve tarayıcı bilgisi SAKLANMAZ, tarayıcıya çerez
+// bırakılmaz; anonim kod her gün değiştiği için bir kişi günlerce takip
+// edilemez, yalnızca "bugün kaç farklı kişi geldi" sayılabilir.
+const STATS_DDL = [
+  `CREATE TABLE IF NOT EXISTS page_views (
+     id bigserial PRIMARY KEY,
+     created_at timestamptz NOT NULL DEFAULT now(),
+     day date NOT NULL,
+     path text NOT NULL,
+     country text,
+     city text,
+     device text,
+     referrer text,
+     visitor text NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS page_views_day_idx ON page_views (day)`,
+];
+(async () => {
+  try {
+    for (const ddl of STATS_DDL) await pool.query(ddl);
+  } catch (err) {
+    console.error("page_views tablosu oluşturulamadı (README'deki SQL'i postgres ile çalıştırın):", err.message);
+  }
+})();
+
+let geoipPromise = null;
+const lookupGeo = async (ip) => {
+  try {
+    geoipPromise = geoipPromise || import("geoip-lite").then((m) => m.default || m);
+    const geoip = await geoipPromise;
+    const hit = geoip.lookup(ip);
+    return { country: hit?.country || null, city: hit?.city || null };
+  } catch {
+    return { country: null, city: null };
+  }
+};
+
+const BOT_PATTERN = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|headless|lighthouse|curl|wget|python|monitor|uptime/i;
+const trackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post(
+  "/api/track",
+  trackLimiter,
+  asyncHandler(async (req, res) => {
+    const userAgent = String(req.get("user-agent") || "");
+    let pagePath = String((req.body || {}).path || "").split("?")[0].split("#")[0].slice(0, 200);
+    if (!pagePath.startsWith("/") || pagePath.startsWith("/admin") || pagePath.startsWith("/api") || BOT_PATTERN.test(userAgent)) {
+      return res.status(204).end();
+    }
+    // Admin giriş yapmışsa kendi gezintisini sayma.
+    if (getSessionFromRequest(req)) return res.status(204).end();
+
+    let referrer = null;
+    try {
+      const host = new URL(String((req.body || {}).referrer || "")).hostname.replace(/^www\./, "");
+      if (host && host !== "spolder.org") referrer = host.slice(0, 100);
+    } catch {
+      // yönlendiren yok ya da geçersiz
+    }
+
+    const ip = req.ip || "";
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul" }).format(new Date());
+    const daySalt = crypto.createHmac("sha256", SESSION_SECRET).update(`stats:${day}`).digest("hex");
+    const visitor = crypto.createHash("sha256").update(`${daySalt}|${ip}|${userAgent}`).digest("hex").slice(0, 16);
+    const device = /ipad|tablet/i.test(userAgent) ? "Tablet" : /mobi|android|iphone/i.test(userAgent) ? "Mobil" : "Masaüstü";
+    const { country, city } = await lookupGeo(ip);
+
+    try {
+      await queryDatabase(
+        `INSERT INTO page_views (day, path, country, city, device, referrer, visitor) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [day, pagePath, country, city, device, referrer, visitor],
+      );
+    } catch (err) {
+      console.error("Sayfa görüntüleme kaydedilemedi:", err.message);
+    }
+    return res.status(204).end();
+  }),
+);
+
+app.get(
+  "/api/stats",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+    const since = `(now() AT TIME ZONE 'Europe/Istanbul')::date - ($1::int - 1)`;
+    const run = (sql) => queryDatabase(sql, [days]).then((r) => r.rows);
+
+    const [daily, paths, countries, cities, devices, referrers] = await Promise.all([
+      run(`SELECT day::text AS day, COUNT(*)::int AS views, COUNT(DISTINCT visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} GROUP BY day ORDER BY day`),
+      run(`SELECT path, COUNT(*)::int AS views, COUNT(DISTINCT day || visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} GROUP BY path ORDER BY views DESC LIMIT 15`),
+      run(`SELECT COALESCE(country, '??') AS country, COUNT(*)::int AS views, COUNT(DISTINCT day || visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} GROUP BY 1 ORDER BY visitors DESC LIMIT 15`),
+      run(`SELECT COALESCE(city, 'Bilinmiyor') AS city, COALESCE(country, '??') AS country, COUNT(DISTINCT day || visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} GROUP BY 1, 2 ORDER BY visitors DESC LIMIT 15`),
+      run(`SELECT COALESCE(device, 'Bilinmiyor') AS device, COUNT(DISTINCT day || visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} GROUP BY 1 ORDER BY visitors DESC`),
+      run(`SELECT referrer, COUNT(DISTINCT day || visitor)::int AS visitors
+             FROM page_views WHERE day >= ${since} AND referrer IS NOT NULL GROUP BY 1 ORDER BY visitors DESC LIMIT 10`),
+    ]);
+
+    return res.json({ data: { days, daily, paths, countries, cities, devices, referrers }, error: null });
+  }),
+);
+
 // --- Sosyal medya paylaşım önizlemeleri (WhatsApp, Facebook vb.) ----------
 // Bu bir tek-sayfa uygulaması (SPA) olduğu için normalde her sayfa AYNI
 // index.html'i (ve dolayısıyla aynı sabit og:image/og:title'ı) döndürür.

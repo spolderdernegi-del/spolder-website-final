@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader } from "lucide-react";
 import ScrollToTop from "@/lib/ScrollToTop";
+import PageTracker from "@/lib/PageTracker";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Her sayfa ayrı bir JS parçası (chunk) olarak, sadece o sayfaya girildiğinde
@@ -44,6 +45,7 @@ const AdminBoard = lazy(() => import("./pages/admin/Board"));
 const AdminBankInfo = lazy(() => import("./pages/admin/BankInfo"));
 const AdminContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
 const AdminGuide = lazy(() => import("./pages/admin/Guide"));
+const AdminStats = lazy(() => import("./pages/admin/Stats"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -60,6 +62,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <PageTracker />
         <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -92,6 +95,7 @@ const App = () => (
           <Route path="/admin/board" element={<ProtectedRoute><AdminBoard /></ProtectedRoute>} />
           <Route path="/admin/bank-info" element={<ProtectedRoute><AdminBankInfo /></ProtectedRoute>} />
           <Route path="/admin/messages" element={<ProtectedRoute><AdminContactMessages /></ProtectedRoute>} />
+          <Route path="/admin/stats" element={<ProtectedRoute><AdminStats /></ProtectedRoute>} />
           <Route path="/admin/guide" element={<ProtectedRoute><AdminGuide /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
