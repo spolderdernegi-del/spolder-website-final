@@ -937,7 +937,7 @@ const DETAIL_META_ROUTES = [
   { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image" },
   { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image" },
 ];
-const DEFAULT_OG_IMAGE = "https://spolder.org/og-image.png";
+const DEFAULT_OG_IMAGE = "https://spolder.org/spolder-onizleme.png";
 const escapeHtmlAttr = (v) =>
   String(v ?? "")
     .replace(/&/g, "&amp;")
