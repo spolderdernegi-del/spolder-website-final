@@ -972,7 +972,10 @@ app.get(
       // base64 (data:) görseller paylaşım botları tarafından getirilemez
       // (gerçek bir URL değiller) - bu durumda varsayılan kapak görseline düşülür.
       const rawImage = item.image || "";
-      const image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
+      // Bağıl adresler (/uploads/..., /varsayilan-gorsel.png) paylaşım botları için
+      // tam adrese çevrilir.
+      let image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
+      if (image.startsWith("/")) image = `https://spolder.org${image}`;
       const url = `https://spolder.org${req.path}`;
 
       html = html
