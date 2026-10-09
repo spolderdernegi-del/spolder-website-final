@@ -64,7 +64,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "list",
         title: "Neler var?",
         items: [
-          "Kartlar: Etkinlikler, Haberler, Blog, Projeler, Dosyalar, Kategoriler, Medya Kütüphanesi, Yönetim Kurulu, Hoş Geldiniz Pop-up, Gelen Mesajlar, Ayarlar ve Kullanım Rehberi. Karta tıklayınca ilgili yönetim sayfası açılır.",
+          "Kartlar: Etkinlikler, Haberler, Blog, Projeler, Dosyalar, Kategoriler, Medya Kütüphanesi, Yönetim Kurulu, Hoş Geldiniz Pop-up, Çöp Kutusu, Gelen Mesajlar, Ayarlar ve Kullanım Rehberi. Karta tıklayınca ilgili yönetim sayfası açılır.",
           "\"Gelen Mesajlar\" kartında okunmamış mesaj sayısı kırmızı rozetle görünür.",
           "Üstteki sayaçlar: Toplam Etkinlik, Toplam Haber, Toplam Proje. Bu sayılara taslaklar da dahildir.",
           "\"Son Eklenen İçerikler\" altında son 5 etkinlik ve son 5 haber listelenir; \"Tümü\" düğmesi ilgili yönetim sayfasına götürür.",
@@ -84,8 +84,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "Her kayıtta görsel, başlık, \"Taslak\" veya \"Yayında\" rozeti, kategoriler ve tarih görünür.",
           "Üstteki arama kutusu (örn. \"Haber ara...\") başlık ve özette arar. \"Tüm Kategoriler\" menüsüyle kategoriye göre süzebilirsiniz.",
           "Kaydın sağındaki 👁️ / 📝 düğmesi yayın durumunu tek tıkla değiştirir (Taslağa Al / Yayınla). Ayrıca Kaydet'e basmak gerekmez.",
-          "Kalem simgesi kaydı düzenler, çöp kutusu siler.",
-          "Soldaki kutucukları işaretleyince \"Seçilenleri Sil (n)\" ve \"Seçimi Temizle\" belirir; birden çok kaydı birlikte silebilirsiniz.",
+          "Kalem simgesi kaydı düzenler, çöp kutusu simgesi kaydı Çöp Kutusu'na taşır (30 gün içinde geri alınabilir).",
+          "Soldaki kutucukları işaretleyince \"Seçilenleri Sil (n)\" ve \"Seçimi Temizle\" belirir; birden çok kaydı birlikte Çöp Kutusu'na taşıyabilirsiniz.",
         ],
       },
       {
@@ -104,6 +104,49 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       {
         type: "tip",
         text: "Bir kaydı sitede göstermek için iki şey gerekir: Yayın Durumu \"Yayınla\" olmalı ve Kaydet'e basılmalı. Kaydettiniz ama sitede görünmüyorsa önce kaydın rozetinin \"Yayında\" olduğundan emin olun.",
+      },
+    ],
+  },
+  {
+    id: "cop-kutusu",
+    title: "Çöp Kutusu",
+    route: "/admin/trash",
+    summary: "Silinen haber, etkinlik, blog ve projeleri 30 gün boyunca saklar ve geri alınmasını sağlar.",
+    blocks: [
+      {
+        type: "list",
+        title: "Nasıl çalışır?",
+        items: [
+          "Haber, etkinlik, blog veya proje silince kayıt kalıcı olarak silinmez; Çöp Kutusu'na taşınır ve sitede ile yönetim listelerinde hemen görünmez olur.",
+          "Çöp Kutusu'nda kayıt 30 gün kalır. 30 gün dolunca otomatik ve kalıcı olarak silinir, bunun için bir şey yapmanız gerekmez.",
+          "Her kayıtta türü (Haber, Etkinlik, Blog, Proje), başlığı, silinme tarihi ve kaç gün sonra kalıcı silineceği görünür. Son 5 günde kalan kayıtlar kırmızı yazılır.",
+        ],
+      },
+      {
+        type: "steps",
+        title: "Silineni geri alma",
+        items: [
+          "Kontrol Paneli'nde \"Çöp Kutusu\" kartına tıklayın.",
+          "Geri almak istediğiniz kaydın yanındaki \"Geri Al\" düğmesine basın.",
+          "Kayıt silinmeden önceki hâline döner. Yayında olan bir kayıt yeniden yayında, taslak olan taslak olarak geri gelir; sitede hemen görünür.",
+        ],
+      },
+      {
+        type: "list",
+        title: "Kalıcı silme",
+        items: [
+          "\"Kalıcı Sil\": tek bir kaydı hemen ve geri alınamaz şekilde siler.",
+          "\"Çöpü Boşalt\" (sağ üstte): çöp kutusundaki her şeyi geri alınamaz şekilde siler. İkisinde de onay sorulur.",
+        ],
+      },
+      {
+        type: "warn",
+        title: "Bilmeniz gerekenler",
+        items: [
+          "Yalnızca haber, etkinlik, blog ve proje buraya düşer. Dosyalar, kategoriler, yönetim kurulu üyeleri ve Medya Kütüphanesi'nden silinen görseller doğrudan kalıcı olarak silinir.",
+          "Çöpteki bir kaydın görseli Medya Kütüphanesi'nden silinirse, geri aldığınızda görsel yerinde SPOLDER logolu varsayılan görsel görünür.",
+          "Çöp Kutusu sayfasında \"henüz etkinleştirilmedi\" yazıyorsa sistem yöneticisinin bir veritabanı güncellemesi yapması gerekir; o zamana kadar silmeler kalıcıdır.",
+        ],
       },
     ],
   },
@@ -140,7 +183,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         title: "Dikkat",
         items: [
           "\"Tam Sayfa Düzenle\"den dönünce içerik yalnızca forma aktarılır. Kalıcı olması için formdaki asıl \"Kaydet\" düğmesine de basmalısınız.",
-          "Silinen haber geri getirilemez.",
+          "Silinen haber Çöp Kutusu'na gider ve sitede hemen kaybolur; 30 gün içinde Çöp Kutusu'ndan geri alabilirsiniz.",
         ],
       },
     ],
@@ -724,7 +767,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "list",
         title: "Yanlışlıkla sildim",
         items: [
-          "Silinen kayıtlar geri getirilemez. Panelde çöp kutusu yoktur; önemli bir şey silindiyse hemen sistem yöneticisine haber verin.",
+          "Haber, etkinlik, blog ve proje silindiyse Kontrol Paneli'ndeki \"Çöp Kutusu\" kartından 30 gün içinde \"Geri Al\" ile geri getirebilirsiniz.",
+          "Dosya, kategori, yönetim kurulu üyesi ve Medya Kütüphanesi'nden silinen görseller Çöp Kutusu'na gitmez, geri getirilemez. Önemli bir şey silindiyse hemen sistem yöneticisine haber verin.",
         ],
       },
     ],

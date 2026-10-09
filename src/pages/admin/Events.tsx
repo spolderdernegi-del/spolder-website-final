@@ -231,7 +231,7 @@ const AdminEvents = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Bu etkinliği silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu etkinlik çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?")) return;
 
     try {
       console.log("Silme işlemi başlatılıyor, ID:", id);
@@ -281,7 +281,7 @@ const AdminEvents = () => {
       return;
     }
 
-    if (!confirm(`${selectedEvents.length} etkinlik silinecek. Emin misiniz?`)) return;
+    if (!confirm(`${selectedEvents.length} etkinlik çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?`)) return;
 
     try {
       const { error } = await supabase

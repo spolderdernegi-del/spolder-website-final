@@ -238,7 +238,7 @@ const AdminNews = () => {
 
   const handleDelete = async (id: number) => {
     const newsItem = news.find(n => n.id === id);
-    if (!confirm("Bu haberi silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu haber çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?")) return;
 
     try {
       const { error } = await supabase
@@ -264,7 +264,7 @@ const AdminNews = () => {
       return;
     }
 
-    if (!confirm(`${selectedNews.length} haber silinecek. Emin misiniz?`)) return;
+    if (!confirm(`${selectedNews.length} haber çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?`)) return;
 
     try {
       const { error } = await supabase

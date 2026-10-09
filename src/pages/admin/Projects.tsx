@@ -223,7 +223,7 @@ const AdminProjects = () => {
 
   const handleDelete = async (id: number) => {
     const project = projects.find(p => p.id === id);
-    if (!confirm("Bu projeyi silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu proje çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?")) return;
 
     try {
       const { error } = await supabase
@@ -249,7 +249,7 @@ const AdminProjects = () => {
       return;
     }
 
-    if (!confirm(`${selectedProjects.length} proje silinecek. Emin misiniz?`)) return;
+    if (!confirm(`${selectedProjects.length} proje çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?`)) return;
 
     try {
       const { error } = await supabase

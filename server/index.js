@@ -488,6 +488,53 @@ app.post(
   }),
 );
 
+// --- Çöp kutusu (yumuşak silme) -------------------------------------------
+// Haber, etkinlik, blog ve proje silinince veritabanından hemen kaldırılmaz;
+// "deleted_at" damgası konur, sitede ve panel listelerinde görünmez, Çöp
+// Kutusu'ndan geri alınabilir. 30 gün sonra otomatik kalıcı silinir.
+// "deleted_at" kolonu henüz yoksa (SQL çalıştırılmamışsa) sistem eskisi gibi
+// çalışır ve silme kalıcı olur.
+const SOFT_DELETE_TABLES = new Set(["news", "events", "blog", "projects"]);
+const TRASH_RETENTION_DAYS = 30;
+const TRASH_COLUMNS = {
+  news: { title: "baslik", image: "gorsel", label: "Haber" },
+  events: { title: "baslik", image: "gorsel", label: "Etkinlik" },
+  blog: { title: "title", image: "image", label: "Blog" },
+  projects: { title: "title", image: "image", label: "Proje" },
+};
+let trashEnabled = false;
+
+const purgeTrash = async () => {
+  if (!trashEnabled) return;
+  for (const table of SOFT_DELETE_TABLES) {
+    try {
+      const result = await pool.query(
+        `DELETE FROM "${table}" WHERE "deleted_at" IS NOT NULL AND "deleted_at" < now() - ($1 || ' days')::interval`,
+        [String(TRASH_RETENTION_DAYS)],
+      );
+      if (result.rowCount) console.log(`Çöp kutusu: ${table} tablosundan ${result.rowCount} eski kayıt kalıcı silindi`);
+    } catch (err) {
+      console.error("Çöp kutusu temizliği başarısız:", table, err.message);
+    }
+  }
+};
+
+(async () => {
+  try {
+    const result = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM information_schema.columns
+        WHERE table_schema = current_schema() AND column_name = 'deleted_at' AND table_name = ANY($1)`,
+      [[...SOFT_DELETE_TABLES]],
+    );
+    trashEnabled = result.rows[0].n === SOFT_DELETE_TABLES.size;
+    if (!trashEnabled) console.warn("Çöp kutusu kapalı: deleted_at kolonları eksik (SQL'i postgres ile çalıştırın).");
+    await purgeTrash();
+    setInterval(purgeTrash, 6 * 60 * 60 * 1000);
+  } catch (err) {
+    console.error("Çöp kutusu kontrolü başarısız:", err.message);
+  }
+})();
+
 // --- Generic table endpoints ---------------------------------------------
 // GET is always public (matches the old "read: true for anyone" RLS policy),
 // except contact_messages which is admin-only to read.
@@ -522,6 +569,13 @@ app.get(
           : `WHERE "key" = ANY(${placeholder})`;
         params = [...params, allowedKeys];
       }
+    }
+
+    if (trashEnabled && SOFT_DELETE_TABLES.has(table)) {
+      const session = getSessionFromRequest(req);
+      const wantTrash = req.query.trash === "1" && session && session.role === "admin";
+      const cond = wantTrash ? `"deleted_at" IS NOT NULL` : `"deleted_at" IS NULL`;
+      whereClause = whereClause ? `${whereClause} AND ${cond}` : `WHERE ${cond}`;
     }
 
     if (req.query.head === "true" && String(req.query.count) === "exact") {
@@ -653,6 +707,13 @@ app.delete(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const table = sanitizeTable(req.params.table);
+    if (trashEnabled && SOFT_DELETE_TABLES.has(table)) {
+      const moved = await queryDatabase(
+        `UPDATE "${table}" SET "deleted_at" = now() WHERE id = $1 AND "deleted_at" IS NULL RETURNING *`,
+        [req.params.id],
+      );
+      return res.json({ data: moved.rows, error: null });
+    }
     const result = await queryDatabase(`DELETE FROM "${table}" WHERE id = $1 RETURNING *`, [req.params.id]);
     return res.json({ data: result.rows, error: null });
   }),
@@ -666,8 +727,86 @@ app.delete(
     const table = sanitizeTable(req.params.table);
     const { whereClause, params } = buildWhereClause(req.query);
     if (!whereClause) throw new HttpError(400, "Silme işlemi için filtre gereklidir");
+    if (trashEnabled && SOFT_DELETE_TABLES.has(table)) {
+      const moved = await queryDatabase(
+        `UPDATE "${table}" SET "deleted_at" = now() ${whereClause} AND "deleted_at" IS NULL RETURNING *`,
+        params,
+      );
+      return res.json({ data: moved.rows, error: null });
+    }
     const result = await queryDatabase(`DELETE FROM "${table}" ${whereClause} RETURNING *`, params);
     return res.json({ data: result.rows, error: null });
+  }),
+);
+
+// Çöp kutusundaki kayıtları listeler, geri alır ya da kalıcı siler (admin).
+app.get(
+  "/api/trash",
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    if (!trashEnabled) return res.json({ data: { enabled: false, items: [] }, error: null });
+    const items = [];
+    for (const table of SOFT_DELETE_TABLES) {
+      const c = TRASH_COLUMNS[table];
+      const result = await queryDatabase(
+        `SELECT id, "${c.title}" AS title,
+                CASE WHEN left("${c.image}", 5) = 'data:' THEN NULL ELSE "${c.image}" END AS image,
+                "deleted_at" AS deleted_at
+           FROM "${table}" WHERE "deleted_at" IS NOT NULL`,
+      );
+      result.rows.forEach((row) =>
+        items.push({ table, label: c.label, id: row.id, title: row.title, image: row.image, deleted_at: row.deleted_at }),
+      );
+    }
+    items.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+    return res.json({ data: { enabled: true, retentionDays: TRASH_RETENTION_DAYS, items }, error: null });
+  }),
+);
+
+app.post(
+  "/api/trash/:table/:id/restore",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    if (!trashEnabled || !SOFT_DELETE_TABLES.has(table)) throw new HttpError(400, "Bu kayıt türü geri alınamaz");
+    const result = await queryDatabase(
+      `UPDATE "${table}" SET "deleted_at" = NULL WHERE id = $1 AND "deleted_at" IS NOT NULL RETURNING id`,
+      [req.params.id],
+    );
+    if (result.rowCount === 0) throw new HttpError(404, "Kayıt çöp kutusunda bulunamadı");
+    return res.json({ data: { success: true }, error: null });
+  }),
+);
+
+app.delete(
+  "/api/trash/:table/:id",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const table = sanitizeTable(req.params.table);
+    if (!trashEnabled || !SOFT_DELETE_TABLES.has(table)) throw new HttpError(400, "Bu kayıt türü silinemez");
+    const result = await queryDatabase(
+      `DELETE FROM "${table}" WHERE id = $1 AND "deleted_at" IS NOT NULL RETURNING id`,
+      [req.params.id],
+    );
+    if (result.rowCount === 0) throw new HttpError(404, "Kayıt çöp kutusunda bulunamadı");
+    return res.json({ data: { success: true }, error: null });
+  }),
+);
+
+app.delete(
+  "/api/trash",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    if (!trashEnabled) throw new HttpError(400, "Çöp kutusu etkin değil");
+    let removed = 0;
+    for (const table of SOFT_DELETE_TABLES) {
+      const result = await queryDatabase(`DELETE FROM "${table}" WHERE "deleted_at" IS NOT NULL`);
+      removed += result.rowCount || 0;
+    }
+    return res.json({ data: { removed }, error: null });
   }),
 );
 
@@ -961,7 +1100,7 @@ app.get(
     }
 
     const result = await queryDatabase(
-      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1`,
+      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
       [id],
     );
     const item = result.rows[0];
@@ -1032,7 +1171,7 @@ app.get(
     for (const q of contentQueries) {
       try {
         const result = await queryDatabase(
-          `SELECT id, "${q.dateCol}" AS d FROM "${q.table}" WHERE "${q.statusCol}" = $1 ORDER BY id DESC`,
+          `SELECT id, "${q.dateCol}" AS d FROM "${q.table}" WHERE "${q.statusCol}" = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""} ORDER BY id DESC`,
           [q.publishedVal],
         );
         result.rows.forEach((row) => {

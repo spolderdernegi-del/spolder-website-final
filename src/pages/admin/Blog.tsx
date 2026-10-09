@@ -228,7 +228,7 @@ const AdminBlog = () => {
 
   const handleDelete = async (id: number) => {
     const post = posts.find(p => p.id === id);
-    if (!confirm("Bu blog yazısını silmek istediğinizden emin misiniz?")) return;
+    if (!confirm("Bu blog yazısı çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?")) return;
 
     try {
       const { error } = await supabase
@@ -254,7 +254,7 @@ const AdminBlog = () => {
       return;
     }
 
-    if (!confirm(`${selectedPosts.length} blog yazısı silinecek. Emin misiniz?`)) return;
+    if (!confirm(`${selectedPosts.length} blog yazısı çöp kutusuna taşınacak (30 gün içinde geri alınabilir). Devam edilsin mi?`)) return;
 
     try {
       const { error } = await supabase
