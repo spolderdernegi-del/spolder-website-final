@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 // Google Analytics 4 ölçüm kimliği (analytics.google.com > Yönetici > Veri akışları).
-const MEASUREMENT_ID = "G-XBJM0JNM9W";
+const MEASUREMENT_ID = "G-112S66KK7W";
 
 declare global {
   interface Window {
