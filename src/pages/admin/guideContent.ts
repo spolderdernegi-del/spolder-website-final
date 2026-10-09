@@ -436,8 +436,12 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   {
     id: "editor",
     title: "Tam Sayfa Düzenle (Word gibi) editörü",
-    summary: "Haber, etkinlik, proje ve blog metinlerinin yazıldığı geniş editör.",
+    summary: "Haber, etkinlik, proje ve blog metinlerinin yazıldığı geniş editör: açma, biçimlendirme, link, görsel, Word aktarma.",
     blocks: [
+      {
+        type: "p",
+        text: "Haber, etkinlik, proje ve blog formlarındaki uzun metin (İçerik / Detaylı İçerik) bu editörde yazılır. Form sayfasında yalnızca metnin kısa bir önizlemesi görünür. Editör Word'e benzer: yazarsınız, üstteki araç çubuğuyla biçimlendirirsiniz.",
+      },
       {
         type: "steps",
         title: "Nasıl açılır ve kaydedilir?",
@@ -445,16 +449,35 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "İlgili formdaki \"İçerik\" bölümünden \"Tam Sayfa Düzenle (Word gibi)\" düğmesine basın.",
           "Metni yazın veya biçimlendirin.",
           "Bitince sağ üstteki \"İçeriği Aktar ve Geri Dön\" düğmesine basın.",
-          "Forma döndükten sonra formun altındaki asıl \"Kaydet\" düğmesine mutlaka basın. İçerik ancak o zaman kalıcı olur.",
+          "Forma döndükten sonra formun altındaki asıl \"Kaydet\" düğmesine mutlaka basın. İçerik ancak o zaman kalıcı olur. \"İçeriği Aktar\" yalnızca metni forma taşır, kaydetmez.",
+          "Yazdıklarınızı atmak için sol üstteki \"Vazgeç\" düğmesine basın; bu oturumdaki değişiklikler gider.",
         ],
       },
       {
         type: "list",
-        title: "Araç çubuğu",
+        title: "Araç çubuğu: soldan sağa her düğme",
         items: [
-          "Başlık seviyeleri, kalın, italik, altı çizili, üstü çizili, yazı rengi, arka plan rengi.",
-          "Numaralı liste, madde işaretli liste, hizalama, alıntı, bağlantı, görsel ve biçim temizleme.",
-          "Üstteki \"Yazı Boyutu (px)\" kutusu: 6 ile 200 arasında bir değer yazın veya ok düğmeleriyle 1'er değiştirin. Metni seçip değiştirirsiniz; seçili metin yoksa sonra yazacağınız metne uygulanır.",
+          "Başlık menüsü: \"Normal\", \"Başlık 1\", \"Başlık 2\", \"Başlık 3\". Başlık yapmak istediğiniz satıra tıklayıp menüden seçin. Başlık 1 en büyük, Başlık 3 en küçüktür. Normal metne dönmek için menüden \"Normal\"i seçin.",
+          "B (kalın), I (italik), U (altı çizili), S (üstü çizili): metni fareyle seçip düğmeye basın. Aynı düğmeye tekrar basmak biçimi kaldırır. Seçim yapmadan basarsanız, bundan sonra yazacağınız metne uygulanır.",
+          "Yazı rengi (A harfi) ve arka plan rengi (boyalı kutu): metni seçip menüden bir renk seçin. Okunabilirliği bozmamak için koyu zemin üzerine koyu yazı koymayın.",
+          "Numaralı liste (1, 2, 3) ve madde işaretli liste: satıra tıklayıp düğmeye basın. Listeden çıkmak için boş bir madde satırında Enter'a iki kez basın.",
+          "Hizalama menüsü: sola, ortaya, sağa veya iki yana yaslama.",
+          "Alıntı (tırnak simgesi): seçili paragrafı alıntı olarak biçimlendirir. Sitede nasıl göründüğünü kaydedip yayın sayfasında kontrol edin.",
+          "Bağlantı (zincir simgesi): metni seçin, düğmeye basın, adresi yazıp onaylayın. Adresi başında https:// ile tam yazın (örn. https://spolder.org/iletisim). Bağlantıyı kaldırmak için metne tıklayıp çıkan kutudan kaldırın.",
+          "Görsel (resim simgesi): imlecin olduğu yere görsel ekler. Ayrıntısı aşağıda.",
+          "Biçimi temizle (Tx simgesi): seçili metindeki kalın, renk, boyut gibi tüm biçimleri siler. Başka yerden yapıştırdığınız dağınık metni düzeltmek için işe yarar.",
+          "\"Yazı Boyutu (px)\" kutusu (araç çubuğunun üstünde): 6 ile 200 arasında bir değer yazın ve Enter'a basın ya da ok düğmeleriyle 1'er değiştirin. Metni seçip değiştirirsiniz; seçili metin yoksa sonra yazacağınız metne uygulanır. Normal metin boyutu 16'dır.",
+        ],
+      },
+      {
+        type: "list",
+        title: "Yazarken işinize yarayanlar",
+        items: [
+          "Enter yeni paragraf açar.",
+          "Geri almak için Ctrl+Z, yinelemek için Ctrl+Y (Mac'te Cmd+Z). Kalın için Ctrl+B, italik için Ctrl+I, altı çizili için Ctrl+U.",
+          "Okuyucunun gözü için: uzun metni Başlık 2 / Başlık 3 ile bölümlere ayırın, paragrafları kısa tutun, vurgu için kalın kullanın ama her yeri kalın yapmayın.",
+          "Başlık 1'i genelde kullanmayın; sayfanın asıl başlığı zaten formdaki Başlık alanından gelir. Metin içinde Başlık 2 ve 3 yeterlidir.",
+          "Editör yazı tipini değiştirmez; sitenin kendi yazı tipi kullanılır. Bu yüzden metin sitede editördekinden biraz farklı görünebilir. Asıl kontrol için kaydedip yayın sayfasına bakın.",
         ],
       },
       {
@@ -462,8 +485,9 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         title: "Word dosyası yükleme",
         items: [
           "\"Word Dosyası Yükle\" düğmesine basın ve bir .docx dosyası seçin (en fazla 15 MB).",
-          "Editörde yazı varsa \"mevcut içeriğin TAMAMININ yerini alacak\" uyarısı çıkar; onaylarsanız tüm içerik Word'den gelenle değişir.",
-          "Başlıklar, kalın/italik metin ve belgedeki görseller aktarılır; görseller sunucuya kaydedilir.",
+          "Editörde yazı varsa \"mevcut içeriğin TAMAMININ yerini alacak\" uyarısı çıkar; onaylarsanız tüm içerik Word'den gelenle değişir. Uyarıdan önce eski metni başka yere kopyalamak isterseniz \"Hayır\" deyin.",
+          "Başlıklar, kalın/italik metin, listeler ve belgedeki görseller aktarılır; görseller sunucuya kaydedilir.",
+          "Aktarımdan sonra metni mutlaka gözden geçirin. Word'deki tablolar, metin kutuları, sayfa numarası, üstbilgi/altbilgi gibi özel öğeler aktarılmayabilir ya da sadeleşebilir.",
         ],
       },
       {
@@ -475,6 +499,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "Kütüphane ve bilgisayardan seçilen görsel için kırpma penceresi açılır: istediğiniz alanı seçip \"Kırp ve Kaydet\" diyebilir veya \"Olduğu Gibi Ekle\" ile kırpmadan ekleyebilirsiniz. Kırpma serbest orandadır.",
           "Link ile eklenen görsel kırpılmadan olduğu gibi eklenir.",
           "Metindeki bir görsele tıklarsanız aynı kırpma penceresi açılır ve kırpılan görsel yerine geçer.",
+          "Görseli silmek için görselin hemen yanına imleci koyup Backspace ya da Delete'e basın.",
         ],
       },
       {
@@ -482,16 +507,20 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         title: "Görseller sitede nasıl görünür?",
         items: [
           "Metindeki görseller sayfada ortalanır ve kırptığınız boyutta gösterilir; sadece sayfadan genişse küçülür.",
+          "Görsel sağa ya da sola yaslanamaz, metin görselin yanından akmaz. Görsel her zaman kendi satırında, ortada durur.",
+          "Görselin altına yazı (alt yazı) için görselden sonra yeni bir paragraf açıp küçük yazı boyutuyla yazın.",
         ],
       },
       {
         type: "warn",
-        title: "Sınırlar",
+        title: "Yapılamayanlar ve sınırlar",
         items: [
+          "Tablo, video (YouTube), kod bloğu, girinti ve yazı tipi seçimi bu editörde yoktur.",
           "Bilgisayardan eklenen görsel en fazla 3 MB olabilir.",
           "Görsel yüklemesi arka planda birkaç saniye sürer. Görsel ekledikten hemen sonra \"İçeriği Aktar ve Geri Dön\"e basmayın, kısa bir süre bekleyin.",
           "Editördeki içerik tarayıcı oturumunda taşınır. Sekmeyi kapatırsanız veya adresi doğrudan açarsanız \"Düzenlenecek bir içerik bulunamadı\" uyarısı çıkar; editörü her zaman formdaki düğmeyle açın.",
-          "\"Vazgeç\" yaptığınız değişiklikleri atar.",
+          "Editör açıkken yazdıklarınız otomatik kaydedilmez. Tarayıcıyı kapatır ya da sayfayı yenilerseniz henüz forma aktarmadığınız metin kaybolur. Uzun metinlerde ara ara \"İçeriği Aktar ve Geri Dön\" ile forma taşıyıp formu kaydedin, sonra editörü yeniden açıp devam edin.",
+          "Başka bir siteden ya da Word'den kopyalayıp yapıştırırsanız renkler ve boyutlar bozuk gelebilir. Metni seçip \"Biçimi temizle\"ye basın, sonra gerekirse yeniden biçimlendirin.",
           "Eski .doc dosyaları kabul edilmez; Word'de \"Farklı Kaydet\" ile .docx yapın.",
         ],
       },
