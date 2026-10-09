@@ -1,0 +1,10 @@
+<svg width="300" height="75" viewBox="0 0 300 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- SPOLDER text -->
+  <text x="15" y="50" font-family="Arial, sans-serif" font-size="48" font-weight="300" fill="#F5F5F5" letter-spacing="-2">spolder</text>
+  
+  <!-- Blue dot -->
+  <circle cx="192" cy="8" r="8" fill="#3B82F6"/>
+  
+  <!-- Green dot -->
+  <circle cx="267" cy="8" r="8" fill="#10B981"/>
+</svg>
