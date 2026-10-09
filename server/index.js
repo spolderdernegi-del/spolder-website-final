@@ -152,6 +152,14 @@ app.set("trust proxy", 1); // behind Nginx
 // browser silently blocks those images.
 const cspDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
 cspDirectives["img-src"] = ["'self'", "data:", "https:"];
+// Google Analytics: gtag betiği ve ölçüm istekleri için gerekli adresler.
+cspDirectives["script-src"] = [...(cspDirectives["script-src"] || ["'self'"]), "https://www.googletagmanager.com"];
+cspDirectives["connect-src"] = [
+  ...(cspDirectives["connect-src"] || ["'self'"]),
+  "https://www.googletagmanager.com",
+  "https://*.google-analytics.com",
+  "https://*.analytics.google.com",
+];
 app.use(
   helmet({
     contentSecurityPolicy: { directives: cspDirectives },

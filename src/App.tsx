@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader } from "lucide-react";
 import ScrollToTop from "@/lib/ScrollToTop";
+import GoogleAnalytics from "@/lib/GoogleAnalytics";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Her sayfa ayrı bir JS parçası (chunk) olarak, sadece o sayfaya girildiğinde
@@ -61,6 +62,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <GoogleAnalytics />
         <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
