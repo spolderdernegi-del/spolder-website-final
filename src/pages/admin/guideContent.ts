@@ -654,19 +654,31 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         items: [
           "Kontrol Paneli'nde \"Faaliyetlerimiz\" kartına tıklayın.",
           "Her satıra bir \"Görünen Başlık\" yazın (örn. Eğitim Programları).",
-          "\"Kategoriler (virgülle ayırın)\" alanına o başlıkta listelenecek kategorileri yazın. Birden fazla kategori için virgül kullanın, örneğin: Eğitim, Spor.",
+          "\"Kategoriler (virgülle ayırın)\" alanına, sayfanın altında listelenecek yazıların kategorilerini yazın. Birden fazla kategori için virgül kullanın, örneğin: Eğitim, Spor.",
           "\"Öğe Ekle\" ile yeni satır ekleyin (en fazla 5), X ile satırı silin.",
           "\"Listeyi Kaydet\" düğmesine basın. Başlığı veya kategorisi boş satırlar kaydedilirken atılır; iki öğenin başlığı aynı olamaz.",
+        ],
+      },
+      {
+        type: "steps",
+        title: "Sayfanın içeriğini yazma",
+        items: [
+          "Satırın yanındaki \"İçerik\" (kalem) düğmesine basın. Yeni eklediğiniz bir öğe için önce \"Listeyi Kaydet\" demelisiniz.",
+          "\"Kısa Açıklama\": sayfanın üstündeki başlığın altında görünen 1-2 cümle.",
+          "\"Üst Görsel\": isteğe bağlı, sayfanın en üstündeki görsel.",
+          "\"Tam Sayfa Düzenle (Word gibi)\": sayfanın metnini Haberler/Projeler'deki aynı editörle yazın.",
+          "\"Sayfanın altında ilgili yazıları göster\" kutusu işaretliyse, yazdığınız kategorilere sahip haber, etkinlik, proje ve blog kartları metnin altında listelenir. Sadece kendi metninizi göstermek için işareti kaldırın.",
+          "\"Kaydet\" düğmesine basın; sayfa hemen yayına girer.",
         ],
       },
       {
         type: "list",
         title: "Sayfalar nasıl çalışır?",
         items: [
-          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari).",
-          "Ziyaretçi sitenin altındaki öğeye tıklayınca, Projeler sayfasına benzer bir sayfada yalnızca bu kategorilerden en az birine sahip haber, etkinlik, proje ve blog içerikleri kartlar halinde listelenir.",
-          "Satırın yanındaki simgeye basarak kaydedilmiş sayfayı yeni sekmede açabilirsiniz.",
-          "Başlığı değiştirirseniz sayfa adresi de değişir; eski adrese gelenler \"Sayfa bulunamadı\" görür.",
+          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari); sitenin altındaki öğeye tıklayan ziyaretçi buraya gelir.",
+          "Satırın yanındaki dış bağlantı simgesi kaydedilmiş sayfayı yeni sekmede açar.",
+          "Başlığı değiştirirseniz sayfa adresi de değişir (içerik kaybolmaz); eski adrese gelenler \"Sayfa bulunamadı\" görür.",
+          "Metin de kategori eşleşen yazı da yoksa sayfada \"Henüz içerik yok\" yazar.",
         ],
       },
       {

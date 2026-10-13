@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 import { Link, useParams } from "react-router-dom";
 import { Loader } from "lucide-react";
 import Header from "@/components/layout/Header";
@@ -8,8 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import {
   DEFAULT_FOOTER_SERVICES,
+  FaaliyetPage,
   FooterService,
+  parseFaaliyetPages,
   parseFooterServices,
+  serviceId,
   slugify,
 } from "@/lib/faaliyetler";
 
@@ -32,6 +36,7 @@ const normalize = (v: string) => v.trim().toLocaleLowerCase("tr");
 const Faaliyet = () => {
   const { slug = "" } = useParams();
   const [service, setService] = useState<FooterService | null | undefined>(undefined);
+  const [page, setPage] = useState<FaaliyetPage>({});
   const [items, setItems] = useState<FaaliyetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const categoryColors = useCategoryColors();
@@ -42,13 +47,24 @@ const Faaliyet = () => {
     const load = async () => {
       setLoading(true);
       setItems([]);
+      setPage({});
 
-      const { data } = await supabase.from("settings").select("key, value").eq("key", "footer_services");
-      const list = data?.[0]?.value ? parseFooterServices(data[0].value) : DEFAULT_FOOTER_SERVICES;
+      const { data } = await supabase
+        .from("settings")
+        .select("key, value")
+        .in("key", ["footer_services", "faaliyet_pages"]);
+      const map = Object.fromEntries((data || []).map((d: any) => [d.key, d.value]));
+      const list = map.footer_services ? parseFooterServices(map.footer_services) : DEFAULT_FOOTER_SERVICES;
       const found = list.find((s) => slugify(s.label) === slug) || null;
       if (cancelled) return;
       setService(found);
       if (!found) {
+        setLoading(false);
+        return;
+      }
+      const pageData = parseFaaliyetPages(map.faaliyet_pages)[serviceId(found)] || {};
+      setPage(pageData);
+      if (pageData.showRelated === false) {
         setLoading(false);
         return;
       }
@@ -114,7 +130,7 @@ const Faaliyet = () => {
             </h1>
             <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
               {service
-                ? `${service.label} kapsamındaki çalışmalarımız ve içeriklerimiz`
+                ? page.summary || `${service.label} kapsamındaki çalışmalarımız ve içeriklerimiz`
                 : "SPOLDER faaliyetleri"}
             </p>
           </div>
@@ -140,7 +156,25 @@ const Faaliyet = () => {
           </section>
         )}
 
-        {!loading && service && items.length === 0 && (
+        {!loading && service && (page.image || page.content) && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto max-w-4xl">
+              {page.image && (
+                <img src={page.image} alt={service.label} className="w-full rounded-lg shadow-card mb-8 object-cover" />
+              )}
+              {page.content && (
+                <article className="prose prose-lg dark:prose-invert max-w-none">
+                  <div
+                    className="text-foreground/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.content) }}
+                  />
+                </article>
+              )}
+            </div>
+          </section>
+        )}
+
+        {!loading && service && items.length === 0 && !page.image && !page.content && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Henüz içerik yok</h3>
@@ -152,6 +186,9 @@ const Faaliyet = () => {
         {!loading && items.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
+              {(page.image || page.content) && (
+                <h2 className="font-display text-2xl font-bold text-foreground mb-6">İlgili İçerikler</h2>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {items.map((item) => (
                   <article key={item.key} className="bg-card rounded-lg overflow-hidden shadow-card card-hover group">

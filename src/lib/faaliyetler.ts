@@ -2,9 +2,30 @@
 // sayfasının adresi. Liste admin panelinden (Ayarlar → Faaliyetlerimiz)
 // düzenlenir; her öğenin sayfası otomatik oluşur: /faaliyetlerimiz/<ad>.
 export interface FooterService {
+  id?: string; // sabit kimlik: başlık değişse de sayfa içeriği kaybolmaz
   label: string;
   query: string; // virgülle ayrılmış kategori adları
 }
+
+// Her faaliyetin kendi sayfa içeriği (settings: faaliyet_pages -> { [id]: ... }).
+export interface FaaliyetPage {
+  summary?: string; // hero altında kısa açıklama
+  image?: string; // sayfanın üst görseli
+  content?: string; // editörle yazılan HTML
+  showRelated?: boolean; // altta kategoriye ait yazıları göster (varsayılan: evet)
+}
+
+export const serviceId = (service: FooterService) => service.id || slugify(service.label);
+
+export const parseFaaliyetPages = (raw?: string | null): Record<string, FaaliyetPage> => {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+};
 
 export const FOOTER_SERVICES_MAX = 5;
 

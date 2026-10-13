@@ -135,6 +135,7 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "organization_lat",
   "organization_lng",
   "footer_services",
+  "faaliyet_pages",
   "welcome_modal",
 ]);
 
