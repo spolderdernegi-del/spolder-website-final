@@ -2,30 +2,13 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo_disi.webp";
+import { DEFAULT_FOOTER_SERVICES, FooterService, faaliyetPath, parseFooterServices } from "@/lib/faaliyetler";
 
 interface ContactInfo {
   address: string;
   phone: string;
   email: string;
 }
-
-interface FooterService {
-  label: string;
-  query: string;
-}
-
-const FOOTER_SERVICES_MAX = 5;
-// Admin panelden "Faaliyetlerimiz" hiç kaydedilmemişse (ayar tablosunda
-// kayıt yoksa) gösterilecek varsayılanlar - önceden bu liste burada sabit
-// kodluydu, admin panelden düzenlenebilir hale getirdik ama ilk kurulumda
-// sitede hiçbir şey değişmesin diye aynı 5 öğe varsayılan olarak kaldı.
-const DEFAULT_FOOTER_SERVICES: FooterService[] = [
-  { label: "Araştırma & Analiz", query: "araştırma analiz" },
-  { label: "Eğitim Programları", query: "eğitim programları" },
-  { label: "Politika Önerileri", query: "politika önerileri" },
-  { label: "Spor Danışmanlığı", query: "spor danışmanlığı" },
-  { label: "Uluslararası İşbirlikleri", query: "uluslararası işbirlikleri" },
-];
 
 const Footer = () => {
   const [contact, setContact] = useState<ContactInfo>({
@@ -51,17 +34,7 @@ const Footer = () => {
         email: map.contact_email || prev.email,
       }));
 
-      if (map.footer_services) {
-        try {
-          const parsed = JSON.parse(map.footer_services);
-          // Veride ne olursa olsun en fazla 5 öğe gösterilir.
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setFooterServices(parsed.slice(0, FOOTER_SERVICES_MAX));
-          }
-        } catch {
-          // Bozuk veri varsa varsayılan listede kalınır.
-        }
-      }
+      if (map.footer_services) setFooterServices(parseFooterServices(map.footer_services));
     };
 
     fetchContact();
@@ -153,7 +126,7 @@ const Footer = () => {
               {footerServices.map((service, index) => (
                 <li key={index}>
                   <Link
-                    to={`/search?kategori=${encodeURIComponent(service.query)}`}
+                    to={faaliyetPath(service)}
                     className="text-sm text-primary-foreground/80 hover:text-primary transition-colors"
                   >
                     {service.label}

@@ -694,7 +694,7 @@ const AdminSettings = () => {
           <h2 className="text-xl font-bold text-foreground mb-4">Faaliyetlerimiz (Site Altlığı)</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğe tıklanınca, yazdığınız
-            kategorilere ait içeriklerin listesine götürür. Birden fazla kategori eklemek için virgülle ayırın
+            kategorilere ait içeriklerin listelendiği, kendi adresi olan bir sayfaya götürür (örn. /faaliyetlerimiz/egitim-programlari). Birden fazla kategori eklemek için virgülle ayırın
             (örn. Eğitim, Spor). En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir.
           </p>
 

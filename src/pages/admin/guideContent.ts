@@ -700,7 +700,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "\"Kategoriler (virgülle ayırın)\" alanına o başlığa tıklanınca listelenecek kategorileri yazın. Birden fazla kategori için virgül kullanın, örneğin: Eğitim, Spor.",
           "\"Öğe Ekle\" ile yeni satır ekleyin (en fazla 5), X ile satırı silin.",
           "\"Listeyi Kaydet\" düğmesine basın. Başlığı veya kategorisi boş satırlar kaydedilirken atılır.",
-          "Ziyaretçi sitenin altındaki bir öğeye tıklayınca, yalnızca bu kategorilerden en az birine sahip haber, etkinlik, proje ve blog içerikleri listelenir.",
+          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari). Ziyaretçi sitenin altındaki öğeye tıklayınca, Projeler sayfasına benzer bir sayfada yalnızca bu kategorilerden en az birine sahip haber, etkinlik, proje ve blog içerikleri kartlar halinde listelenir. Başlığı değiştirirseniz sayfa adresi de değişir.",
         ],
       },
       {

@@ -26,6 +26,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogDetay = lazy(() => import("./pages/BlogDetay"));
 const Yayinlar = lazy(() => import("./pages/Yayinlar"));
 const Search = lazy(() => import("./pages/Search"));
+const Faaliyet = lazy(() => import("./pages/Faaliyet"));
 const Gizlilik = lazy(() => import("./pages/Gizlilik"));
 const KVKK = lazy(() => import("./pages/KVKK"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -78,6 +79,7 @@ const App = () => (
           <Route path="/yayinlar" element={<Yayinlar />} />
           <Route path="/iletisim" element={<Iletisim />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/faaliyetlerimiz/:slug" element={<Faaliyet />} />
           <Route path="/gizlilik" element={<Gizlilik />} />
           <Route path="/kvkk" element={<KVKK />} />
           <Route path="/admin/login" element={<AdminLogin />} />
