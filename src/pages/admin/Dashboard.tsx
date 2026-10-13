@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Calendar, FileText, Briefcase, Download, LogOut, Users, Tag, BookOpen, MessageSquare, Settings, Image, UserCircle, GraduationCap, Trash2 } from "lucide-react";
+import { Calendar, FileText, Briefcase, Download, LogOut, Users, Tag, BookOpen, MessageSquare, Settings, Image, UserCircle, GraduationCap, Trash2, ListChecks } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -168,6 +168,13 @@ const AdminDashboard = () => {
       icon: MessageSquare,
       href: "/admin/welcome-modal",
       color: "bg-cyan-500",
+    },
+    {
+      title: "Faaliyetlerimiz",
+      description: "Site altlığı faaliyet sayfaları",
+      icon: ListChecks,
+      href: "/admin/activities",
+      color: "bg-teal-500",
     },
     {
       title: "Çöp Kutusu",

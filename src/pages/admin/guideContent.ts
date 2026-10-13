@@ -64,7 +64,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "list",
         title: "Neler var?",
         items: [
-          "Kartlar: Etkinlikler, Haberler, Blog, Projeler, Dosyalar, Kategoriler, Medya Kütüphanesi, Yönetim Kurulu, Hoş Geldiniz Pop-up, Çöp Kutusu, Gelen Mesajlar, Ayarlar ve Kullanım Rehberi. Karta tıklayınca ilgili yönetim sayfası açılır.",
+          "Kartlar: Etkinlikler, Haberler, Blog, Projeler, Dosyalar, Kategoriler, Medya Kütüphanesi, Yönetim Kurulu, Hoş Geldiniz Pop-up, Faaliyetlerimiz, Çöp Kutusu, Gelen Mesajlar, Ayarlar ve Kullanım Rehberi. Karta tıklayınca ilgili yönetim sayfası açılır.",
           "\"Gelen Mesajlar\" kartında okunmamış mesaj sayısı kırmızı rozetle görünür.",
           "Üstteki sayaçlar: Toplam Etkinlik, Toplam Haber, Toplam Proje. Bu sayılara taslaklar da dahildir.",
           "\"Son Eklenen İçerikler\" altında son 5 etkinlik ve son 5 haber listelenir; \"Tümü\" düğmesi ilgili yönetim sayfasına götürür.",
@@ -354,7 +354,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         title: "Bilgiler",
         items: [
           "\"Sabit\" etiketli kategoriler (Rapor, Araştırma, Politika Belgesi, Bültenler) düzenlenemez ve silinemez.",
-          "Sitenin altındaki \"Faaliyetlerimiz\" bağlantıları kategori adlarını kullanır; adlar birebir aynı olmalıdır.",
+          "Sitenin altındaki \"Faaliyetlerimiz\" sayfaları (Faaliyetlerimiz kartından yönetilir) kategori adlarını kullanır; adlar birebir aynı olmalıdır.",
         ],
       },
       {
@@ -643,10 +643,43 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     ],
   },
   {
+    id: "faaliyetlerimiz",
+    title: "Faaliyetlerimiz",
+    route: "/admin/activities",
+    summary: "Sitenin altındaki \"Faaliyetlerimiz\" listesi ve her öğenin kendi sayfası.",
+    blocks: [
+      {
+        type: "steps",
+        title: "Listeyi düzenleme",
+        items: [
+          "Kontrol Paneli'nde \"Faaliyetlerimiz\" kartına tıklayın.",
+          "Her satıra bir \"Görünen Başlık\" yazın (örn. Eğitim Programları).",
+          "\"Kategoriler (virgülle ayırın)\" alanına o başlıkta listelenecek kategorileri yazın. Birden fazla kategori için virgül kullanın, örneğin: Eğitim, Spor.",
+          "\"Öğe Ekle\" ile yeni satır ekleyin (en fazla 5), X ile satırı silin.",
+          "\"Listeyi Kaydet\" düğmesine basın. Başlığı veya kategorisi boş satırlar kaydedilirken atılır; iki öğenin başlığı aynı olamaz.",
+        ],
+      },
+      {
+        type: "list",
+        title: "Sayfalar nasıl çalışır?",
+        items: [
+          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari).",
+          "Ziyaretçi sitenin altındaki öğeye tıklayınca, Projeler sayfasına benzer bir sayfada yalnızca bu kategorilerden en az birine sahip haber, etkinlik, proje ve blog içerikleri kartlar halinde listelenir.",
+          "Satırın yanındaki simgeye basarak kaydedilmiş sayfayı yeni sekmede açabilirsiniz.",
+          "Başlığı değiştirirseniz sayfa adresi de değişir; eski adrese gelenler \"Sayfa bulunamadı\" görür.",
+        ],
+      },
+      {
+        type: "tip",
+        text: "Kategori adlarını Kategoriler sayfasındaki yazımla aynı yazın. Büyük/küçük harf fark etmez ama harfler eşleşmelidir (örn. \"Eğit\" yazarsanız \"Eğitim\" kategorisi bulunmaz).",
+      },
+    ],
+  },
+  {
     id: "ayarlar",
     title: "Ayarlar",
     route: "/admin/settings",
-    summary: "Şifre, iletişim bilgileri, harita, site altlığı ve diğer genel ayarlar.",
+    summary: "Şifre, iletişim bilgileri, harita ve diğer genel ayarlar.",
     blocks: [
       {
         type: "steps",
@@ -691,21 +724,6 @@ export const GUIDE_SECTIONS: GuideSection[] = [
           "\"Kuruluş Konumu\" bölümünde \"Adres Bilgisi\"ni yazın (her satıra bir adres satırı) ve haritada işaretçiyi sürükleyin veya haritaya tıklayın.",
           "\"Konumu Kaydet\" düğmesine basın. İşaretçiyi sürükleyince konum hemen otomatik kaydedilir.",
         ],
-      },
-      {
-        type: "steps",
-        title: "Faaliyetlerimiz (site altlığı) listesi",
-        items: [
-          "\"Faaliyetlerimiz (Site Altlığı)\" bölümünde her satıra bir \"Görünen Başlık\" yazın.",
-          "\"Kategoriler (virgülle ayırın)\" alanına o başlığa tıklanınca listelenecek kategorileri yazın. Birden fazla kategori için virgül kullanın, örneğin: Eğitim, Spor.",
-          "\"Öğe Ekle\" ile yeni satır ekleyin (en fazla 5), X ile satırı silin.",
-          "\"Listeyi Kaydet\" düğmesine basın. Başlığı veya kategorisi boş satırlar kaydedilirken atılır.",
-          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari). Ziyaretçi sitenin altındaki öğeye tıklayınca, Projeler sayfasına benzer bir sayfada yalnızca bu kategorilerden en az birine sahip haber, etkinlik, proje ve blog içerikleri kartlar halinde listelenir. Başlığı değiştirirseniz sayfa adresi de değişir.",
-        ],
-      },
-      {
-        type: "tip",
-        text: "Kategori adlarını Kategoriler sayfasındaki yazımla aynı yazın. Büyük/küçük harf fark etmez ama harfler eşleşmelidir (örn. \"Eğit\" yazarsanız \"Eğitim\" kategorisi bulunmaz).",
       },
       {
         type: "list",
