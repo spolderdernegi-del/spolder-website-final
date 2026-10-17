@@ -47,7 +47,7 @@ const KVKK = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">5. Başvuru Yöntemi</h2>
-                <p>Hakları hakkında başvuru yapmak için iletisim@spolder.org adresine mail gönderebilirsiniz.</p>
+                <p>Haklarınız hakkında başvuru yapmak için iletisim@spolder.org adresine mail gönderebilirsiniz.</p>
               </div>
             </div>
           </div>

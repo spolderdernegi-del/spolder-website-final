@@ -73,7 +73,7 @@ export default function CorporateIdentitySection() {
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <ul className="list-disc pl-6 space-y-2">
             <li>Logolar orantılı şekilde, arka plan kontrastına dikkat edilerek kullanılmalıdır.</li>
-            <li>Minimum boşluk ve yanlış kullanım örnekleri PDFde belirtilmiştir.</li>
+            <li>Minimum boşluk ve yanlış kullanım örnekleri PDF'de belirtilmiştir.</li>
             <li>Renkler Tailwind tema değişkenleri ile tanımlıdır: primary, foreground, background vb.</li>
             <li><strong>İzinsiz kopyalanamaz, çoğaltılamaz ve kullanılamaz.</strong></li>
           </ul>

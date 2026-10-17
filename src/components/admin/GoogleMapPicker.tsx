@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,6 +25,15 @@ const MapClickHandler = ({ onLocationChange }: { onLocationChange: (lat: number,
       onLocationChange(e.latlng.lat, e.latlng.lng);
     },
   });
+  return null;
+};
+
+// Konum değişince haritayı yeniden kurmadan (zoom düzeyi korunarak) yeni noktaya kaydırır.
+const Recenter = ({ lat, lng }: { lat: number; lng: number }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], map.getZoom());
+  }, [lat, lng, map]);
   return null;
 };
 
@@ -89,7 +98,6 @@ const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: O
   return (
     <div style={{ width: '100%', height }} className="rounded-md overflow-hidden border border-slate-200">
       <MapContainer
-        key={`${markerPos.lat}-${markerPos.lng}`}
         center={[markerPos.lat, markerPos.lng]}
         zoom={13}
         style={{ width: '100%', height: '100%' }}
@@ -98,6 +106,7 @@ const OpenStreetMapPicker = ({ lat, lng, onLocationChange, height = "400px" }: O
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <Recenter lat={markerPos.lat} lng={markerPos.lng} />
         <MapClickHandler onLocationChange={handleLocationChange} />
         <DraggableMarker 
           initialLat={markerPos.lat} 
