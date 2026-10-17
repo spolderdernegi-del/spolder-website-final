@@ -11,10 +11,12 @@ interface ContactInfo {
 }
 
 const Footer = () => {
+  // Varsayılanlar bilerek boş: ayarlar yüklenene (veya hiç girilmemişse) sahte bir
+  // adres/telefon/e-posta göstermek yerine ilgili satır hiç gösterilmez.
   const [contact, setContact] = useState<ContactInfo>({
-    address: "Atatürk Bulvarı No: 123, Çankaya, Ankara",
-    phone: "+90 (312) 123 45 67",
-    email: "info@spolider.org.tr",
+    address: "",
+    phone: "",
+    email: "",
   });
   const [footerServices, setFooterServices] = useState<FooterService[]>(DEFAULT_FOOTER_SERVICES);
 
@@ -140,6 +142,7 @@ const Footer = () => {
           <div>
             <h4 className="font-display font-bold text-lg mb-6">İletişim</h4>
             <ul className="space-y-4">
+              {contact.address && (
               <li className="flex items-start gap-3">
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`}
@@ -154,6 +157,8 @@ const Footer = () => {
                   <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.address}</span>
                 </a>
               </li>
+              )}
+              {contact.phone && (
               <li className="flex items-center gap-3">
                 <a href={`tel:${contact.phone}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <svg className="w-10 h-10 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,6 +168,8 @@ const Footer = () => {
                   <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.phone}</span>
                 </a>
               </li>
+              )}
+              {contact.email && (
               <li className="flex items-center gap-3">
                 <a href={`mailto:${contact.email}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <svg className="w-10 h-10 shrink-0" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -172,6 +179,7 @@ const Footer = () => {
                   <span className="text-sm text-primary-foreground/80 hover:text-primary-foreground transition-colors">{contact.email}</span>
                 </a>
               </li>
+              )}
             </ul>
           </div>
         </div>

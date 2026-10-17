@@ -56,11 +56,12 @@ export const STATIC_PAGES: StaticPage[] = [
 
 /** Sorguya (query) göre eşleşen statik sayfaları döndürür. Harf harf daraltarak filtreler. */
 export function matchStaticPages(query: string): StaticPage[] {
-  const q = query.trim().toLowerCase();
+  // Türkçe harf kuralıyla küçült ("İSTANBUL" -> "istanbul"); düz toLowerCase "İ"yi bozar.
+  const q = query.trim().toLocaleLowerCase("tr");
   if (!q) return [];
   return STATIC_PAGES.filter(
     (page) =>
-      page.title.toLowerCase().includes(q) ||
-      page.keywords.some((kw) => kw.toLowerCase().includes(q))
+      page.title.toLocaleLowerCase("tr").includes(q) ||
+      page.keywords.some((kw) => kw.toLocaleLowerCase("tr").includes(q))
   );
 }

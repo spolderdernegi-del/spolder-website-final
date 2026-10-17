@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import { formatDate } from "@/lib/formatDate";
 
 interface SlideItem {
   id: number;
@@ -47,13 +48,40 @@ const HeroSlider = () => {
       try {
         const allSlides: SlideItem[] = [];
 
-        // Etkinlikler
-        const { data: events, error: eventsError } = await supabase
+        const eventsReq = supabase
           .from('events')
           .select('id, baslik, ozet, gorsel, slider_gorsel, tarih, kategori, categories, sliderda_goster')
           .eq('sliderda_goster', true)
           .eq('yayin_durumu', 'yayinlandi')
           .order('tarih', { ascending: false });
+        const newsReq = supabase
+          .from('news')
+          .select('id, baslik, ozet, gorsel, slider_gorsel, tarih, kategori, categories, sliderda_goster')
+          .eq('sliderda_goster', true)
+          .eq('yayin_durumu', 'yayinlandi')
+          .order('tarih', { ascending: false });
+        const projectsReq = supabase
+          .from('projects')
+          .select('id, title, description, image, "sliderImage", start_date, category, categories, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
+          .order('start_date', { ascending: false });
+        const blogsReq = supabase
+          .from('blog')
+          .select('id, title, excerpt, image, "sliderImage", date, category, categories, "showInSlider"')
+          .eq('showInSlider', true)
+          .eq('publishStatus', 'published')
+          .order('date', { ascending: false });
+
+        // Dört içerik türü sırayla değil, aynı anda yüklenir (ilk görsel daha hızlı gelir).
+        const [
+          { data: events, error: eventsError },
+          { data: news, error: newsError },
+          { data: projects, error: projectsError },
+          { data: blogs, error: blogsError },
+        ] = await Promise.all([eventsReq, newsReq, projectsReq, blogsReq]);
+
+        // Etkinlikler
         
         if (!eventsError && events) {
           allSlides.push(...events.map(e => ({
@@ -66,12 +94,6 @@ const HeroSlider = () => {
         }
 
         // Haberler
-        const { data: news, error: newsError } = await supabase
-          .from('news')
-          .select('id, baslik, ozet, gorsel, slider_gorsel, tarih, kategori, categories, sliderda_goster')
-          .eq('sliderda_goster', true)
-          .eq('yayin_durumu', 'yayinlandi')
-          .order('tarih', { ascending: false });
         
         if (!newsError && news) {
           allSlides.push(...news.map(n => ({
@@ -83,12 +105,6 @@ const HeroSlider = () => {
         }
 
         // Projeler
-        const { data: projects, error: projectsError } = await supabase
-          .from('projects')
-          .select('id, title, description, image, "sliderImage", start_date, category, categories, "showInSlider"')
-          .eq('showInSlider', true)
-          .eq('publishStatus', 'published')
-          .order('start_date', { ascending: false });
         
         if (!projectsError && projects) {
           allSlides.push(...projects.map(p => ({
@@ -106,12 +122,6 @@ const HeroSlider = () => {
         }
 
         // Blog
-        const { data: blogs, error: blogsError } = await supabase
-          .from('blog')
-          .select('id, title, excerpt, image, "sliderImage", date, category, categories, "showInSlider"')
-          .eq('showInSlider', true)
-          .eq('publishStatus', 'published')
-          .order('date', { ascending: false });
         
         if (!blogsError && blogs) {
           allSlides.push(...blogs.map(b => ({
@@ -129,7 +139,7 @@ const HeroSlider = () => {
         }
 
         // Tarihe göre sırala (en yeni en başta)
-        allSlides.sort((a, b) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
+        allSlides.sort((a, b) => (new Date(b.tarih).getTime() || 0) - (new Date(a.tarih).getTime() || 0));
         
         setSlides(allSlides);
       } catch (error) {
@@ -166,7 +176,7 @@ const HeroSlider = () => {
       {/* Background Slides */}
       {slides.map((slide, index) => (
         <div
-          key={slide.id}
+          key={`${slide.contentType}-${slide.id}`}
           className={`absolute inset-0 transition-opacity duration-1000 ${
             index === currentSlide ? "opacity-100" : "opacity-0"
           }`}
@@ -205,9 +215,9 @@ const HeroSlider = () => {
           </div>
 
           {/* Title */}
-          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal break-words">
+          <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal break-words">
             {truncateText(slides[currentSlide].baslik, 58)}
-          </h1>
+          </h2>
 
           {/* Description */}
           <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl break-words">
@@ -217,7 +227,7 @@ const HeroSlider = () => {
           {/* Date */}
           <div className="flex items-center gap-2 text-primary-foreground/70">
             <Calendar className="w-4 h-4" />
-            <span className="text-sm">{slides[currentSlide].tarih}</span>
+            <span className="text-sm">{formatDate(slides[currentSlide].tarih)}</span>
           </div>
 
           {/* CTA */}
@@ -230,11 +240,13 @@ const HeroSlider = () => {
               <Link to={
                 slides[currentSlide].contentType === 'event' ? '/etkinlikler' :
                 slides[currentSlide].contentType === 'news' ? '/haberler' :
+                slides[currentSlide].contentType === 'blog' ? '/blog' :
                 '/projeler'
               }>
                 <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
                   {slides[currentSlide].contentType === 'event' ? 'Tüm Etkinlikler' :
                    slides[currentSlide].contentType === 'news' ? 'Tüm Haberler' :
+                   slides[currentSlide].contentType === 'blog' ? 'Tüm Yazılar' :
                    'Tüm Projeler'}
                 </Button>
               </Link>
@@ -246,12 +258,14 @@ const HeroSlider = () => {
       <div className="absolute bottom-8 right-8 flex gap-3">
         <button
           onClick={prevSlide}
+          aria-label="Önceki slayt"
           className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <button
           onClick={nextSlide}
+          aria-label="Sonraki slayt"
           className="w-12 h-12 rounded-full bg-primary-foreground/10 backdrop-blur-sm flex items-center justify-center text-primary-foreground hover:bg-primary transition-all duration-300"
         >
           <ChevronRight className="w-6 h-6" />
@@ -264,6 +278,7 @@ const HeroSlider = () => {
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
+            aria-label={`${index + 1}. slayta git`}
             className={`h-2 rounded-full transition-all duration-300 ${
               index === currentSlide ? "w-8 bg-primary" : "w-2 bg-primary-foreground/40"
             }`}

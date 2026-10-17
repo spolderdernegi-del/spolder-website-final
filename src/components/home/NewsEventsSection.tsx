@@ -3,6 +3,7 @@ import { Calendar, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDate } from "@/lib/formatDate";
 
 interface NewsItem {
   id: number;
@@ -30,6 +31,7 @@ interface EventItem {
 const NewsEventsSection = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [moreNews, setMoreNews] = useState<NewsItem[]>([]);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -40,7 +42,7 @@ const NewsEventsSection = () => {
             .select('id, baslik, ozet, gorsel, tarih, kategori')
             .eq('yayin_durumu', 'yayinlandi')
             .order('tarih', { ascending: false })
-            .limit(4),
+            .limit(8),
           supabase
             .from('events')
             .select('id, baslik, tarih, konum, kategori')
@@ -49,11 +51,15 @@ const NewsEventsSection = () => {
             .limit(4),
         ]);
 
-        setNews(newsData || []);
+        // İlk 4 haber ana sütunda; sonraki 4 haber sağdaki "Diğer Haberler" listesinde
+        // (önceden aynı 4 haber iki yerde tekrar ediyordu).
+        setNews((newsData || []).slice(0, 4));
+        setMoreNews((newsData || []).slice(4, 8));
         setEvents(eventData || []);
       } catch (error) {
         console.error('Error loading news/events', error);
         setNews([]);
+        setMoreNews([]);
         setEvents([]);
       }
     };
@@ -61,7 +67,7 @@ const NewsEventsSection = () => {
     fetchContent();
   }, []);
 
-  const announcements = news.slice(0, 4).map((n) => ({
+  const announcements = moreNews.map((n) => ({
     id: n.id,
     title: n.baslik,
     date: n.tarih,
@@ -123,7 +129,7 @@ const NewsEventsSection = () => {
                       </p>
                       <div className="flex items-center gap-2 text-muted-foreground text-sm">
                         <Calendar className="w-4 h-4" />
-                        <span>{item.tarih}</span>
+                        <span>{formatDate(item.tarih)}</span>
                       </div>
                     </div>
                   </Link>
@@ -154,8 +160,8 @@ const NewsEventsSection = () => {
                     className="flex gap-4 bg-card rounded-lg p-4 shadow-soft card-hover"
                   >
                     <div className="w-16 h-16 rounded-lg bg-gradient-green flex flex-col items-center justify-center text-primary-foreground shrink-0">
-                      <span className="text-xl font-bold">{new Date(event.tarih).getDate()}</span>
-                      <span className="text-xs uppercase">{new Date(event.tarih).toLocaleString('tr-TR', { month: 'short' })}</span>
+                      <span className="text-xl font-bold">{Number.isNaN(new Date(event.tarih).getTime()) ? "" : new Date(event.tarih).getDate()}</span>
+                      <span className="text-xs uppercase">{Number.isNaN(new Date(event.tarih).getTime()) ? "" : new Date(event.tarih).toLocaleString('tr-TR', { month: 'short' })}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       {event.kategori && (
@@ -175,11 +181,12 @@ const NewsEventsSection = () => {
               </div>
             </div>
 
-            {/* Announcements */}
+            {/* Diğer haberler */}
+            {announcements.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-xl font-bold text-foreground">
-                  Duyurular
+                  Diğer Haberler
                 </h2>
               </div>
 
@@ -197,12 +204,13 @@ const NewsEventsSection = () => {
                       <h4 className="font-medium text-foreground text-sm hover:text-primary transition-colors">
                         {item.title}
                       </h4>
-                      <p className="text-muted-foreground text-xs mt-1">{item.date}</p>
+                      <p className="text-muted-foreground text-xs mt-1">{formatDate(item.date)}</p>
                     </div>
                   </Link>
                 ))}
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>

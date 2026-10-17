@@ -1,11 +1,12 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Calendar, User, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { formatDate } from "@/lib/formatDate";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface News {
@@ -27,13 +28,20 @@ const HaberDetay = () => {
   const [loading, setLoading] = useState(true);
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const categoryColors = useCategoryColors("news");
+  // Hızlı gezintide (ör. "İlgili Haberler"e tıklayınca) eski isteğin yanıtı yenisini ezmesin.
+  const reqRef = useRef(0);
 
   useEffect(() => {
+    reqRef.current += 1;
+    setLoading(true);
+    setHaber(null);
+    setRelatedNews([]);
     fetchHaber();
     fetchRelatedNews();
   }, [id]);
 
   const fetchHaber = async () => {
+    const myReq = reqRef.current;
     try {
       const { data, error } = await supabase
         .from('news')
@@ -43,26 +51,29 @@ const HaberDetay = () => {
         .single();
       
       if (error) throw error;
+      if (myReq !== reqRef.current) return;
       setHaber(data);
     } catch (error) {
       console.error('Error fetching haber:', error);
-      setHaber(null);
+      if (myReq === reqRef.current) setHaber(null);
     } finally {
-      setLoading(false);
+      if (myReq === reqRef.current) setLoading(false);
     }
   };
 
   const fetchRelatedNews = async () => {
+    const myReq = reqRef.current;
     try {
       const { data, error } = await supabase
         .from('news')
-        .select('*')
+        .select('id, baslik, gorsel, tarih, kategori, categories')
         .eq('yayin_durumu', 'yayinlandi')
         .neq('id', id)
         .order('tarih', { ascending: false })
         .limit(3);
       
       if (error) throw error;
+      if (myReq !== reqRef.current) return;
       setRelatedNews(data || []);
     } catch (error) {
       console.error('Error fetching related news:', error);
@@ -142,7 +153,7 @@ const HaberDetay = () => {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
-                    <span>{haber.tarih}</span>
+                    <span>{formatDate(haber.tarih)}</span>
                   </div>
                 </div>
 
@@ -188,7 +199,7 @@ const HaberDetay = () => {
                       <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
                         {relatedNewsItem.baslik}
                       </h4>
-                      <p className="text-xs text-muted-foreground mt-2">{relatedNewsItem.tarih}</p>
+                      <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedNewsItem.tarih)}</p>
                     </Link>
                   ))}
                 </div>

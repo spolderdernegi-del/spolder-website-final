@@ -35,9 +35,8 @@ const Yayinlar = () => {
   }, []);
 
   useEffect(() => {
-    if (kategoriParam) {
-      setSelectedCategory(kategoriParam);
-    }
+    // Adres çubuğundaki ?kategori değeri değişince (veya kaldırılınca) seçim de güncellensin.
+    setSelectedCategory(kategoriParam || null);
   }, [kategoriParam]);
 
   const fetchPublications = async () => {
@@ -76,7 +75,8 @@ const Yayinlar = () => {
     return `${(bytes / 1024).toFixed(2)} KB`;
   };
 
-  const getFileExtension = (fileType: string) => {
+  const getFileExtension = (rawFileType: string | null) => {
+    const fileType = rawFileType || "";
     if (fileType.includes('pdf')) return 'PDF';
     if (fileType.includes('word') || fileType.includes('document')) return 'DOCX';
     if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'XLSX';
@@ -90,8 +90,9 @@ const Yayinlar = () => {
     return 'FILE';
   };
 
-  const handleDownload = (fileUrl: string, fileName: string, fileType: string) => {
+  const handleDownload = (fileUrl: string, fileName: string, rawFileType: string | null) => {
     try {
+      const fileType = rawFileType || "";
       // Dosya uzantısını belirle
       let extension = '';
       if (fileType.includes('pdf')) {
@@ -136,7 +137,10 @@ const Yayinlar = () => {
       } else {
         // Normal URL - fetch ile indir
         fetch(fileUrl)
-          .then(response => response.blob())
+          .then(response => {
+            if (!response.ok) throw new Error('İndirilemedi');
+            return response.blob();
+          })
           .then(blob => {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -159,8 +163,9 @@ const Yayinlar = () => {
     }
   };
 
-  const handleOpen = (fileUrl: string, fileType: string) => {
+  const handleOpen = (fileUrl: string, rawFileType: string | null) => {
     try {
+      const fileType = rawFileType || "";
       if (fileUrl.startsWith('data:')) {
         // Base64 dosyası - dosya tipine göre işlem yap
         const newWindow = window.open();
@@ -249,7 +254,15 @@ const Yayinlar = () => {
         </section>
       )}
 
-      {/* ction>
+      {/* Hata */}
+      {!loading && error && (
+        <section className="py-12">
+          <div className="container-custom mx-auto px-4 text-center">
+            <h3 className="text-xl font-bold text-foreground mb-2">Yayınlar yüklenemedi</h3>
+            <p className="text-muted-foreground">Lütfen sayfayı yenileyip tekrar deneyin.</p>
+          </div>
+        </section>
+      )}
 
       {/* Loading State */}
       {loading && (
@@ -261,11 +274,11 @@ const Yayinlar = () => {
       )}
 
       {/* Empty State */}
-      {!loading && filteredPublications.length === 0 && (
+      {!loading && !error && filteredPublications.length === 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4 text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">Yayın bulunamadı</h3>
-            <p className="text-muted-foreground">Seçili kategoride yayın yok.</p>
+            <p className="text-muted-foreground">{selectedCategory ? "Seçili kategoride yayın yok." : "Şu anda gösterilecek bir yayın yok."}</p>
           </div>
         </section>
       )}
@@ -345,31 +358,6 @@ const Yayinlar = () => {
         </section>
       )}
 
-      {/* Stats Section */}
-      {!loading && (
-        <section className="py-16 bg-muted/30">
-          <div className="container-custom mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-              <div>
-                <div className="font-display text-4xl font-bold text-primary mb-2">1+</div>
-                <p className="text-sm text-muted-foreground">Yayınlanan Rapor</p>
-              </div>
-              <div>
-                <div className="font-display text-4xl font-bold text-secondary mb-2">1+</div>
-                <p className="text-sm text-muted-foreground">Araştırma Projesi</p>
-              </div>
-              <div>
-                <div className="font-display text-4xl font-bold text-accent mb-2">1+</div>
-                <p className="text-sm text-muted-foreground">İndirme Sayısı</p>
-              </div>
-              <div>
-                <div className="font-display text-4xl font-bold text-primary mb-2">1+</div>
-                <p className="text-sm text-muted-foreground">Akademik Atıf</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
       </main>
       <Footer />
     </div>

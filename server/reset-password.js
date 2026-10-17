@@ -3,14 +3,15 @@
 // password). Run directly on the server, where only someone with SSH
 // access to the VPS can reach it:
 //
-//   cd /var/www/spolder
-//   node server/reset-password.js admin@spolder.org YeniGucluSifre123
+//   cd /var/www/spolder/server        (server/.env is read from the current directory)
+//   node reset-password.js admin@spolder.org YeniGucluSifre123
 //
-// This is the equivalent of what "reset it from the Supabase Dashboard"
-// used to mean back when the site ran on Supabase: it's an out-of-band
-// override for someone who already has infrastructure-level access, not a
-// self-service "forgot password" email flow (this server has no outgoing
-// email configured).
+// This is an out-of-band override for someone who already has
+// infrastructure-level access, not a self-service "forgot password" e-mail
+// flow. Existing admin sessions are signed out within about a minute
+// (the running server notices the changed password hash).
+// Note: the password is visible in the shell history / process list; clear
+// the history afterwards.
 import "dotenv/config";
 import { Pool } from "pg";
 import bcrypt from "bcryptjs";
@@ -28,7 +29,7 @@ if (newPassword.length < 8) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl: process.env.NODE_ENV === "production" && process.env.DATABASE_SSL !== "false" ? { rejectUnauthorized: false } : false,
 });
 
 const run = async () => {

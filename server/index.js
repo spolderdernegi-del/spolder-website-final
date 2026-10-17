@@ -43,7 +43,15 @@ if (isProduction && ALLOWED_ORIGINS.length === 0) {
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  // Yerel/özel bağlantılarda DATABASE_SSL=false ile SSL kapatılabilir.
+  ssl: isProduction && process.env.DATABASE_SSL !== "false" ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+  statement_timeout: 30000,
+});
+// Boşta bekleyen bir bağlantı (ör. PostgreSQL yeniden başladığında) hata
+// verirse, bu dinleyici olmadan süreç "unhandled error" ile çöker.
+pool.on("error", (err) => {
+  console.error("PostgreSQL havuz hatası:", err.message);
 });
 
 // --- Contact form email notifications (optional) -----------------------
@@ -168,8 +176,15 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "25mb" }));
 app.use(cookieParser());
+// Giriş yapmamış (anonim) istekler küçük bir gövde sınırıyla okunur; 25 MB'lık
+// görsel/belge yüklemeleri yalnızca geçerli bir admin oturumuyla kabul edilir.
+const smallJsonParser = express.json({ limit: "100kb" });
+const largeJsonParser = express.json({ limit: "25mb" });
+app.use((req, res, next) => {
+  const session = getSessionFromRequest(req);
+  return (session && session.role === "admin" ? largeJsonParser : smallJsonParser)(req, res, next);
+});
 app.use(
   cors({
     origin(origin, callback) {
@@ -296,6 +311,9 @@ const buildWhereClause = (query) => {
 
   if (query.or) {
     const orResult = parseOrExpression(String(query.or), params.length);
+    // Geçerli hiçbir koşul çıkmazsa (ör. bozuk arama metni) tüm satırları
+    // döndürmek yerine hiçbir satır döndürme.
+    if (!orResult.sql) conditions.push("FALSE");
     if (orResult.sql) {
       conditions.push(orResult.sql);
       params.push(...orResult.params);
@@ -338,11 +356,48 @@ const queryDatabase = async (queryText, params = []) => {
 };
 
 // --- Auth --------------------------------------------------------------
+// Kayıtlı olmayan e-posta için de gerçek bir bcrypt karşılaştırması yapılsın
+// diye geçerli (60 karakterlik) bir sahte hash.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), 12);
+// Oturum iptali: her çereze, şifre hash'inin kısa bir parmak izi ("pv") yazılır.
+// Şifre değişirse (panelden ya da reset-password.js ile) veya kullanıcı silinirse
+// eski çerezler geçersiz olur. Parmak izleri bellekte tutulur ve her dakika
+// veritabanından yenilenir (sunucu dışından yapılan değişiklikler de görülür).
+const adminFingerprints = new Map();
+const fingerprintOf = (passwordHash) =>
+  crypto.createHash("sha256").update(String(passwordHash)).digest("hex").slice(0, 16);
+const refreshAdminFingerprints = async () => {
+  try {
+    const result = await pool.query(`SELECT email, password_hash FROM admin_users`);
+    adminFingerprints.clear();
+    result.rows.forEach((row) => adminFingerprints.set(row.email, fingerprintOf(row.password_hash)));
+  } catch (err) {
+    console.error("Admin oturum parmak izleri yenilenemedi:", err.message);
+  }
+};
+const startSessionRefresh = async () => {
+  await refreshAdminFingerprints();
+  setInterval(refreshAdminFingerprints, 60 * 1000).unref();
+};
+
 const createSessionToken = (payload) => jwt.sign(payload, SESSION_SECRET, { expiresIn: "8h" });
+const issueAdminSession = (res, email, passwordHash) => {
+  adminFingerprints.set(email, fingerprintOf(passwordHash));
+  const token = createSessionToken({ email, role: "admin", pv: fingerprintOf(passwordHash) });
+  res.cookie("spolder_session", token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: 8 * 3600 * 1000,
+  });
+};
 
 const verifySessionToken = (token) => {
   try {
-    return jwt.verify(token, SESSION_SECRET);
+    const payload = jwt.verify(token, SESSION_SECRET);
+    // Parmak izi uyuşmuyorsa (şifre değişmiş / kullanıcı silinmiş / eski çerez) geçersiz say.
+    if (!payload || payload.pv !== adminFingerprints.get(payload.email)) return null;
+    return payload;
   } catch {
     return null;
   }
@@ -389,20 +444,14 @@ app.post(
 
     // Compare against a dummy hash when the user doesn't exist, so response
     // timing doesn't reveal whether the email is registered.
-    const hashToCheck = admin?.password_hash || "$2a$12$invalidsaltinvalidsaltinvalidsaltinvalidsal";
+    const hashToCheck = admin?.password_hash || DUMMY_PASSWORD_HASH;
     const passwordMatches = await bcrypt.compare(String(password), hashToCheck);
 
     if (!admin || !passwordMatches) {
       return res.status(401).json({ error: { message: "E-posta veya şifre hatalı" } });
     }
 
-    const token = createSessionToken({ email: admin.email, role: "admin" });
-    res.cookie("spolder_session", token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      maxAge: 8 * 3600 * 1000,
-    });
+    issueAdminSession(res, admin.email, admin.password_hash);
     return res.json({ data: { session: { user: { email: admin.email } } }, error: null });
   }),
 );
@@ -444,6 +493,9 @@ app.post(
     const newHash = await bcrypt.hash(String(newPassword), 12);
     await queryDatabase(`UPDATE admin_users SET password_hash = $1 WHERE email = $2`, [newHash, admin.email]);
 
+    // Eski çerezler (başka cihazlardaki oturumlar dahil) geçersiz olur; bu
+    // oturum yeni parmak iziyle yenilenir, admin çıkış yapmak zorunda kalmaz.
+    issueAdminSession(res, admin.email, newHash);
     return res.json({ data: { success: true }, error: null });
   }),
 );
@@ -484,15 +536,16 @@ app.post(
       throw new HttpError(409, "Bu e-posta adresi zaten kullanılıyor");
     }
 
-    await queryDatabase(`UPDATE admin_users SET email = $1 WHERE email = $2`, [email, admin.email]);
+    try {
+      await queryDatabase(`UPDATE admin_users SET email = $1 WHERE email = $2`, [email, admin.email]);
+    } catch (err) {
+      // Aynı anda gelen iki istekte benzersizlik ihlali (23505) 500 yerine 409 dönsün.
+      if (err.code === "23505") throw new HttpError(409, "Bu e-posta adresi zaten kullanılıyor");
+      throw err;
+    }
 
-    const token = createSessionToken({ email, role: "admin" });
-    res.cookie("spolder_session", token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      maxAge: 8 * 3600 * 1000,
-    });
+    adminFingerprints.delete(admin.email);
+    issueAdminSession(res, email, admin.password_hash);
     return res.json({ data: { success: true, email }, error: null });
   }),
 );
@@ -545,8 +598,18 @@ const purgeTrash = async () => {
 })();
 
 // --- Generic table endpoints ---------------------------------------------
-// GET is always public (matches the old "read: true for anyone" RLS policy),
-// except contact_messages which is admin-only to read.
+// Herkese açık okumada yalnızca yayınlanmış satırların görüneceği tablolar:
+// tablo -> [durum kolonu, yayınlanmış değeri].
+const PUBLISH_FILTERS = {
+  news: ["yayin_durumu", "yayinlandi"],
+  events: ["yayin_durumu", "yayinlandi"],
+  projects: ["publishStatus", "published"],
+  blog: ["publishStatus", "published"],
+};
+
+// GET herkese açıktır; istisnalar: contact_messages (yalnızca admin okur), settings
+// (anonim için yalnızca PUBLIC_SETTINGS_KEYS) ve yukarıdaki PUBLISH_FILTERS tabloları
+// (anonim için yalnızca yayınlanmış satırlar).
 app.get(
   "/api/db/:table",
   asyncHandler(async (req, res) => {
@@ -562,7 +625,9 @@ app.get(
     let { whereClause, params } = buildWhereClause(req.query);
     const orderField = req.query.order ? sanitizeField(String(req.query.order)) : null;
     const orderDirection = String(req.query.orderDirection || "asc").toUpperCase() === "DESC" ? "DESC" : "ASC";
-    const limit = req.query.limit ? Math.min(parseInt(String(req.query.limit), 10) || 0, 1000) : null;
+    // Sınır verilmezse (veya geçersizse) en fazla 1000 satır döner; sınırsız sorgu yok.
+    const requestedLimit = parseInt(String(req.query.limit || ""), 10);
+    const limit = requestedLimit > 0 ? Math.min(requestedLimit, 1000) : 1000;
 
     // settings holds a mix of public site content (contact info, IBAN, map
     // embed) and admin-only display values. An unauthenticated caller never
@@ -577,6 +642,19 @@ app.get(
           ? `${whereClause} AND "key" = ANY(${placeholder})`
           : `WHERE "key" = ANY(${placeholder})`;
         params = [...params, allowedKeys];
+      }
+    }
+
+    // Taslak / yayınlanmamış içerik yalnızca admin'e görünür. Bu süzme önceden
+    // yalnızca sitede (tarayıcıda) yapılıyordu; API doğrudan çağrılınca taslaklar sızıyordu.
+    if (PUBLISH_FILTERS[table]) {
+      const session = getSessionFromRequest(req);
+      if (!session || session.role !== "admin") {
+        const [statusCol, publishedVal] = PUBLISH_FILTERS[table];
+        const placeholder = `$${params.length + 1}`;
+        const cond = `"${statusCol}" = ${placeholder}`;
+        whereClause = whereClause ? `${whereClause} AND ${cond}` : `WHERE ${cond}`;
+        params = [...params, publishedVal];
       }
     }
 
@@ -640,6 +718,21 @@ app.post(
     }
     if (entries.length === 0 || !entries[0] || typeof entries[0] !== "object") {
       throw new HttpError(400, "Eklenecek veri bulunamadı");
+    }
+    if (table === INSERT_ONLY_PUBLIC_TABLE) {
+      // Herkese açık iletişim formu: yalnızca bilinen alanlar ve makul uzunluklar kabul
+      // edilir (id, created_at, is_read gibi alanlar istemciden set edilemez).
+      const limits = { name: 200, email: 200, phone: 50, subject: 300, message: 5000 };
+      entries = entries.map((item) => {
+        const clean = {};
+        for (const [field, max] of Object.entries(limits)) {
+          if (item[field] !== undefined && item[field] !== null) clean[field] = String(item[field]).slice(0, max);
+        }
+        return clean;
+      });
+      if (!entries[0].name || !entries[0].email || !entries[0].message) {
+        throw new HttpError(400, "Ad, e-posta ve mesaj zorunludur");
+      }
     }
     const columns = Object.keys(entries[0]).map(sanitizeField);
     const values = [];
@@ -846,9 +939,9 @@ const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB (rapor/PDF dosyaları görsel
 // Bir buffer'ı benzersiz bir isimle uploads/ klasörüne yazıp herkese açık
 // URL'ini döner - hem /api/upload hem de aşağıdaki Word dönüştürme (içine
 // gömülü görseller için) tarafından ortak kullanılır.
-const saveBufferToUploads = (buffer, extension) => {
+const saveBufferToUploads = async (buffer, extension) => {
   const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
-  fs.writeFileSync(path.join(UPLOADS_DIR, filename), buffer);
+  await fs.promises.writeFile(path.join(UPLOADS_DIR, filename), buffer);
   return `/uploads/${filename}`;
 };
 
@@ -877,7 +970,7 @@ app.post(
       throw new HttpError(400, `Dosya çok büyük (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`);
     }
 
-    return res.json({ data: { url: saveBufferToUploads(buffer, extension) }, error: null });
+    return res.json({ data: { url: await saveBufferToUploads(buffer, extension) }, error: null });
   }),
 );
 
@@ -944,27 +1037,49 @@ app.delete(
       ["projects", "content"],
     ];
 
-    let affected = 0;
-    const run = async (sql, params) => {
-      try {
-        const result = await queryDatabase(sql, params);
-        affected += result.rowCount || 0;
-      } catch (err) {
-        console.error("Medya silme güncellemesi başarısız:", sql, err.message);
-      }
-    };
+    // Şemada olmayan kolonlar (ör. eski kurulumlarda slider kolonları) atlanır; böylece
+    // eksik bir kolon silmeyi engellemez.
+    const existing = await queryDatabase(
+      `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'`,
+    );
+    const existingColumns = new Set(existing.rows.map((r) => `${r.table_name}.${r.column_name}`));
+    const onlyExisting = (list) => list.filter(([table, col]) => existingColumns.has(`${table}.${col}`));
 
-    for (const [table, col] of coverColumns) {
-      await run(`UPDATE "${table}" SET "${col}" = $1 WHERE "${col}" LIKE $2`, [DEFAULT_SITE_IMAGE, like]);
-    }
-    for (const [table, col] of sliderColumns) {
-      await run(`UPDATE "${table}" SET "${col}" = NULL WHERE "${col}" LIKE $1`, [like]);
-    }
-    for (const [table, col] of htmlColumns) {
+    // Tüm güncellemeler tek bir işlemde (transaction) yapılır: biri başarısız olursa
+    // hiçbiri uygulanmaz ve dosya SİLİNMEZ; panel de "başarılı" demez.
+    let affected = 0;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const run = async (sql, params) => {
+        const result = await client.query(sql, params);
+        affected += result.rowCount || 0;
+      };
+
+      for (const [table, col] of onlyExisting(coverColumns)) {
+        await run(`UPDATE "${table}" SET "${col}" = $1 WHERE "${col}" LIKE $2`, [DEFAULT_SITE_IMAGE, like]);
+      }
+      for (const [table, col] of onlyExisting(sliderColumns)) {
+        await run(`UPDATE "${table}" SET "${col}" = NULL WHERE "${col}" LIKE $1`, [like]);
+      }
+      for (const [table, col] of onlyExisting(htmlColumns)) {
+        await run(
+          `UPDATE "${table}" SET "${col}" = regexp_replace("${col}", $1, $2, 'g') WHERE "${col}" LIKE $3`,
+          [regex, DEFAULT_SITE_IMAGE, `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
+        );
+      }
+      // Ayarlarda saklanan sayfa içerikleri (Faaliyetlerimiz sayfa görseli/metni, açılış penceresi).
       await run(
-        `UPDATE "${table}" SET "${col}" = regexp_replace("${col}", $1, $2, 'g') WHERE "${col}" LIKE $3`,
-        [regex, DEFAULT_SITE_IMAGE, `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
+        `UPDATE settings SET value = regexp_replace(value, $1, $2, 'g') WHERE "key" = ANY($3) AND value LIKE $4`,
+        [regex, DEFAULT_SITE_IMAGE, ["faaliyet_pages", "welcome_modal"], `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
       );
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => {});
+      console.error("Medya silme güncellemesi başarısız:", err.message);
+      throw new HttpError(500, "Görsel kullanım yerleri güncellenemedi; dosya silinmedi");
+    } finally {
+      client.release();
     }
 
     try {
@@ -1011,7 +1126,7 @@ app.post(
       };
       const ext = contentTypeToExt[image.contentType] || "png";
       const imgBuffer = Buffer.from(await image.read("base64"), "base64");
-      const url = saveBufferToUploads(imgBuffer, ext);
+      const url = await saveBufferToUploads(imgBuffer, ext);
       return { src: url };
     });
 
@@ -1085,6 +1200,20 @@ const DETAIL_META_ROUTES = [
   { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image" },
   { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image" },
 ];
+
+// dist/index.html kısa süre bellekte tutulur (her istekte diskten okunmasın),
+// ama deploy sonrası yeni dosya en geç 30 sn içinde görülür.
+let indexHtmlCache = { html: null, at: 0 };
+const readIndexHtml = async () => {
+  if (indexHtmlCache.html && Date.now() - indexHtmlCache.at < 30000) return indexHtmlCache.html;
+  const html = await fs.promises.readFile(path.join(__dirname, "..", "dist", "index.html"), "utf-8");
+  indexHtmlCache = { html, at: Date.now() };
+  return html;
+};
+// String.replace'in "$&", "$'" gibi özel dizileri yorumlamaması için fonksiyonla değiştirir.
+const setMeta = (html, pattern, replacement) => html.replace(pattern, () => replacement);
+const setCanonical = (html, url) =>
+  setMeta(html, /<link rel="canonical" href=".*?"\s*\/>/, `<link rel="canonical" href="${escapeHtmlAttr(url)}" />`);
 const DEFAULT_OG_IMAGE = "https://spolder.org/spolder-onizleme.png";
 const escapeHtmlAttr = (v) =>
   String(v ?? "")
@@ -1098,19 +1227,21 @@ app.get(
   asyncHandler(async (req, res, next) => {
     const route = DETAIL_META_ROUTES.find((r) => req.path.startsWith(r.prefix));
     const id = route ? req.path.slice(route.prefix.length).replace(/\/$/, "") : null;
-    if (!route || !id || !/^\d+$/.test(id)) return next();
+    // 9 haneye kadar: çok büyük sayılar PostgreSQL int taşmasıyla 500 üretmesin.
+    if (!route || !id || !/^\d{1,9}$/.test(id)) return next();
 
-    const indexPath = path.join(__dirname, "..", "dist", "index.html");
     let html;
     try {
-      html = fs.readFileSync(indexPath, "utf-8");
+      html = await readIndexHtml();
     } catch {
       return next(); // dist henüz yoksa (ör. dev ortamı) normal akışa düş
     }
 
+    // Taslak içeriğin başlığı/görseli paylaşım önizlemesine sızmasın.
+    const [statusCol, publishedVal] = PUBLISH_FILTERS[route.table];
     const result = await queryDatabase(
-      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
-      [id],
+      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1 AND "${statusCol}" = $2${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
+      [id, publishedVal],
     );
     const item = result.rows[0];
 
@@ -1126,15 +1257,15 @@ app.get(
       if (image.startsWith("/")) image = `https://spolder.org${image}`;
       const url = `https://spolder.org${req.path}`;
 
-      html = html
-        .replace(/<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`)
-        .replace(/<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`)
-        .replace(/<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`)
-        .replace(/<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`)
-        .replace(/<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(url)}" />`)
-        .replace(/<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${title}" />`)
-        .replace(/<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`)
-        .replace(/<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
+      html = setMeta(html, /<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`);
+      html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`);
+      html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`);
+      html = setMeta(html, /<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`);
+      html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(url)}" />`);
+      html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${title}" />`);
+      html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`);
+      html = setMeta(html, /<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
+      html = setCanonical(html, url);
     }
 
     res.set("Content-Type", "text/html; charset=UTF-8");
@@ -1163,9 +1294,29 @@ const SITEMAP_STATIC_PAGES = [
   { loc: "/kvkk", changefreq: "yearly", priority: "0.3" },
 ];
 
+// Başlıktan sayfa adresi üretir (src/lib/faaliyetler.ts'teki slugify ile aynı).
+const slugifyTr = (value) =>
+  String(value)
+    .toLocaleLowerCase("tr")
+    .replace(/ç/g, "c")
+    .replace(/ğ/g, "g")
+    .replace(/ı/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ş/g, "s")
+    .replace(/ü/g, "u")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// Site haritası 10 dakika önbelleğe alınır (her istekte dört sorgu çalışmasın).
+let sitemapCache = { xml: null, at: 0 };
+
 app.get(
   "/sitemap.xml",
   asyncHandler(async (req, res) => {
+    if (sitemapCache.xml && Date.now() - sitemapCache.at < 10 * 60 * 1000) {
+      res.set("Content-Type", "application/xml; charset=UTF-8");
+      return res.send(sitemapCache.xml);
+    }
     const urls = SITEMAP_STATIC_PAGES.map(
       (p) => `  <url>\n    <loc>https://spolder.org${p.loc}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`,
     );
@@ -1194,7 +1345,23 @@ app.get(
       }
     }
 
+    // Faaliyetlerimiz sayfaları (Ayarlar'daki listeden).
+    try {
+      const fs_ = await queryDatabase(`SELECT value FROM settings WHERE "key" = 'footer_services'`);
+      const list = fs_.rows[0]?.value ? JSON.parse(fs_.rows[0].value) : [];
+      (Array.isArray(list) ? list : []).forEach((item) => {
+        const slug = item?.label ? slugifyTr(item.label) : "";
+        if (!slug) return;
+        urls.push(
+          `  <url>\n    <loc>https://spolder.org/faaliyetlerimiz/${slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
+        );
+      });
+    } catch (err) {
+      console.error("Sitemap: faaliyetler okunamadı:", err.message);
+    }
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
+    sitemapCache = { xml, at: Date.now() };
     res.set("Content-Type", "application/xml; charset=UTF-8");
     return res.send(xml);
   }),
@@ -1219,20 +1386,72 @@ app.use(
     },
   }),
 );
-app.get(/^\/(?!api\/).*/, (req, res) => {
-  res.set("Cache-Control", "no-cache");
-  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
-});
+// Var olmayan /uploads ve /assets dosyaları HTML (index.html) yerine 404 dönsün;
+// aksi halde eksik bir JS/CSS dosyası "geçerli HTML" gibi görünüp sayfayı bozar.
+app.get(/^\/(uploads|assets)\//, (_req, res) => res.status(404).end());
+
+// Sitenin gerçek sayfaları; bunların dışındaki adresler için React "Sayfa bulunamadı"
+// ekranını gösterir ama HTTP durumu 404 olur (arama motorları yanlış sayfaları dizinlemesin).
+const KNOWN_PAGE_PATHS = new Set([
+  "/", "/hakkimizda", "/haberler", "/etkinlikler", "/projeler", "/blog", "/yayinlar",
+  "/iletisim", "/search", "/gizlilik", "/kvkk",
+]);
+const KNOWN_PAGE_PREFIXES = ["/haber/", "/etkinlik/", "/proje/", "/blog/", "/faaliyetlerimiz/", "/admin"];
+app.get(
+  /^\/(?!api\/).*/,
+  asyncHandler(async (req, res) => {
+    res.set("Cache-Control", "no-cache");
+    const cleanPath = req.path.length > 1 ? req.path.replace(/\/+$/, "") : req.path;
+    const known = KNOWN_PAGE_PATHS.has(cleanPath) || KNOWN_PAGE_PREFIXES.some((p) => cleanPath.startsWith(p));
+    let html;
+    try {
+      html = await readIndexHtml();
+    } catch {
+      return res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+    }
+    if (known && !cleanPath.startsWith("/admin")) {
+      // Her sayfa kendi adresini "canonical" olarak bildirir (önceden hepsi ana sayfayı gösteriyordu).
+      html = setCanonical(html, `https://spolder.org${cleanPath === "/" ? "" : cleanPath}`);
+    }
+    res.status(known ? 200 : 404);
+    res.set("Content-Type", "text/html; charset=UTF-8");
+    return res.send(html);
+  }),
+);
 
 // --- Error handler (must be last) ------------------------------------------
 app.use((err, req, res, _next) => {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: { message: err.message } });
   }
+  // body-parser hataları (bozuk JSON -> 400, çok büyük gövde -> 413) kendi durum kodlarıyla dönsün.
+  if (err && (err.status === 400 || err.status === 413 || err.type === "entity.too.large" || err.type === "entity.parse.failed")) {
+    const status = err.status || (err.type === "entity.too.large" ? 413 : 400);
+    return res.status(status).json({
+      error: { message: status === 413 ? "Gönderilen veri çok büyük" : "Geçersiz istek verisi" },
+    });
+  }
+  // İzin verilmeyen Origin (CORS): sunucu hatası değil, yasak.
+  if (err && err.message === "Not allowed by CORS") {
+    return res.status(403).json({ error: { message: "Bu kaynaktan erişime izin verilmiyor" } });
+  }
   console.error(err);
   return res.status(500).json({ error: { message: "Sunucu hatası" } });
 });
 
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`SPOLDER backend listening on 127.0.0.1:${PORT}`);
-});
+// Oturum parmak izleri yüklendikten SONRA dinlemeye başlanır (aksi halde ilk
+// saniyelerde geçerli çerezler de reddedilirdi).
+const startServer = async () => {
+  await startSessionRefresh();
+  const server = app.listen(PORT, "127.0.0.1", () => {
+    console.log(`SPOLDER backend listening on 127.0.0.1:${PORT}`);
+  });
+  // PM2 yeniden başlatırken açık istekleri bitirip veritabanı bağlantılarını kapat.
+  const shutdown = () => {
+    server.close(() => pool.end().finally(() => process.exit(0)));
+    setTimeout(() => process.exit(0), 5000).unref();
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+};
+startServer();

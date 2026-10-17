@@ -1,11 +1,13 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Calendar, Clock, MapPin, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
+import { formatDate } from "@/lib/formatDate";
+import { DEFAULT_EVENT_FORM_URL } from "@/lib/constants";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface Event {
@@ -18,6 +20,7 @@ interface Event {
   konum: string;
   gorsel: string;
   durum: string;
+  google_form_link?: string;
   slug?: string;
   created_at: string;
   categories?: string[];
@@ -30,11 +33,18 @@ const EtkinlikDetay = () => {
   const [loading, setLoading] = useState(true);
   const categoryColors = useCategoryColors("events");
 
+  // Hızlı gezintide eski isteğin yanıtı yenisini ezmesin.
+  const reqRef = useRef(0);
+
   useEffect(() => {
+    reqRef.current += 1;
+    setLoading(true);
+    setEtkinlik(null);
     fetchEtkinlik();
   }, [id]);
 
   const fetchEtkinlik = async () => {
+    const myReq = reqRef.current;
     try {
       const { data, error } = await supabase
         .from('events')
@@ -44,12 +54,13 @@ const EtkinlikDetay = () => {
         .single();
       
       if (error) throw error;
+      if (myReq !== reqRef.current) return;
       setEtkinlik(data);
     } catch (error) {
       console.error('Error fetching etkinlik:', error);
-      setEtkinlik(null);
+      if (myReq === reqRef.current) setEtkinlik(null);
     } finally {
-      setLoading(false);
+      if (myReq === reqRef.current) setLoading(false);
     }
   };
 
@@ -135,7 +146,7 @@ const EtkinlikDetay = () => {
             <div className="flex flex-wrap gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>{etkinlik.tarih}</span>
+                <span>{formatDate(etkinlik.tarih)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
@@ -165,7 +176,7 @@ const EtkinlikDetay = () => {
                 )}
 
                 {/* Article Content - Fixed HTML rendering with sanitization */}
-                <article className="prose prose-invert max-w-none mb-8">
+                <article className="prose dark:prose-invert max-w-none mb-8">
                   <div 
                     className="text-foreground/80 leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(etkinlik.icerik || '') }}
@@ -192,7 +203,7 @@ const EtkinlikDetay = () => {
                         <Calendar className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                         <div>
                           <p className="font-medium text-foreground">Tarih</p>
-                          <p className="text-muted-foreground">{etkinlik.tarih}</p>
+                          <p className="text-muted-foreground">{formatDate(etkinlik.tarih)}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -222,6 +233,18 @@ const EtkinlikDetay = () => {
                         </span>
                       </div>
                     </div>
+                    {etkinlik.durum !== "Tamamlandı" && (
+                      <a
+                        href={etkinlik.google_form_link || DEFAULT_EVENT_FORM_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block mt-5"
+                      >
+                        <Button variant="turquoise" className="w-full">
+                          Kayıt Ol
+                        </Button>
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

@@ -38,7 +38,7 @@ const Haberler = () => {
       setLoading(true);
       const { data, error: supabaseError } = await supabase
         .from("news")
-        .select("*")
+        .select("id, baslik, ozet, tarih, gorsel, kategori, categories, yazar, created_at")
         .eq('yayin_durumu', 'yayinlandi')
         .order("tarih", { ascending: false });
       
@@ -111,7 +111,17 @@ const Haberler = () => {
         )}
 
         {/* Empty State */}
-        {!loading && filteredNews.length === 0 && (
+                {!loading && error && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Haberler yüklenemedi</h3>
+              <p className="text-muted-foreground mb-4">Lütfen daha sonra tekrar deneyin.</p>
+              <Button variant="outline" onClick={fetchNews}>Tekrar Dene</Button>
+            </div>
+          </section>
+        )}
+
+        {!loading && !error && filteredNews.length === 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Haber bulunamadı</h3>

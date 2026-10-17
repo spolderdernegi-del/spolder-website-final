@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import { DEFAULT_EVENT_FORM_URL } from "@/lib/constants";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 
 interface Event {
@@ -24,10 +25,6 @@ interface Event {
   google_form_link?: string;
   created_at: string;
 }
-
-// Etkinliğe özel kayıt formu girilmemişse kullanılan genel form.
-const DEFAULT_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSfFMYRza3z7VlxwQ8H9FHtSx2ghoN1MjXQOtlFRuCAjGD20og/viewform?usp=publish-editor";
 
 const Etkinlikler = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -64,41 +61,26 @@ const Etkinlikler = () => {
   const getItemCategories = (event: Event) =>
     event.categories && event.categories.length > 0 ? event.categories : event.kategori ? [event.kategori] : [];
 
+  // Etkinlik geçmiş mi? Saat boş/geçersizse gün sonu (23:59) kabul edilir;
+  // böylece saatsiz etkinlik iki filtreden de kaybolmaz.
+  const isPastEvent = (event: Event, now: Date) => {
+    if (event.durum === "Tamamlandı") return true;
+    const timeOk = /^\d{1,2}:\d{2}/.test(event.saat || "");
+    const time = timeOk ? event.saat.slice(0, 5).padStart(5, "0") : "23:59";
+    const dt = new Date(`${(event.tarih || "").slice(0, 10)}T${time}:00`);
+    if (isNaN(dt.getTime())) return false;
+    return dt < now;
+  };
+
   const filterEvents = () => {
     const now = new Date();
 
     let result = events;
 
     if (activeFilter === "Devam Eden") {
-      result = result.filter(event => {
-        // Durum kontrolü
-        if (event.durum === "Tamamlandı") return false;
-
-        // Tarih ve saat kontrolü
-        try {
-          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
-          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
-          return eventDateTime >= now;
-        } catch (error) {
-          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
-          return event.tarih >= now.toISOString().split('T')[0];
-        }
-      });
+      result = result.filter((event) => !isPastEvent(event, now));
     } else if (activeFilter === "Süresi Geçen") {
-      result = result.filter(event => {
-        // Durum kontrolü
-        if (event.durum === "Tamamlandı") return true;
-
-        // Tarih ve saat kontrolü
-        try {
-          // Tarih formatı: "2025-12-04", Saat formatı: "14:00"
-          const eventDateTime = new Date(`${event.tarih}T${event.saat}:00`);
-          return eventDateTime < now;
-        } catch (error) {
-          // Eğer tarih/saat parse edilemezse, sadece tarihe bak
-          return event.tarih < now.toISOString().split('T')[0];
-        }
-      });
+      result = result.filter((event) => isPastEvent(event, now));
     }
 
     if (selectedCategory) {
@@ -168,7 +150,17 @@ const Etkinlikler = () => {
         )}
 
         {/* Empty State */}
-        {!loading && (events.length === 0 || filterEvents().length === 0) && (
+        {!loading && error && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Etkinlikler yüklenemedi</h3>
+              <p className="text-muted-foreground mb-4">Lütfen daha sonra tekrar deneyin.</p>
+              <Button variant="outline" onClick={fetchEvents}>Tekrar Dene</Button>
+            </div>
+          </section>
+        )}
+
+        {!loading && !error && (events.length === 0 || filterEvents().length === 0) && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Etkinlik bulunamadı</h3>
@@ -244,15 +236,17 @@ const Etkinlikler = () => {
                             Detaylar
                           </Button>
                         </Link>
-                        <a
-                          href={event.google_form_link || DEFAULT_FORM_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant="turquoise" size="sm">
-                            Kayıt Ol
-                          </Button>
-                        </a>
+                        {!isPastEvent(event, new Date()) && (
+                          <a
+                            href={event.google_form_link || DEFAULT_EVENT_FORM_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button variant="turquoise" size="sm">
+                              Kayıt Ol
+                            </Button>
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

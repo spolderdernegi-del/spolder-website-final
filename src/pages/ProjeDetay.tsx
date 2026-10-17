@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DOMPurify from "dompurify";
+import { formatDate } from "@/lib/formatDate";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface Project {
@@ -29,21 +30,27 @@ const ProjeDetay = () => {
   const categoryColors = useCategoryColors("projects");
 
   useEffect(() => {
+    // Hızlı gezintide eski isteğin yanıtı yenisini ezmesin.
+    let cancelled = false;
+    setLoading(true);
+    setProje(null);
+    setRelatedProjects([]);
+
     const fetchProject = async () => {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, title, description, content, image, category, status:status, start_date')
+          .select('id, title, description, content, image, category, categories, status:status, start_date')
           .eq('id', parseInt(id || "0"))
           .eq('publishStatus', 'published')
           .single();
         if (error) throw error;
-        setProje(data as Project);
+        if (!cancelled) setProje(data as Project);
       } catch (err) {
         console.error('Project load error', err);
-        setProje(null);
+        if (!cancelled) setProje(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -51,13 +58,13 @@ const ProjeDetay = () => {
       try {
         const { data, error } = await supabase
           .from('projects')
-          .select('id, title, description, content, image, category, status:status, start_date')
+          .select('id, title, description, image, category, categories, status:status, start_date')
           .eq('publishStatus', 'published')
           .neq('id', parseInt(id || "0"))
           .order('start_date', { ascending: false })
           .limit(3);
         if (error) throw error;
-        setRelatedProjects((data as Project[]) || []);
+        if (!cancelled) setRelatedProjects((data as Project[]) || []);
       } catch (err) {
         console.error('Related projects load error', err);
       }
@@ -65,6 +72,9 @@ const ProjeDetay = () => {
 
     fetchProject();
     fetchRelatedProjects();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -136,7 +146,7 @@ const ProjeDetay = () => {
             <div className="flex flex-wrap gap-6 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>{proje.start_date}</span>
+                <span>{formatDate(proje.start_date)}</span>
               </div>
             </div>
           </div>
@@ -178,7 +188,7 @@ const ProjeDetay = () => {
                         <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
                           {relatedProject.title}
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-2">{relatedProject.start_date}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedProject.start_date)}</p>
                       </Link>
                     ))}
                   </div>

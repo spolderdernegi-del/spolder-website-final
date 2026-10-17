@@ -257,9 +257,9 @@ const Hakkimizda = () => {
       </main>
       <Footer />
       {selectedMember && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSelectedMember(null)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-2xl z-70">
+          <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 w-full max-w-2xl z-[70]">
             <div className="flex gap-6">
               <img src={selectedMember.image} alt={selectedMember.name} className="w-40 h-40 object-cover rounded" />
               <div className="flex-1">

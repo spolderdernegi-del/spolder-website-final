@@ -22,10 +22,14 @@ const Index = () => {
 
   useEffect(() => {
     // Check if user has visited before
-    const hasVisited = localStorage.getItem("hasVisitedSpolder");
-    if (!hasVisited) {
-      setShowWelcomeModal(true);
-      localStorage.setItem("hasVisitedSpolder", "true");
+    try {
+      const hasVisited = localStorage.getItem("hasVisitedSpolder");
+      if (!hasVisited) {
+        setShowWelcomeModal(true);
+        localStorage.setItem("hasVisitedSpolder", "true");
+      }
+    } catch {
+      // Depolama kapalıysa (gizli mod vb.) pencere hiç açılmaz; site normal çalışır.
     }
     
     // Pop-up içeriğini sunucudaki ayarlardan (admin panelinden girilen) yükle.
@@ -53,6 +57,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
+        <h1 className="sr-only">SPOLDER - Spor Politikaları Derneği</h1>
         <HeroSlider />
         <MissionVisionValues />
         <AboutSection />

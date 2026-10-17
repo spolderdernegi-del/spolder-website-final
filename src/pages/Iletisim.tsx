@@ -27,17 +27,19 @@ const Iletisim = () => {
     subject: "",
     message: "",
   });
-  const [mapUrl, setMapUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [organizationLocation, setOrganizationLocation] = useState("");
   const [organizationLat, setOrganizationLat] = useState(39.9334);
   const [organizationLng, setOrganizationLng] = useState(32.8597);
+  // Varsayılanlar bilerek boş: gerçek değerler admin panelinden (Ayarlar) girilir; sahte
+  // telefon/e-posta/IBAN gösterilmez.
   const [contactInfo, setContactInfo] = useState({
-    phone: "+90 (312) 123 45 67",
-    email: "info@spolder.org.tr",
-    working_hours: "Pazartesi - Cuma: 09:00 - 18:00\nCumartesi - Pazar: Kapalı",
-    iban_tl: "TR00 0000 0000 0000 0000 00",
-    iban_eur: "TR00 0000 0000 0000 0000 01"
+    phone: "",
+    email: "",
+    working_hours: "",
+    iban_tl: "",
+    iban_eur: ""
   });
 
   useEffect(() => {
@@ -45,7 +47,6 @@ const Iletisim = () => {
       try {
         setLoading(true);
         const keys = [
-          'contact_map_embed',
           'organization_location',
           'organization_lat',
           'organization_lng',
@@ -65,7 +66,6 @@ const Iletisim = () => {
           const newContactInfo = { ...contactInfo };
           
           data.forEach((item: any) => {
-            if (item.key === 'contact_map_embed') setMapUrl(item.value);
             if (item.key === 'organization_location') setOrganizationLocation(item.value);
             if (item.key === 'organization_lat') setOrganizationLat(parseFloat(item.value) || 39.9334);
             if (item.key === 'organization_lng') setOrganizationLng(parseFloat(item.value) || 32.8597);
@@ -104,7 +104,7 @@ const Iletisim = () => {
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       const { error } = await supabase.from('contact_messages').insert([
         {
@@ -123,12 +123,14 @@ const Iletisim = () => {
     } catch (err: any) {
       toast.error("Mesaj gönderilemedi: " + err.message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const donationIbanTL = contactInfo.iban_tl;
-  const donationIbanEUR = contactInfo.iban_eur;
+  // IBAN henüz girilmemişse "TR......" yer tutucusu gösterilir ve Kopyala düğmesi çıkmaz.
+  const IBAN_PLACEHOLDER = "TR............................";
+  const donationIbanTL = contactInfo.iban_tl.trim();
+  const donationIbanEUR = contactInfo.iban_eur.trim();
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -172,7 +174,7 @@ const Iletisim = () => {
                     <div>
                       <h3 className="font-semibold text-foreground">Adres</h3>
                       <p className="text-muted-foreground text-sm whitespace-pre-line">
-                        {organizationLocation || "Atatürk Bulvarı No: 123\nÇankaya, Ankara 06100"}
+                        {organizationLocation || "—"}
                       </p>
                     </div>
                   </div>
@@ -189,21 +191,25 @@ const Iletisim = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
                           <div className="flex-1 min-w-fit">
                             <div className="text-xs text-muted-foreground">IBAN (TL)</div>
-                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanTL}</div>
+                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanTL || IBAN_PLACEHOLDER}</div>
                           </div>
+                          {donationIbanTL && (
                           <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
                           </button>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
                           <div className="flex-1 min-w-fit">
                             <div className="text-xs text-muted-foreground">IBAN (EUR)</div>
-                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanEUR}</div>
+                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanEUR || IBAN_PLACEHOLDER}</div>
                           </div>
+                          {donationIbanEUR && (
                           <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
                             <Copy className="w-4 h-4" /> Kopyala
                           </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -215,7 +221,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">Telefon</h3>
-                      <p className="text-muted-foreground text-sm">{contactInfo.phone}</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.phone || "—"}</p>
                     </div>
                   </div>
 
@@ -225,7 +231,7 @@ const Iletisim = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">E-posta</h3>
-                      <p className="text-muted-foreground text-sm">{contactInfo.email}</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.email || "—"}</p>
                     </div>
                   </div>
 
@@ -236,7 +242,7 @@ const Iletisim = () => {
                     <div>
                       <h3 className="font-semibold text-foreground">Çalışma Düzeni</h3>
                       <p className="text-muted-foreground text-sm whitespace-pre-line">
-                        {contactInfo.working_hours}
+                        {contactInfo.working_hours || "—"}
                       </p>
                     </div>
                   </div>
@@ -322,8 +328,8 @@ const Iletisim = () => {
                       <span className="text-destructive">*</span> ile işaretli alanların doldurulması zorunludur.
                     </p>
 
-                    <Button type="submit" variant="gradient" size="lg">
-                      Mesaj Gönder
+                    <Button type="submit" variant="gradient" size="lg" disabled={submitting}>
+                      {submitting ? "Gönderiliyor..." : "Mesaj Gönder"}
                     </Button>
                   </form>
                 </div>

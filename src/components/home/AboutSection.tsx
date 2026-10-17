@@ -18,7 +18,7 @@ const AboutSection = () => {
           <div className="relative">
             <div className="relative rounded-lg overflow-hidden shadow-elevated">
               <img
-                src="/placeholder.svg"
+                src="/varsayilan-gorsel.png"
                 alt="SPOLDER Dernek Tanıtım"
                 className="w-full h-[400px] object-cover"
               />

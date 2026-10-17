@@ -6,6 +6,7 @@ import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { formatDate } from "@/lib/formatDate";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface BlogPost {
@@ -29,6 +30,12 @@ const BlogDetay = () => {
   const categoryColors = useCategoryColors("blog");
 
   useEffect(() => {
+    // Hızlı gezintide eski isteğin yanıtı yenisini ezmesin.
+    let cancelled = false;
+    setLoading(true);
+    setPost(null);
+    setRelatedPosts([]);
+
     const fetchPost = async () => {
       try {
         const { data, error } = await supabase
@@ -38,12 +45,12 @@ const BlogDetay = () => {
           .eq('publishStatus', 'published')
           .single();
         if (error) throw error;
-        setPost(data);
+        if (!cancelled) setPost(data);
       } catch (err) {
         console.error('Blog load error', err);
-        setPost(null);
+        if (!cancelled) setPost(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -51,13 +58,13 @@ const BlogDetay = () => {
       try {
         const { data, error } = await supabase
           .from('blog')
-          .select('id, title, excerpt, content, date, author, image, category, categories')
+          .select('id, title, excerpt, date, author, image, category, categories')
           .eq('publishStatus', 'published')
           .neq('id', parseInt(id || "0"))
           .order('date', { ascending: false })
           .limit(3);
         if (error) throw error;
-        setRelatedPosts(data || []);
+        if (!cancelled) setRelatedPosts(data || []);
       } catch (err) {
         console.error('Related posts load error', err);
       }
@@ -65,6 +72,9 @@ const BlogDetay = () => {
 
     fetchPost();
     fetchRelatedPosts();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -101,7 +111,7 @@ const BlogDetay = () => {
       <Header />
       <main className="flex-1 pt-20">
         {/* Hero Image */}
-        <section className="relative h-96">
+        <section className={`relative h-96 ${post.image ? "" : "bg-gradient-green"}`}>
           {post.image && (
             <>
               <img
@@ -141,7 +151,7 @@ const BlogDetay = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>{post.date}</span>
+                <span>{formatDate(post.date)}</span>
               </div>
             </div>
           </div>
@@ -153,7 +163,7 @@ const BlogDetay = () => {
               {/* Main Content */}
               <div className="lg:col-span-2">
                 <article
-                  className="prose prose-invert max-w-none mb-8 text-foreground/90 text-lg leading-relaxed"
+                  className="prose dark:prose-invert max-w-none mb-8 text-foreground/90 text-lg leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content || post.excerpt || '') }}
                 />
 
@@ -181,7 +191,7 @@ const BlogDetay = () => {
                         <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
                           {relatedPost.title}
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-2">{relatedPost.date}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedPost.date)}</p>
                       </Link>
                     ))}
                   </div>

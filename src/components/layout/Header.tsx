@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { matchStaticPages } from "@/lib/staticPages";
+import { buildIlikeFilter, sanitizeSearchTerm } from "@/lib/searchQuery";
 
 const navItems = [
   { label: "Ana Sayfa", href: "/" },
@@ -18,7 +19,7 @@ const navItems = [
 ];
 
 // Logonun altında harf harf yazılıp silinen sloganlar.
-const headerSlogans = ["Sporun Yeni Nesli !", "Spor Geleceğimizdir !"];
+const headerSlogans = ["Sporun Yeni Nesli!", "Spor Geleceğimizdir!"];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -27,6 +28,8 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchToggleRef = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,6 +50,12 @@ const Header = () => {
   useEffect(() => {
     const currentSlogan = headerSlogans[sloganIndex];
     let timeoutId: ReturnType<typeof setTimeout>;
+
+    // Hareketi azalt tercihi olanlar için daktilo efekti yerine sabit slogan.
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setTypedSlogan(headerSlogans[0]);
+      return;
+    }
 
     if (!isDeletingSlogan && typedSlogan.length < currentSlogan.length) {
       // Yazıyor
@@ -74,7 +83,14 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Masaüstü arama kutusu, mobil arama paneli ve mobil arama düğmesinin içindeki
+      // tıklamalar "dışarı tıklama" sayılmaz (aksi halde mobilde input'a dokunmak paneli kapatıyordu).
+      const inside =
+        searchRef.current?.contains(target) ||
+        mobileSearchRef.current?.contains(target) ||
+        mobileSearchToggleRef.current?.contains(target);
+      if (!inside) {
         setIsSearchOpen(false);
       }
     };
@@ -83,122 +99,79 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim().length === 0) {
+    const term = sanitizeSearchTerm(searchQuery);
+    if (term.length === 0) {
       setSuggestions([]);
       return;
     }
 
-    const searchInDatabase = async () => {
-      const q = searchQuery.trim().toLowerCase();
+    // Her tuşta değil, yazmayı bıraktıktan 300 ms sonra ara; eski yanıt yenisini ezmesin.
+    let cancelled = false;
+    const timer = setTimeout(async () => {
       const allResults: any[] = [];
       try {
+        const [newsRes, eventsRes, projectsRes, blogRes] = await Promise.all([
+          supabase
+            .from("news")
+            .select("id, baslik, ozet")
+            .eq("yayin_durumu", "yayinlandi")
+            .or(buildIlikeFilter(["baslik", "ozet", "icerik", "kategori"], term))
+            .limit(2),
+          supabase
+            .from("events")
+            .select("id, baslik, ozet")
+            .eq("yayin_durumu", "yayinlandi")
+            .or(buildIlikeFilter(["baslik", "ozet", "icerik", "kategori"], term))
+            .limit(2),
+          supabase
+            .from("projects")
+            .select("id, title, description")
+            .eq("publishStatus", "published")
+            .or(buildIlikeFilter(["title", "description", "content", "category"], term))
+            .limit(2),
+          supabase
+            .from("blog")
+            .select("id, title, excerpt")
+            .eq("publishStatus", "published")
+            .or(buildIlikeFilter(["title", "excerpt", "content", "category"], term))
+            .limit(2),
+        ]);
 
-        // Haberler
-        const { data: news } = await supabase
-          .from("news")
-          .select("*")
-          .eq("yayin_durumu", "yayinlandi")
-          .or(`baslik.ilike.%${q}%,ozet.ilike.%${q}%,icerik.ilike.%${q}%,kategori.ilike.%${q}%`)
-          .limit(2);
-        
-        if (news) {
-          news.forEach((item) => {
-            allResults.push({
-              id: `news-${item.id}`,
-              type: "Haber",
-              title: item.baslik,
-              excerpt: item.ozet || "",
-              link: `/haber/${item.id}`,
-            });
-          });
-        }
-
-        // Etkinlikler
-        const { data: events } = await supabase
-          .from("events")
-          .select("*")
-          .eq("yayin_durumu", "yayinlandi")
-          .or(`baslik.ilike.%${q}%,ozet.ilike.%${q}%,icerik.ilike.%${q}%,kategori.ilike.%${q}%`)
-          .limit(2);
-        
-        if (events) {
-          events.forEach((item) => {
-            allResults.push({
-              id: `event-${item.id}`,
-              type: "Etkinlik",
-              title: item.baslik,
-              excerpt: item.ozet || "",
-              link: `/etkinlik/${item.id}`,
-            });
-          });
-        }
-
-        // Projeler
-        const { data: projects } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("publishStatus", "published")
-          .or(`title.ilike.%${q}%,description.ilike.%${q}%,content.ilike.%${q}%,category.ilike.%${q}%`)
-          .limit(2);
-        
-        if (projects) {
-          projects.forEach((item) => {
-            allResults.push({
-              id: `project-${item.id}`,
-              type: "Proje",
-              title: item.title,
-              excerpt: item.description || "",
-              link: `/proje/${item.id}`,
-            });
-          });
-        }
-
-        // Blog
-        const { data: blogs } = await supabase
-          .from("blog")
-          .select("*")
-          .eq("publishStatus", "published")
-          .or(`title.ilike.%${q}%,excerpt.ilike.%${q}%,content.ilike.%${q}%,category.ilike.%${q}%`)
-          .limit(2);
-        
-        if (blogs) {
-          blogs.forEach((item) => {
-            allResults.push({
-              id: `blog-${item.id}`,
-              type: "Blog",
-              title: item.title,
-              excerpt: item.excerpt || "",
-              link: `/blog/${item.id}`,
-            });
-          });
-        }
-
-        setSuggestions(allResults);
+        (newsRes.data || []).forEach((item: any) =>
+          allResults.push({ id: `news-${item.id}`, type: "Haber", title: item.baslik, excerpt: item.ozet || "", link: `/haber/${item.id}` }),
+        );
+        (eventsRes.data || []).forEach((item: any) =>
+          allResults.push({ id: `event-${item.id}`, type: "Etkinlik", title: item.baslik, excerpt: item.ozet || "", link: `/etkinlik/${item.id}` }),
+        );
+        (projectsRes.data || []).forEach((item: any) =>
+          allResults.push({ id: `project-${item.id}`, type: "Proje", title: item.title, excerpt: item.description || "", link: `/proje/${item.id}` }),
+        );
+        (blogRes.data || []).forEach((item: any) =>
+          allResults.push({ id: `blog-${item.id}`, type: "Blog", title: item.title, excerpt: item.excerpt || "", link: `/blog/${item.id}` }),
+        );
       } catch (error) {
         console.error("Arama hatası:", error);
       } finally {
         // Sabit sayfalar (Kurumsal Kimlik, KVKK, İletişim vb.) veritabanı
         // hatasından etkilenmeden, ayrı olarak eklenir.
         matchStaticPages(searchQuery).forEach((page) => {
-          allResults.push({
-            id: `page-${page.link}`,
-            type: "Sayfa",
-            title: page.title,
-            excerpt: page.excerpt,
-            link: page.link,
-          });
+          allResults.push({ id: `page-${page.link}`, type: "Sayfa", title: page.title, excerpt: page.excerpt, link: page.link });
         });
-        setSuggestions(allResults);
+        if (!cancelled) setSuggestions(allResults);
       }
-    };
+    }, 300);
 
-    searchInDatabase();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setIsSearchOpen(false);
     }
   };
 
@@ -215,7 +188,7 @@ const Header = () => {
       <div className="container-custom mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo (sabit) + altında harf harf yazılan slogan */}
-          <Link to="/" className="flex flex-col justify-center shrink-0 max-w-[65vw] sm:max-w-none">
+          <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col justify-center shrink-0 max-w-[65vw] sm:max-w-none">
             <img
               src={isScrolled ? "/logo-dark.svg" : "/logo.svg"}
               alt="SPOLDER Logo"
@@ -320,7 +293,8 @@ const Header = () => {
                       ))}
                       <button
                         onClick={() => {
-                          window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+                          navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                        setIsSearchOpen(false);
                         }}
                         className="w-full text-left px-4 py-2 hover:bg-muted transition-colors text-center text-sm text-primary font-medium"
                       >
@@ -343,6 +317,8 @@ const Header = () => {
               className={`p-2 rounded-lg transition-colors ${
                 isDarkHeader ? "text-white hover:bg-white/10" : "hover:bg-muted"
               }`}
+              ref={mobileSearchToggleRef}
+              aria-label="Ara"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <Search className="w-5 h-5" />
@@ -351,6 +327,7 @@ const Header = () => {
               className={`p-2 rounded-lg transition-colors ${
                 isDarkHeader ? "text-white hover:bg-white/10" : "hover:bg-muted"
               }`}
+              aria-label={isMobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -360,7 +337,7 @@ const Header = () => {
 
         {/* Mobile Search */}
         {isSearchOpen && (
-          <div className="lg:hidden pb-4">
+          <div className="lg:hidden pb-4" ref={mobileSearchRef}>
             <form onSubmit={handleSearch} className="flex gap-2">
               <Input
                 type="text"
@@ -405,7 +382,8 @@ const Header = () => {
                     ))}
                     <button
                       onClick={() => {
-                        window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+                        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+                        setIsSearchOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 hover:bg-muted transition-colors text-center text-sm text-primary font-medium"
                     >

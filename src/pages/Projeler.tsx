@@ -99,7 +99,17 @@ const Projeler = () => {
         )}
 
         {/* Empty State */}
-        {!loading && filteredProjects.length === 0 && (
+                {!loading && error && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Projeler yüklenemedi</h3>
+              <p className="text-muted-foreground mb-4">Lütfen daha sonra tekrar deneyin.</p>
+              <Button variant="outline" onClick={fetchProjects}>Tekrar Dene</Button>
+            </div>
+          </section>
+        )}
+
+        {!loading && !error && filteredProjects.length === 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Proje bulunamadı</h3>

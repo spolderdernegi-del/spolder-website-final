@@ -102,7 +102,17 @@ const Blog = () => {
       )}
 
       {/* Empty State */}
-      {!loading && filteredPosts.length === 0 && (
+              {!loading && error && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto text-center">
+              <h3 className="text-xl font-bold text-foreground mb-2">Blog yazıları yüklenemedi</h3>
+              <p className="text-muted-foreground mb-4">Lütfen daha sonra tekrar deneyin.</p>
+              <Button variant="outline" onClick={fetchBlogPosts}>Tekrar Dene</Button>
+            </div>
+          </section>
+        )}
+
+        {!loading && !error && filteredPosts.length === 0 && (
         <section className="py-12">
           <div className="container-custom mx-auto px-4 text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">Blog yazısı bulunamadı</h3>

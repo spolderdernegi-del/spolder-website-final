@@ -6,6 +6,7 @@ import { Calendar, User, Loader } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { matchStaticPages } from "@/lib/staticPages";
+import { buildIlikeFilter, sanitizeSearchTerm } from "@/lib/searchQuery";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 
 interface SearchResult {
@@ -23,7 +24,9 @@ interface SearchResult {
 
 const Search = () => {
   const [searchParams] = useSearchParams();
-  const query = searchParams.get("q")?.toLowerCase() || "";
+  const query = (searchParams.get("q") || "").trim();
+  // Sunucuya giden metin: virgül/parantez/joker karakterlerden arındırılmış hâli.
+  const dbTerm = sanitizeSearchTerm(query);
   // Footer "Faaliyetlerimiz" bağlantıları ?kategori=eğitim,spor şeklinde gelir:
   // metin araması yapılmaz, sadece virgülle ayrılmış kategorilerden en az
   // birine sahip içerikler listelenir.
@@ -62,6 +65,8 @@ const Search = () => {
       setLoading(false);
       return;
     }
+    // Metin yalnızca özel karakterlerden oluşuyorsa veritabanında aranacak bir şey yoktur.
+    const skipDatabase = !categoryMode && !dbTerm;
 
     const allResults: SearchResult[] = [];
     try {
@@ -71,30 +76,28 @@ const Search = () => {
         .from("news")
         .select("id, baslik, ozet, gorsel, kategori, categories, yazar, tarih, created_at")
         .eq("yayin_durumu", "yayinlandi");
-      if (!categoryMode) newsQuery = newsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      if (!categoryMode) newsQuery = newsQuery.or(buildIlikeFilter(["baslik", "ozet", "icerik", "kategori"], dbTerm));
       let eventsQuery = supabase
         .from("events")
         .select("id, baslik, ozet, gorsel, kategori, categories, tarih, created_at")
         .eq("yayin_durumu", "yayinlandi");
-      if (!categoryMode) eventsQuery = eventsQuery.or(`baslik.ilike.%${query}%,ozet.ilike.%${query}%,icerik.ilike.%${query}%,kategori.ilike.%${query}%`);
+      if (!categoryMode) eventsQuery = eventsQuery.or(buildIlikeFilter(["baslik", "ozet", "icerik", "kategori"], dbTerm));
       let projectsQuery = supabase
         .from("projects")
         .select("id, title, description, image, category, categories, start_date, created_at")
         .eq("publishStatus", "published");
-      if (!categoryMode) projectsQuery = projectsQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      if (!categoryMode) projectsQuery = projectsQuery.or(buildIlikeFilter(["title", "description", "content", "category"], dbTerm));
       let blogsQuery = supabase
         .from("blog")
         .select("id, title, excerpt, image, category, categories, author, date, created_at")
         .eq("publishStatus", "published");
-      if (!categoryMode) blogsQuery = blogsQuery.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%,category.ilike.%${query}%`);
+      if (!categoryMode) blogsQuery = blogsQuery.or(buildIlikeFilter(["title", "excerpt", "content", "category"], dbTerm));
 
       // Dört tablo aynı anda (sırayla beklemeden) sorgulanır.
-      const [newsRes, eventsRes, projectsRes, blogsRes] = await Promise.all([
-        newsQuery,
-        eventsQuery,
-        projectsQuery,
-        blogsQuery,
-      ]);
+      const empty = { data: [] as any[] };
+      const [newsRes, eventsRes, projectsRes, blogsRes] = skipDatabase
+        ? [empty, empty, empty, empty]
+        : await Promise.all([newsQuery, eventsQuery, projectsQuery, blogsQuery]);
 
       // Haberler
       const news = categoryMode ? newsRes.data?.filter(matchesCategories) : newsRes.data;
