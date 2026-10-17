@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DOMPurify from "dompurify";
 import { Link, useParams } from "react-router-dom";
 import { Loader } from "lucide-react";
 import { formatDate } from "@/lib/formatDate";
@@ -13,6 +12,7 @@ import {
   FaaliyetPage,
   FaaliyetPost,
   FooterService,
+  legacyPost,
   parseFaaliyetPages,
   parseFaaliyetPosts,
   sortPostsNewestFirst,
@@ -70,7 +70,9 @@ const Faaliyet = () => {
       }
       const pageData = parseFaaliyetPages(map.faaliyet_pages)[serviceId(found)] || {};
       setPage(pageData);
-      setPosts(sortPostsNewestFirst(parseFaaliyetPosts(map.faaliyet_posts)[serviceId(found)] || []));
+      const savedPosts = parseFaaliyetPosts(map.faaliyet_posts)[serviceId(found)] || [];
+      const legacy = savedPosts.length === 0 ? legacyPost(found.label, pageData) : null;
+      setPosts(legacy ? [legacy] : sortPostsNewestFirst(savedPosts));
       if (pageData.showRelated === false) {
         setLoading(false);
         return;
@@ -201,26 +203,7 @@ const Faaliyet = () => {
           </section>
         )}
 
-        {/* Eski tek-sayfa içeriği (henüz gönderiye çevrilmemişse) */}
-        {!loading && service && posts.length === 0 && (page.image || page.content) && (
-          <section className="section-padding">
-            <div className="container-custom mx-auto max-w-4xl">
-              {page.image && (
-                <img src={page.image} alt={service.label} className="w-full rounded-lg shadow-card mb-8 object-cover" />
-              )}
-              {page.content && (
-                <article className="prose prose-lg dark:prose-invert max-w-none">
-                  <div
-                    className="text-foreground/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.content) }}
-                  />
-                </article>
-              )}
-            </div>
-          </section>
-        )}
-
-        {!loading && service && items.length === 0 && posts.length === 0 && !page.image && !page.content && (
+        {!loading && service && items.length === 0 && posts.length === 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Henüz içerik yok</h3>
@@ -232,7 +215,7 @@ const Faaliyet = () => {
         {!loading && items.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
-              {(posts.length > 0 || page.image || page.content) && (
+              {posts.length > 0 && (
                 <h2 className="font-display text-2xl font-bold text-foreground mb-6">İlgili İçerikler</h2>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

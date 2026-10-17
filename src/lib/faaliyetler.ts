@@ -41,6 +41,14 @@ export const parseFaaliyetPosts = (raw?: string | null): Record<string, Faaliyet
   }
 };
 
+// Eski sürümde faaliyet sayfasına doğrudan yazılan metin/görsel henüz gönderiye
+// çevrilip kaydedilmediyse, onu da tek bir gönderi (kart) olarak göster.
+export const LEGACY_POST_ID = "sayfa";
+export const legacyPost = (label: string, page: FaaliyetPage): FaaliyetPost | null =>
+  page.content || page.image
+    ? { id: LEGACY_POST_ID, title: label, summary: page.summary || "", image: page.image || "", content: page.content || "" }
+    : null;
+
 export const sortPostsNewestFirst = (list: FaaliyetPost[]) =>
   [...list].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 

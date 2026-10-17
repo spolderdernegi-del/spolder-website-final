@@ -11,6 +11,9 @@ import {
   DEFAULT_FOOTER_SERVICES,
   FaaliyetPost,
   FooterService,
+  LEGACY_POST_ID,
+  legacyPost,
+  parseFaaliyetPages,
   parseFaaliyetPosts,
   parseFooterServices,
   serviceId,
@@ -34,11 +37,19 @@ const FaaliyetGonderi = () => {
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["footer_services", "faaliyet_posts"]);
+        .in("key", ["footer_services", "faaliyet_pages", "faaliyet_posts"]);
       const map = Object.fromEntries((data || []).map((d: any) => [d.key, d.value]));
       const list = map.footer_services ? parseFooterServices(map.footer_services) : DEFAULT_FOOTER_SERVICES;
       const found = list.find((s) => slugify(s.label) === slug) || null;
-      const all = found ? sortPostsNewestFirst(parseFaaliyetPosts(map.faaliyet_posts)[serviceId(found)] || []) : [];
+      let all: FaaliyetPost[] = [];
+      if (found) {
+        const saved = parseFaaliyetPosts(map.faaliyet_posts)[serviceId(found)] || [];
+        const legacy =
+          saved.length === 0 && postId === LEGACY_POST_ID
+            ? legacyPost(found.label, parseFaaliyetPages(map.faaliyet_pages)[serviceId(found)] || {})
+            : null;
+        all = legacy ? [legacy] : sortPostsNewestFirst(saved);
+      }
       if (cancelled) return;
       setService(found);
       setPost(all.find((p) => p.id === postId) || null);
