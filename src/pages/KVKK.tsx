@@ -1,7 +1,9 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const KVKK = () => {
+  usePageTitle("KVKK Aydınlatma Metni - SPOLDER");
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -13,12 +15,12 @@ const KVKK = () => {
             <div className="space-y-6 text-foreground/90">
               <div>
                 <h2 className="text-2xl font-bold mb-3">1. KVKK Uyum</h2>
-                <p>SPOlDER, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ile uyumlu olarak faaliyet göstermektedir.</p>
+                <p>Spor Politikaları Derneği, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ile uyumlu olarak faaliyet göstermektedir.</p>
               </div>
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">2. Veri Sorumlusu</h2>
-                <p>SPOlDER Spor Politikaları Derneği, web sitesi üzerinden toplanan kişisel verilerin sorumlusudur.</p>
+                <p>Spor Politikaları Derneği, web sitesi üzerinden toplanan kişisel verilerin sorumlusudur.</p>
               </div>
 
               <div>
@@ -45,7 +47,7 @@ const KVKK = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">5. Başvuru Yöntemi</h2>
-                <p>Hakları hakkında başvuru yapmak için info@spolider.org.tr adresine mail gönderebilirsiniz.</p>
+                <p>Haklarınız hakkında başvuru yapmak için iletisim@spolder.org adresine mail gönderebilirsiniz.</p>
               </div>
             </div>
           </div>
