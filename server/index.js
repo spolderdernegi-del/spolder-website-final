@@ -174,6 +174,10 @@ app.use(
   helmet({
     contentSecurityPolicy: { directives: cspDirectives },
     hsts: { maxAge: 15552000, includeSubDomains: true },
+    // helmet'in varsayılanı "no-referrer": OpenStreetMap harita karolarını Referer
+    // başlığı olmayan isteklere 403 ile kapatıyor. Yalnızca site adresini (yol/sorgu
+    // olmadan) paylaşan bu politika hem gizliliği korur hem haritanın açılmasını sağlar.
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   }),
 );
 
