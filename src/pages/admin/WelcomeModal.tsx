@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -52,11 +52,18 @@ const AdminWelcomeModal = () => {
     buttonText: "Keşfetmeye Başla",
   };
 
+  const loadFailedRef = useRef(false);
+
   const loadModalContent = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("settings")
       .select("key, value")
       .eq("key", "welcome_modal");
+    if (error) {
+      loadFailedRef.current = true;
+      toast.error("İçerik yüklenemedi. Kaydetmeden önce sayfayı yenileyin.");
+      return;
+    }
     const raw = data?.[0]?.value;
     if (raw) {
       try {
@@ -71,6 +78,10 @@ const AdminWelcomeModal = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loadFailedRef.current) {
+      toast.error("İçerik yüklenemediği için kaydedilemez; sayfayı yenileyin.");
+      return;
+    }
     setSaving(true);
 
     try {

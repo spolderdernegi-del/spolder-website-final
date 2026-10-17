@@ -25,6 +25,12 @@ const Gizlilik = () => {
                   <li>Telefon Numarası</li>
                   <li>IP Adresi ve Tarayıcı Bilgileri</li>
                 </ul>
+                <p className="mt-3">
+                  Sitemizde, ziyaretçi sayısı ve sayfa kullanımı gibi anonim istatistikleri ölçmek amacıyla
+                  Google Analytics kullanılmaktadır. Bu hizmet, tarayıcınıza çerez yerleştirebilir ve
+                  anonim kullanım verileri toplar. Tarayıcı ayarlarınızdan çerezleri dilediğiniz zaman
+                  engelleyebilir veya silebilirsiniz.
+                </p>
               </div>
 
               <div>

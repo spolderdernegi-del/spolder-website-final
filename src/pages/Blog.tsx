@@ -135,7 +135,7 @@ const Blog = () => {
                   className="group block bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
                 >
                   <div className="aspect-video overflow-hidden">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={post.image}
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

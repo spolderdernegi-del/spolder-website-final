@@ -1,3 +1,4 @@
+import { slugify } from "@/lib/faaliyetler";
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,7 +76,7 @@ const AdminEvents = () => {
     google_form_link: "",
   });
 
-  const { openFullEditor } = useContentEditorHandoff({
+  const { openFullEditor } = useContentEditorHandoff<typeof formData>({
     storageKey: "events",
     formData,
     setFormData,
@@ -156,10 +157,7 @@ const AdminEvents = () => {
       const imageUrl = formData.gorsel;
 
       // Slug oluştur
-      const slug = formData.slug || formData.baslik.toLowerCase()
-        .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
-        .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const slug = formData.slug || slugify(formData.baslik);
 
       const dataToSave = { 
         ...formData, 
@@ -522,7 +520,8 @@ const AdminEvents = () => {
                         </div>
                       )}
                     </div>
-                  )}\n                </div>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Kapasite</label>
@@ -698,21 +697,6 @@ const AdminEvents = () => {
                   </p>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
-                <div className="border rounded-md p-4 bg-muted/30">
-                  <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
-                    {formData.icerik
-                      ? formData.icerik.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220) + (formData.icerik.length > 220 ? '…' : '')
-                      : <span className="italic">Henüz içerik girilmedi.</span>}
-                  </p>
-                  <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
-                    <FileEdit className="w-4 h-4" />
-                    Tam Sayfa Düzenle (Word gibi)
-                  </Button>
-                </div>
-              </div>
 
               <div className="flex gap-2">
                 <Button type="submit" disabled={loading} className="flex items-center gap-2">

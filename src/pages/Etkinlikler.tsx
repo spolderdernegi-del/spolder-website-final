@@ -198,7 +198,7 @@ const Etkinlikler = () => {
                     
                     {/* Image */}
                     <div className="md:w-64 shrink-0">
-                      <img src={event.gorsel} alt={event.baslik} className="w-full h-48 md:h-full object-cover" />
+                      <img src={event.gorsel} alt={event.baslik} loading="lazy" decoding="async" className="w-full h-48 md:h-full object-cover" />
                     </div>
 
                     {/* Content */}

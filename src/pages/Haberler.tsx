@@ -144,7 +144,7 @@ const Haberler = () => {
                     className="bg-card rounded-lg overflow-hidden shadow-card card-hover block"
                   >
                     <div className="relative h-52">
-                      <img src={item.gorsel} alt={item.baslik} className="w-full h-full object-cover" />
+                      <img src={item.gorsel} alt={item.baslik} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </div>
                     <div className="p-6">
                       <div className="flex flex-wrap gap-2 mb-2">

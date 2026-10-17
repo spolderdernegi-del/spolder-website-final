@@ -38,10 +38,11 @@ const AdminContactMessages = () => {
       // Tüm mesajları okundu olarak işaretle
       const unreadIds = (data || []).filter((m: ContactMessage) => !m.is_read).map((m: ContactMessage) => m.id);
       if (unreadIds.length > 0) {
-        await supabase
+        const { error: markError } = await supabase
           .from('contact_messages')
           .update({ is_read: true })
           .in('id', unreadIds);
+        if (markError) console.error('Okundu işaretlenemedi:', markError);
       }
     } catch (err: any) {
       toast.error('Mesajlar yüklenemedi: ' + err.message);

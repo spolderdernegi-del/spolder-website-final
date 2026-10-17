@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ const AdminActivities = () => {
     editorTitle: "Faaliyet Sayfası İçeriği",
   });
 
+  const loadFailedRef = useRef(false);
   const load = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -61,10 +62,11 @@ const AdminActivities = () => {
       return;
     }
     try {
-      const { data } = await supabase
+      const { data, error: loadError } = await supabase
         .from("settings")
         .select("key, value")
         .in("key", ["footer_services", "faaliyet_pages"]);
+      if (loadError) throw loadError;
       const map = Object.fromEntries((data || []).map((d: any) => [d.key, d.value]));
       const services = map.footer_services ? parseFooterServices(map.footer_services) : DEFAULT_FOOTER_SERVICES;
       const pages = parseFaaliyetPages(map.faaliyet_pages);
@@ -85,6 +87,9 @@ const AdminActivities = () => {
       );
     } catch (err) {
       console.error("Faaliyetlerimiz yüklenemedi:", err);
+      // Yükleme başarısızsa varsayılan listeyle kaydedip gerçek veriyi ezmeyelim.
+      loadFailedRef.current = true;
+      toast.error("Veriler yüklenemedi. Kaydetmeden önce sayfayı yenileyin.");
     }
     setLoading(false);
   }, [navigate]);
@@ -95,6 +100,7 @@ const AdminActivities = () => {
 
   // Satırları (liste + sayfa içerikleri) sunucuya yazar.
   const persist = async (list: Row[]) => {
+    if (loadFailedRef.current) throw new Error("Veriler yüklenemediği için kaydedilemez; sayfayı yenileyin.");
     const cleaned = list
       .map((r) => ({ ...r, label: r.label.trim(), query: r.query.trim() }))
       .filter((r) => r.label && r.query)

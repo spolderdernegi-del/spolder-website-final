@@ -1,3 +1,4 @@
+import { slugify } from "@/lib/faaliyetler";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -149,16 +150,7 @@ const AdminNews = () => {
       const imageUrl = formData.image;
 
       // Slug oluştur
-      const slug = formData.slug || formData.title
-        .toLowerCase()
-        .replace(/ğ/g, 'g')
-        .replace(/ü/g, 'u')
-        .replace(/ş/g, 's')
-        .replace(/ı/g, 'i')
-        .replace(/ö/g, 'o')
-        .replace(/ç/g, 'c')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+      const slug = formData.slug || slugify(formData.title);
 
       const dataToSave = { 
         baslik: formData.title,

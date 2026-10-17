@@ -66,29 +66,8 @@ const AdminBoard = () => {
         return;
       }
 
-      if (data && data.length > 0) {
-        setMembers(data);
-      } else {
-        // Sadece başkan kaydını oluştur, diğer üyeler admin tarafından eklenecek
-        const defaultPresident: Omit<BoardMember, "id"> = {
-          name: "Prof. Dr. Ahmet Yılmaz",
-          position: PRESIDENT_POSITION,
-          bio: "Spor yönetimi alanında 20 yıllık deneyime sahip.",
-          image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-          order: 1,
-        };
-
-        const { data: inserted, error: insertError } = await supabase
-          .from('board')
-          .insert([defaultPresident])
-          .select('*');
-        
-        if (insertError) {
-          console.error("Insert error:", insertError);
-        } else if (inserted) {
-          setMembers(inserted as BoardMember[]);
-        }
-      }
+      // Kayıt yoksa sahte başkan eklemiyoruz; liste boş görünür, üyeleri admin ekler.
+      setMembers(data || []);
     } catch (error) {
       console.error("Error loading members:", error);
       toast.error("Üyeler yüklenirken hata oluştu");

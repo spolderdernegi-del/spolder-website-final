@@ -101,7 +101,7 @@ const NewsEventsSection = () => {
                   >
                     <div className="relative h-48">
                       {item.gorsel && (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={item.gorsel}
                           alt={item.baslik}
                           className="w-full h-full object-cover"

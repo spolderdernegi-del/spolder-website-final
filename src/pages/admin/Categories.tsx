@@ -83,6 +83,34 @@ const AdminCategories = () => {
           throw error;
         }
         
+        // Ad değiştiyse, bu kategoriyi kullanan içeriklerdeki eski adı da güncelle
+        // (aksi halde içerikler eski adla "kategorisiz" kalır).
+        const oldName = editingCategory.name;
+        const newName = formData.name;
+        const contentTable = formData.type === 'files' ? null : formData.type;
+        if (contentTable && oldName && oldName !== newName) {
+          const singleCol = contentTable === 'news' || contentTable === 'events' ? 'kategori' : 'category';
+          const { error: e1 } = await supabase
+            .from(contentTable)
+            .update({ [singleCol]: newName })
+            .eq(singleCol, oldName);
+          const { data: withArr, error: e2 } = await supabase
+            .from(contentTable)
+            .select('id, categories');
+          if (e1 || e2) {
+            toast.warning('Kategori adı güncellendi ancak bazı içeriklerdeki eski ad güncellenemedi.');
+          } else {
+            for (const row of (withArr || []) as any[]) {
+              if (Array.isArray(row.categories) && row.categories.includes(oldName)) {
+                await supabase
+                  .from(contentTable)
+                  .update({ categories: row.categories.map((c: string) => (c === oldName ? newName : c)) })
+                  .eq('id', row.id);
+              }
+            }
+          }
+        }
+
         toast.success('Kategori güncellendi!');
       } else {
         // Yeni kategori ekle

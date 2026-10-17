@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,12 @@ const ImageUploadField = ({
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+
+  // Değer dışarıdan değiştiğinde (form sıfırlama, kütüphaneden seçim, başka kayıt
+  // düzenleme) eski yerel önizleme gösterilmesin.
+  useEffect(() => {
+    if (!uploading) setImagePreview("");
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

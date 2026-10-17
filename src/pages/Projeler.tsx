@@ -128,7 +128,7 @@ const Projeler = () => {
                 {filteredProjects.map((project) => (
                 <article key={project.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover group">
                   <div className="relative h-52 overflow-hidden">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={project.image}
                       alt={project.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
