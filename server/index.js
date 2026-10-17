@@ -144,6 +144,7 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "organization_lng",
   "footer_services",
   "faaliyet_pages",
+  "faaliyet_posts",
   "welcome_modal",
 ]);
 
@@ -1071,7 +1072,7 @@ app.delete(
       // Ayarlarda saklanan sayfa içerikleri (Faaliyetlerimiz sayfa görseli/metni, açılış penceresi).
       await run(
         `UPDATE settings SET value = regexp_replace(value, $1, $2, 'g') WHERE "key" = ANY($3) AND value LIKE $4`,
-        [regex, DEFAULT_SITE_IMAGE, ["faaliyet_pages", "welcome_modal"], `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
+        [regex, DEFAULT_SITE_IMAGE, ["faaliyet_pages", "faaliyet_posts", "welcome_modal"], `%/uploads/${name.replace(/[\\%_]/g, "\\$&")}%`],
       );
       await client.query("COMMIT");
     } catch (err) {
@@ -1349,12 +1350,26 @@ app.get(
     try {
       const fs_ = await queryDatabase(`SELECT value FROM settings WHERE "key" = 'footer_services'`);
       const list = fs_.rows[0]?.value ? JSON.parse(fs_.rows[0].value) : [];
+      const postsRow = await queryDatabase(`SELECT value FROM settings WHERE "key" = 'faaliyet_posts'`);
+      let postsMap = {};
+      try {
+        postsMap = postsRow.rows[0]?.value ? JSON.parse(postsRow.rows[0].value) : {};
+      } catch {
+        postsMap = {};
+      }
       (Array.isArray(list) ? list : []).forEach((item) => {
         const slug = item?.label ? slugifyTr(item.label) : "";
         if (!slug) return;
         urls.push(
           `  <url>\n    <loc>https://spolder.org/faaliyetlerimiz/${slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
         );
+        const id = item.id || slug;
+        (Array.isArray(postsMap[id]) ? postsMap[id] : []).forEach((post) => {
+          if (!post?.id) return;
+          urls.push(
+            `  <url>\n    <loc>https://spolder.org/faaliyetlerimiz/${slug}/${encodeURIComponent(post.id)}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>`,
+          );
+        });
       });
     } catch (err) {
       console.error("Sitemap: faaliyetler okunamadı:", err.message);

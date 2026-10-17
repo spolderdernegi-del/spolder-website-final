@@ -15,6 +15,35 @@ export interface FaaliyetPage {
   showRelated?: boolean; // altta kategoriye ait yazıları göster (varsayılan: evet)
 }
 
+// Bir faaliyetin altındaki tek tek gönderiler (settings: faaliyet_posts -> { [faaliyetId]: FaaliyetPost[] }).
+// Sitede kart olarak listelenir; karta tıklayınca gönderinin kendi sayfası açılır.
+export interface FaaliyetPost {
+  id: string;
+  title: string;
+  summary?: string; // kartta görünen kısa metin
+  image?: string; // kart ve sayfa görseli
+  content?: string; // editörle yazılan HTML
+  date?: string; // ISO tarih (sıralama ve gösterim)
+}
+
+export const parseFaaliyetPosts = (raw?: string | null): Record<string, FaaliyetPost[]> => {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const out: Record<string, FaaliyetPost[]> = {};
+    Object.entries(parsed).forEach(([key, list]) => {
+      if (Array.isArray(list)) out[key] = list.filter((p: any) => p && p.id && p.title);
+    });
+    return out;
+  } catch {
+    return {};
+  }
+};
+
+export const sortPostsNewestFirst = (list: FaaliyetPost[]) =>
+  [...list].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
 export const serviceId = (service: FooterService) => service.id || slugify(service.label);
 
 export const parseFaaliyetPages = (raw?: string | null): Record<string, FaaliyetPage> => {

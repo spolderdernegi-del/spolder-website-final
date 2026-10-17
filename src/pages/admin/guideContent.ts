@@ -661,24 +661,32 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         type: "steps",
-        title: "Sayfanın içeriğini yazma",
+        title: "Gönderi (kart) ekleme",
         items: [
-          "Satırın yanındaki \"İçerik\" (kalem) düğmesine basın. Yeni eklediğiniz bir öğe için önce \"Listeyi Kaydet\" demelisiniz.",
-          "\"Kısa Açıklama\": sayfanın üstündeki başlığın altında görünen 1-2 cümle.",
-          "\"Üst Görsel\": isteğe bağlı, sayfanın en üstündeki görsel.",
-          "\"Tam Sayfa Düzenle (Word gibi)\": sayfanın metnini Haberler/Projeler'deki aynı editörle yazın.",
-          "\"Sayfanın altında ilgili yazıları göster\" kutusu işaretliyse, yazdığınız kategorilere sahip haber, etkinlik, proje ve blog kartları metnin altında listelenir. Sadece kendi metninizi göstermek için işareti kaldırın.",
-          "\"Kaydet\" düğmesine basın; sayfa hemen yayına girer.",
+          "Satırın yanındaki \"Gönderiler\" düğmesine basın. Yeni eklediğiniz bir öğe için önce başlık ve kategorisini yazıp \"Listeyi Kaydet\" demelisiniz.",
+          "\"Yeni Gönderi\" ile istediğiniz kadar gönderi ekleyebilirsiniz; her biri sitede ayrı bir kart olur.",
+          "\"Başlık\" zorunludur. \"Kısa Açıklama\" kartta görünür, \"Görsel\" kartın ve gönderi sayfasının üst görselidir (isteğe bağlı).",
+          "\"Tam Sayfa Düzenle (Word gibi)\": gönderinin metnini Haberler/Projeler'deki aynı editörle yazın.",
+          "\"Kaydet\" düğmesine basın; gönderi hemen yayına girer. Kartlar yönetim ekranında da kart olarak listelenir; \"Düzenle\" ve çöp kutusu simgesiyle değiştirir veya silersiniz (gönderi silme geri alınamaz).",
+        ],
+      },
+      {
+        type: "steps",
+        title: "Sayfa ayarları",
+        items: [
+          "Gönderiler ekranının altındaki \"Sayfa Ayarları\" bölümünde \"Kısa Açıklama\" (sayfanın üstündeki başlığın altında görünen 1-2 cümle) yazılır.",
+          "\"Gönderilerin altında ilgili yazıları göster\" kutusu işaretliyse, yazdığınız kategorilere sahip haber, etkinlik, proje ve blog kartları gönderilerin altında listelenir.",
+          "\"Ayarları Kaydet\" ile kaydedin.",
         ],
       },
       {
         type: "list",
         title: "Sayfalar nasıl çalışır?",
         items: [
-          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari); sitenin altındaki öğeye tıklayan ziyaretçi buraya gelir.",
+          "Her öğenin kendi sayfası otomatik oluşur (örn. spolder.org/faaliyetlerimiz/egitim-programlari); sitenin altındaki öğeye tıklayan ziyaretçi buraya gelir ve gönderi kartlarını görür. Bir karta tıklayınca o gönderinin tam sayfası açılır.",
           "Satırın yanındaki dış bağlantı simgesi kaydedilmiş sayfayı yeni sekmede açar.",
           "Başlığı değiştirirseniz sayfa adresi de değişir (içerik kaybolmaz); eski adrese gelenler \"Sayfa bulunamadı\" görür.",
-          "Metin de kategori eşleşen yazı da yoksa sayfada \"Henüz içerik yok\" yazar.",
+          "Gönderi de kategori eşleşen yazı da yoksa sayfada \"Henüz içerik yok\" yazar.",
         ],
       },
       {

@@ -34,9 +34,11 @@ Dosyalarda taslak yoktur, kaydedilince yayındadır. Silme **geri alınamaz**.
 kategorisini yeniden adlandırırsanız o kategorideki içerikler de otomatik güncellenir. "Sabit" dosya kategorileri değiştirilemez.
 
 ## Faaliyetlerimiz
-Sitenin alt kısmındaki **Faaliyetlerimiz** bağlantıları (en fazla 5) buradan yönetilir. Her öğe için ayrı bir sayfa açılır
-(`/faaliyetlerimiz/öğe-adı`): özet, görsel ve doğrudan içerik girilir; isteğe bağlı olarak aynı kategorideki
-haber/etkinlik/proje/blog kartları sayfanın altında listelenir. Kategori adlarını Kategoriler sayfasındaki yazımla aynı yazın.
+Sitenin alt kısmındaki **Faaliyetlerimiz** bağlantıları (en fazla 5) buradan yönetilir. Her öğenin kendi sayfası vardır
+(`/faaliyetlerimiz/öğe-adı`). Öğenin yanındaki **Gönderiler** düğmesiyle istediğiniz kadar **gönderi (kart)** ekleyin:
+başlık, kısa açıklama, görsel ve editörle yazılan içerik. Sayfada her gönderi kart olarak görünür; karta tıklayan
+ziyaretçi gönderinin tam sayfasını (`/faaliyetlerimiz/öğe-adı/gönderi`) görür. İsteğe bağlı olarak aynı kategorideki
+haber/etkinlik/proje/blog kartları da altta listelenir. Kategori adlarını Kategoriler sayfasındaki yazımla aynı yazın.
 
 ## İletişim Mesajları
 Siteden gelen mesajlar listelenir ve açıldığında okundu işaretlenir. Mesaj silme geri alınamaz.

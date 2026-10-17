@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DOMPurify from "dompurify";
 import { Link, useParams } from "react-router-dom";
 import { Loader } from "lucide-react";
+import { formatDate } from "@/lib/formatDate";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,11 @@ import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryCol
 import {
   DEFAULT_FOOTER_SERVICES,
   FaaliyetPage,
+  FaaliyetPost,
   FooterService,
   parseFaaliyetPages,
+  parseFaaliyetPosts,
+  sortPostsNewestFirst,
   parseFooterServices,
   serviceId,
   slugify,
@@ -37,6 +41,7 @@ const Faaliyet = () => {
   const { slug = "" } = useParams();
   const [service, setService] = useState<FooterService | null | undefined>(undefined);
   const [page, setPage] = useState<FaaliyetPage>({});
+  const [posts, setPosts] = useState<FaaliyetPost[]>([]);
   const [items, setItems] = useState<FaaliyetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const categoryColors = useCategoryColors();
@@ -48,11 +53,12 @@ const Faaliyet = () => {
       setLoading(true);
       setItems([]);
       setPage({});
+      setPosts([]);
 
       const { data } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["footer_services", "faaliyet_pages"]);
+        .in("key", ["footer_services", "faaliyet_pages", "faaliyet_posts"]);
       const map = Object.fromEntries((data || []).map((d: any) => [d.key, d.value]));
       const list = map.footer_services ? parseFooterServices(map.footer_services) : DEFAULT_FOOTER_SERVICES;
       const found = list.find((s) => slugify(s.label) === slug) || null;
@@ -64,6 +70,7 @@ const Faaliyet = () => {
       }
       const pageData = parseFaaliyetPages(map.faaliyet_pages)[serviceId(found)] || {};
       setPage(pageData);
+      setPosts(sortPostsNewestFirst(parseFaaliyetPosts(map.faaliyet_posts)[serviceId(found)] || []));
       if (pageData.showRelated === false) {
         setLoading(false);
         return;
@@ -156,7 +163,46 @@ const Faaliyet = () => {
           </section>
         )}
 
-        {!loading && service && (page.image || page.content) && (
+        {/* Gönderiler: kart kart; karta tıklayınca gönderinin kendi sayfası açılır */}
+        {!loading && service && posts.length > 0 && (
+          <section className="section-padding">
+            <div className="container-custom mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {posts.map((post) => (
+                  <article key={post.id} className="bg-card rounded-lg overflow-hidden shadow-card card-hover group">
+                    <Link to={`/faaliyetlerimiz/${slug}/${post.id}`} className="block">
+                      <div className="relative h-52 overflow-hidden">
+                        <img
+                          src={post.image || "/varsayilan-gorsel.png"}
+                          alt={post.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-anthracite/60 to-transparent" />
+                      </div>
+                    </Link>
+                    <div className="p-6">
+                      {post.date && <p className="text-xs text-muted-foreground mb-2">{formatDate(post.date)}</p>}
+                      <Link to={`/faaliyetlerimiz/${slug}/${post.id}`}>
+                        <h3 className="font-display font-bold text-lg text-foreground mb-2 group-hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
+                      </Link>
+                      {post.summary && <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{post.summary}</p>}
+                      <Link to={`/faaliyetlerimiz/${slug}/${post.id}`} className="text-primary text-sm font-medium">
+                        Devamını Oku
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Eski tek-sayfa içeriği (henüz gönderiye çevrilmemişse) */}
+        {!loading && service && posts.length === 0 && (page.image || page.content) && (
           <section className="section-padding">
             <div className="container-custom mx-auto max-w-4xl">
               {page.image && (
@@ -174,7 +220,7 @@ const Faaliyet = () => {
           </section>
         )}
 
-        {!loading && service && items.length === 0 && !page.image && !page.content && (
+        {!loading && service && items.length === 0 && posts.length === 0 && !page.image && !page.content && (
           <section className="section-padding">
             <div className="container-custom mx-auto text-center">
               <h3 className="text-xl font-bold text-foreground mb-2">Henüz içerik yok</h3>
@@ -186,7 +232,7 @@ const Faaliyet = () => {
         {!loading && items.length > 0 && (
           <section className="section-padding">
             <div className="container-custom mx-auto">
-              {(page.image || page.content) && (
+              {(posts.length > 0 || page.image || page.content) && (
                 <h2 className="font-display text-2xl font-bold text-foreground mb-6">İlgili İçerikler</h2>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

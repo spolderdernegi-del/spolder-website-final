@@ -6,53 +6,76 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ImageUploadField from "@/components/admin/ImageUploadField";
 import { useContentEditorHandoff } from "@/hooks/useContentEditorHandoff";
-import { ArrowLeft, ExternalLink, FileEdit, Pencil, Plus, Save, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileEdit, FolderOpen, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { formatDate } from "@/lib/formatDate";
 import {
   DEFAULT_FOOTER_SERVICES,
   FOOTER_SERVICES_MAX,
   FaaliyetPage,
+  FaaliyetPost,
   faaliyetPath,
   parseFaaliyetPages,
+  parseFaaliyetPosts,
   parseFooterServices,
   serviceId,
   slugify,
+  sortPostsNewestFirst,
 } from "@/lib/faaliyetler";
 
-// Yönetim ekranındaki bir satır: liste bilgisi + sayfa içeriği bir arada.
+// Yönetim ekranındaki bir satır: liste bilgisi + sayfa ayarları.
 interface Row {
   id: string;
   label: string;
   query: string;
-  summary: string;
-  image: string;
-  content: string;
-  showRelated: boolean;
+  summary: string; // sayfanın üstündeki kısa açıklama
+  showRelated: boolean; // altta kategoriye ait haber/etkinlik/proje/blog göster
 }
 
+// Gönderi formu (activityId: hangi faaliyete ait; tam sayfa editörden dönüşte de korunur).
+interface PostForm extends FaaliyetPost {
+  activityId: string;
+}
+
+type PostsMap = Record<string, FaaliyetPost[]>;
+
 const newId = () => `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const emptyPost = (activityId: string): PostForm => ({
+  activityId,
+  id: "",
+  title: "",
+  summary: "",
+  image: "",
+  content: "",
+  date: "",
+});
 
 const AdminActivities = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
+  const [posts, setPosts] = useState<PostsMap>({});
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [formData, setFormData] = useState<Row>({
-    id: "", label: "", query: "", summary: "", image: "", content: "", showRelated: true,
-  });
+  const [editingPost, setEditingPost] = useState<number | null>(null); // -1: yeni, >=0: listedeki sıra
+  const [formData, setFormData] = useState<PostForm>(emptyPost(""));
 
-  const { openFullEditor } = useContentEditorHandoff<Row>({
-    storageKey: "activities",
+  const { openFullEditor } = useContentEditorHandoff<PostForm>({
+    storageKey: "activity-posts",
     formData,
     setFormData,
     showForm,
     setShowForm,
-    editingId: editingIndex,
-    setEditingId: setEditingIndex,
-    editorTitle: "Faaliyet Sayfası İçeriği",
+    editingId: editingPost,
+    setEditingId: setEditingPost,
+    editorTitle: "Faaliyet Gönderisi İçeriği",
   });
+
+  // Tam sayfa editörden dönünce hangi faaliyetin gönderisi olduğunu geri seç.
+  useEffect(() => {
+    if (showForm && formData.activityId && !selectedId) setSelectedId(formData.activityId);
+  }, [showForm, formData.activityId, selectedId]);
 
   const loadFailedRef = useRef(false);
   const load = useCallback(async () => {
@@ -65,26 +88,37 @@ const AdminActivities = () => {
       const { data, error: loadError } = await supabase
         .from("settings")
         .select("key, value")
-        .in("key", ["footer_services", "faaliyet_pages"]);
+        .in("key", ["footer_services", "faaliyet_pages", "faaliyet_posts"]);
       if (loadError) throw loadError;
       const map = Object.fromEntries((data || []).map((d: any) => [d.key, d.value]));
       const services = map.footer_services ? parseFooterServices(map.footer_services) : DEFAULT_FOOTER_SERVICES;
       const pages = parseFaaliyetPages(map.faaliyet_pages);
-      setRows(
-        services.map((s) => {
-          const id = serviceId(s);
-          const page: FaaliyetPage = pages[id] || {};
-          return {
-            id,
-            label: s.label,
-            query: s.query,
-            summary: page.summary || "",
-            image: page.image || "",
-            content: page.content || "",
-            showRelated: page.showRelated !== false,
-          };
-        }),
-      );
+      const savedPosts = parseFaaliyetPosts(map.faaliyet_posts);
+
+      const nextPosts: PostsMap = {};
+      const nextRows: Row[] = services.map((s) => {
+        const id = serviceId(s);
+        const page: FaaliyetPage = pages[id] || {};
+        let list = savedPosts[id] || [];
+        // Eski tek-sayfa içeriği (metin/görsel) varsa, ilk gönderi olarak taşı.
+        // Kaydedilene kadar yalnızca bu ekranda görünür; siteyi bozmaz.
+        if (list.length === 0 && (page.content || page.image)) {
+          list = [
+            {
+              id: newId(),
+              title: s.label,
+              summary: page.summary || "",
+              image: page.image || "",
+              content: page.content || "",
+              date: new Date().toISOString(),
+            },
+          ];
+        }
+        nextPosts[id] = list;
+        return { id, label: s.label, query: s.query, summary: page.summary || "", showRelated: page.showRelated !== false };
+      });
+      setRows(nextRows);
+      setPosts(nextPosts);
     } catch (err) {
       console.error("Faaliyetlerimiz yüklenemedi:", err);
       // Yükleme başarısızsa varsayılan listeyle kaydedip gerçek veriyi ezmeyelim.
@@ -98,8 +132,8 @@ const AdminActivities = () => {
     load();
   }, [load]);
 
-  // Satırları (liste + sayfa içerikleri) sunucuya yazar.
-  const persist = async (list: Row[]) => {
+  // Liste + sayfa ayarları + gönderileri sunucuya yazar.
+  const persist = async (list: Row[], postsMap: PostsMap) => {
     if (loadFailedRef.current) throw new Error("Veriler yüklenemediği için kaydedilemez; sayfayı yenileyin.");
     const cleaned = list
       .map((r) => ({ ...r, label: r.label.trim(), query: r.query.trim() }))
@@ -118,82 +152,108 @@ const AdminActivities = () => {
 
     const services = cleaned.map((r) => ({ id: r.id, label: r.label, query: r.query }));
     const pages: Record<string, FaaliyetPage> = {};
+    const postsOut: PostsMap = {};
     cleaned.forEach((r) => {
-      pages[r.id] = { summary: r.summary, image: r.image, content: r.content, showRelated: r.showRelated };
+      pages[r.id] = { summary: r.summary, showRelated: r.showRelated };
+      postsOut[r.id] = (postsMap[r.id] || []).filter((p) => p.title.trim());
     });
 
     const now = new Date().toISOString();
-    const a = await supabase
-      .from("settings")
-      .upsert({ key: "footer_services", value: JSON.stringify(services), updated_at: now }, { onConflict: "key" });
-    if (a.error) throw a.error;
-    const b = await supabase
-      .from("settings")
-      .upsert({ key: "faaliyet_pages", value: JSON.stringify(pages), updated_at: now }, { onConflict: "key" });
-    if (b.error) throw b.error;
+    const entries = [
+      { key: "footer_services", value: JSON.stringify(services) },
+      { key: "faaliyet_pages", value: JSON.stringify(pages) },
+      { key: "faaliyet_posts", value: JSON.stringify(postsOut) },
+    ];
+    for (const e of entries) {
+      const res = await supabase.from("settings").upsert({ ...e, updated_at: now }, { onConflict: "key" });
+      if (res.error) throw res.error;
+    }
     return cleaned;
   };
 
-  const saveList = async () => {
+  const run = async (list: Row[], postsMap: PostsMap, successMessage: string) => {
     setSaving(true);
     try {
-      const cleaned = await persist(rows);
+      const cleaned = await persist(list, postsMap);
       if (cleaned) {
         setRows(cleaned);
-        toast.success("Faaliyetlerimiz güncellendi.");
+        setPosts(postsMap);
+        toast.success(successMessage);
+        return true;
       }
     } catch (err: any) {
       toast.error("Kaydedilemedi: " + (err?.message || "bilinmeyen hata"));
     } finally {
       setSaving(false);
     }
+    return false;
   };
 
-  const updateRow = (index: number, field: "label" | "query", value: string) =>
-    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+  const saveAll = () => run(rows, posts, "Faaliyetlerimiz güncellendi.");
+
+  const updateRow = (index: number, patch: Partial<Row>) =>
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
 
   const addRow = () => {
     if (rows.length >= FOOTER_SERVICES_MAX) {
       toast.warning(`En fazla ${FOOTER_SERVICES_MAX} öğe eklenebilir`);
       return;
     }
-    setRows((prev) => [
-      ...prev,
-      { id: newId(), label: "", query: "", summary: "", image: "", content: "", showRelated: true },
-    ]);
+    setRows((prev) => [...prev, { id: newId(), label: "", query: "", summary: "", showRelated: true }]);
   };
 
-  const removeRow = (index: number) => setRows((prev) => prev.filter((_, i) => i !== index));
-
-  const openEdit = (index: number) => {
-    setEditingIndex(index);
-    setFormData(rows[index]);
-    setShowForm(true);
+  const removeRow = (index: number) => {
+    const row = rows[index];
+    const count = posts[row.id]?.length || 0;
+    if (count > 0 && !window.confirm(`"${row.label || "Bu öğe"}" altındaki ${count} gönderi de silinecek. Devam edilsin mi?`)) return;
+    setRows((prev) => prev.filter((_, i) => i !== index));
+    if (selectedId === row.id) closeAll();
   };
 
   const closeForm = () => {
     setShowForm(false);
-    setEditingIndex(null);
+    setEditingPost(null);
   };
 
-  // Sayfa içeriği formundaki "Kaydet": o satırı günceller ve tüm listeyi hemen kaydeder.
-  const submitForm = async (e: React.FormEvent) => {
+  const closeAll = () => {
+    closeForm();
+    setSelectedId(null);
+  };
+
+  const openNewPost = (activityId: string) => {
+    setFormData(emptyPost(activityId));
+    setEditingPost(-1);
+    setShowForm(true);
+  };
+
+  const openEditPost = (activityId: string, index: number) => {
+    setFormData({ ...(posts[activityId][index] as FaaliyetPost), activityId });
+    setEditingPost(index);
+    setShowForm(true);
+  };
+
+  const submitPost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingIndex === null) return;
-    const next = rows.map((r, i) => (i === editingIndex ? { ...formData, label: r.label, query: r.query } : r));
-    setSaving(true);
-    try {
-      const cleaned = await persist(next);
-      if (cleaned) {
-        setRows(next);
-        toast.success("Sayfa içeriği kaydedildi.");
-        closeForm();
-      }
-    } catch (err: any) {
-      toast.error("Kaydedilemedi: " + (err?.message || "bilinmeyen hata"));
-    } finally {
-      setSaving(false);
+    if (!formData.title.trim()) {
+      toast.warning("Gönderi başlığı gerekli");
+      return;
     }
+    const { activityId, ...rest } = formData;
+    const list = [...(posts[activityId] || [])];
+    if (editingPost !== null && editingPost >= 0 && list[editingPost]) {
+      list[editingPost] = { ...rest, title: rest.title.trim() };
+    } else {
+      list.push({ ...rest, id: newId(), title: rest.title.trim(), date: new Date().toISOString() });
+    }
+    const ok = await run(rows, { ...posts, [activityId]: list }, "Gönderi kaydedildi.");
+    if (ok) closeForm();
+  };
+
+  const deletePost = async (activityId: string, index: number) => {
+    const post = posts[activityId][index];
+    if (!window.confirm(`"${post.title}" gönderisi silinsin mi? Bu işlem geri alınamaz.`)) return;
+    const list = posts[activityId].filter((_, i) => i !== index);
+    await run(rows, { ...posts, [activityId]: list }, "Gönderi silindi.");
   };
 
   if (loading) {
@@ -204,155 +264,261 @@ const AdminActivities = () => {
     );
   }
 
-  const editingRow = editingIndex !== null ? rows[editingIndex] : null;
+  const selectedIndex = rows.findIndex((r) => r.id === selectedId);
+  const selectedRow = selectedIndex >= 0 ? rows[selectedIndex] : null;
+  const selectedPosts = selectedRow ? sortPostsNewestFirst(posts[selectedRow.id] || []) : [];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <header className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
         <div className="container-custom mx-auto px-4 py-4 flex items-center gap-4">
-          <Link to="/admin">
-            <Button variant="outline" size="sm">
+          {selectedRow ? (
+            <Button variant="outline" size="sm" onClick={closeAll}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Geri
+              Faaliyet Listesi
             </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Faaliyetlerimiz</h1>
+          ) : (
+            <Link to="/admin">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Geri
+              </Button>
+            </Link>
+          )}
+          <h1 className="text-2xl font-bold text-foreground">
+            {selectedRow ? `Faaliyetlerimiz › ${selectedRow.label}` : "Faaliyetlerimiz"}
+          </h1>
         </div>
       </header>
 
       <main className="container-custom mx-auto px-4 py-8 space-y-6">
-        {showForm && editingRow && (
-          <form
-            onSubmit={submitForm}
-            className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5"
-          >
-            <h2 className="text-xl font-bold text-foreground">Sayfa İçeriği: {editingRow.label || "Yeni öğe"}</h2>
+        {/* ---- Seçili faaliyetin gönderileri ---- */}
+        {selectedRow && (
+          <>
+            {showForm && (
+              <form
+                onSubmit={submitPost}
+                className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5"
+              >
+                <h2 className="text-xl font-bold text-foreground">
+                  {editingPost !== null && editingPost >= 0 ? "Gönderiyi Düzenle" : "Yeni Gönderi"}
+                </h2>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Kısa Açıklama</label>
-              <Textarea
-                value={formData.summary}
-                onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                placeholder="Sayfanın üstündeki başlığın altında görünecek 1-2 cümle"
-                rows={2}
-              />
-            </div>
-
-            <ImageUploadField
-              label="Üst Görsel (Opsiyonel)"
-              value={formData.image}
-              onChange={(value) => setFormData({ ...formData, image: value })}
-              aspectRatio={16 / 9}
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Sayfa İçeriği</label>
-              <div className="border rounded-md p-4 bg-muted/30">
-                <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
-                  {formData.content
-                    ? formData.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) +
-                      (formData.content.length > 220 ? "…" : "")
-                    : <span className="italic">Henüz içerik girilmedi.</span>}
-                </p>
-                <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
-                  <FileEdit className="w-4 h-4" />
-                  Tam Sayfa Düzenle (Word gibi)
-                </Button>
-              </div>
-            </div>
-
-            <label className="flex items-start gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={formData.showRelated}
-                onChange={(e) => setFormData({ ...formData, showRelated: e.target.checked })}
-              />
-              <span>
-                Sayfanın altında, "{editingRow.query}" kategorisindeki haber, etkinlik, proje ve blog yazılarını da göster
-              </span>
-            </label>
-
-            <div className="flex gap-2">
-              <Button type="submit" disabled={saving} className="flex items-center gap-2">
-                <Save className="w-4 h-4" />
-                {saving ? "Kaydediliyor..." : "Kaydet"}
-              </Button>
-              <Button type="button" variant="outline" onClick={closeForm}>
-                Vazgeç
-              </Button>
-            </div>
-          </form>
-        )}
-
-        <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-          <p className="text-sm text-muted-foreground mb-4">
-            Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğenin kendi sayfası vardır
-            (örn. /faaliyetlerimiz/egitim-programlari). Sayfanın metnini kalem simgesiyle yazarsınız; isterseniz
-            altında, yazdığınız kategorilere sahip haber, etkinlik, proje ve blog yazıları da listelenir. Birden fazla
-            kategori için virgülle ayırın (örn. Eğitim, Spor). En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir.
-            Başlığı değiştirirseniz sayfa adresi de değişir.
-          </p>
-
-          <div className="space-y-3">
-            {rows.map((item, index) => (
-              <div key={item.id} className="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
-                <div className="flex-1 w-full">
-                  <label className="block text-xs text-muted-foreground mb-1">Görünen Başlık</label>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Başlık *</label>
                   <Input
-                    value={item.label}
-                    onChange={(e) => updateRow(index, "label", e.target.value)}
-                    placeholder="Örn. Eğitim Programları"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Örn. 2026 Bahar Dönemi Antrenör Eğitimi"
                   />
                 </div>
-                <div className="flex-1 w-full">
-                  <label className="block text-xs text-muted-foreground mb-1">Kategoriler (virgülle ayırın)</label>
-                  <Input
-                    value={item.query}
-                    onChange={(e) => updateRow(index, "query", e.target.value)}
-                    placeholder="Örn. Eğitim, Spor"
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Kısa Açıklama (kartta görünür)</label>
+                  <Textarea
+                    value={formData.summary || ""}
+                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    rows={2}
                   />
                 </div>
-                <div className="flex items-center gap-2 mt-5 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    className="gap-1"
-                    onClick={() => openEdit(index)}
-                    title="Sayfa içeriğini düzenle"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    İçerik
+
+                <ImageUploadField
+                  label="Görsel (Opsiyonel)"
+                  value={formData.image || ""}
+                  onChange={(value) => setFormData({ ...formData, image: value })}
+                  aspectRatio={16 / 9}
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">İçerik</label>
+                  <div className="border rounded-md p-4 bg-muted/30">
+                    <p className="text-sm text-muted-foreground min-h-[40px] whitespace-pre-wrap">
+                      {formData.content
+                        ? formData.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) +
+                          (formData.content.length > 220 ? "…" : "")
+                        : <span className="italic">Henüz içerik girilmedi.</span>}
+                    </p>
+                    <Button type="button" variant="outline" size="sm" className="mt-3 gap-2" onClick={openFullEditor}>
+                      <FileEdit className="w-4 h-4" />
+                      Tam Sayfa Düzenle (Word gibi)
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={saving} className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    {saving ? "Kaydediliyor..." : "Kaydet"}
                   </Button>
-                  {item.label.trim() && (
-                    <a href={faaliyetPath(item)} target="_blank" rel="noopener noreferrer" title="Sayfayı aç (kaydedilmiş hâli)">
-                      <Button variant="outline" size="icon" type="button">
+                  <Button type="button" variant="outline" onClick={closeForm}>
+                    Vazgeç
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Gönderiler ({selectedPosts.length})</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Bu faaliyetin sayfasında kart olarak listelenir; karta tıklayan ziyaretçi gönderinin tam sayfasını görür.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {selectedRow.label.trim() && (
+                    <a href={faaliyetPath(selectedRow)} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" type="button" className="gap-2">
                         <ExternalLink className="w-4 h-4" />
+                        Sayfayı Aç
                       </Button>
                     </a>
                   )}
-                  <Button variant="outline" size="icon" type="button" onClick={() => removeRow(index)} title="Bu öğeyi kaldır">
-                    <X className="w-4 h-4" />
+                  <Button size="sm" type="button" className="gap-2" onClick={() => openNewPost(selectedRow.id)}>
+                    <Plus className="w-4 h-4" />
+                    Yeni Gönderi
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <Button variant="outline" onClick={addRow} disabled={rows.length >= FOOTER_SERVICES_MAX} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Öğe Ekle ({rows.length}/{FOOTER_SERVICES_MAX})
-            </Button>
-            <Button onClick={saveList} disabled={saving}>
-              {saving ? "Kaydediliyor..." : "Listeyi Kaydet"}
-            </Button>
+              {selectedPosts.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic py-6 text-center">Henüz gönderi eklenmedi.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {selectedPosts.map((post) => {
+                    const realIndex = (posts[selectedRow.id] || []).findIndex((p) => p.id === post.id);
+                    return (
+                      <div key={post.id} className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 flex flex-col">
+                        <div className="h-36 bg-slate-200 dark:bg-slate-700">
+                          <img
+                            src={post.image || "/varsayilan-gorsel.png"}
+                            alt={post.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col">
+                          <h3 className="font-semibold text-foreground line-clamp-2">{post.title}</h3>
+                          {post.summary && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.summary}</p>}
+                          {post.date && <p className="text-xs text-muted-foreground mt-2">{formatDate(post.date)}</p>}
+                          <div className="flex gap-2 mt-4 pt-3">
+                            <Button variant="outline" size="sm" type="button" className="gap-1" onClick={() => openEditPost(selectedRow.id, realIndex)}>
+                              <Pencil className="w-4 h-4" />
+                              Düzenle
+                            </Button>
+                            <Button variant="outline" size="icon" type="button" title="Sil" onClick={() => deletePost(selectedRow.id, realIndex)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+              <h2 className="text-lg font-bold text-foreground">Sayfa Ayarları</h2>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Kısa Açıklama</label>
+                <Textarea
+                  value={selectedRow.summary}
+                  onChange={(e) => updateRow(selectedIndex, { summary: e.target.value })}
+                  placeholder="Sayfanın üstündeki başlığın altında görünecek 1-2 cümle"
+                  rows={2}
+                />
+              </div>
+              <label className="flex items-start gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={selectedRow.showRelated}
+                  onChange={(e) => updateRow(selectedIndex, { showRelated: e.target.checked })}
+                />
+                <span>
+                  Gönderilerin altında, "{selectedRow.query}" kategorisindeki haber, etkinlik, proje ve blog yazılarını da göster
+                </span>
+              </label>
+              <Button onClick={saveAll} disabled={saving}>
+                {saving ? "Kaydediliyor..." : "Ayarları Kaydet"}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* ---- Faaliyet listesi ---- */}
+        {!selectedRow && (
+          <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+            <p className="text-sm text-muted-foreground mb-4">
+              Sitenin en altında (footer) görünen "Faaliyetlerimiz" listesi. Her öğenin kendi sayfası vardır
+              (örn. /faaliyetlerimiz/egitim-programlari). "Gönderiler" ile o sayfaya istediğiniz kadar kart
+              ekleyebilirsiniz; her kartın kendi sayfası olur. İsterseniz sayfanın altında, yazdığınız kategorilere
+              sahip haber, etkinlik, proje ve blog yazıları da listelenir. Birden fazla kategori için virgülle
+              ayırın (örn. Eğitim, Spor). En fazla {FOOTER_SERVICES_MAX} öğe eklenebilir. Başlığı değiştirirseniz
+              sayfa adresi de değişir.
+            </p>
+
+            <div className="space-y-3">
+              {rows.map((item, index) => (
+                <div key={item.id} className="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs text-muted-foreground mb-1">Görünen Başlık</label>
+                    <Input
+                      value={item.label}
+                      onChange={(e) => updateRow(index, { label: e.target.value })}
+                      placeholder="Örn. Eğitim Programları"
+                    />
+                  </div>
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs text-muted-foreground mb-1">Kategoriler (virgülle ayırın)</label>
+                    <Input
+                      value={item.query}
+                      onChange={(e) => updateRow(index, { query: e.target.value })}
+                      placeholder="Örn. Eğitim, Spor"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mt-5 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      className="gap-1"
+                      onClick={() => setSelectedId(item.id)}
+                      title="Bu faaliyetin gönderilerini yönet"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      Gönderiler ({posts[item.id]?.length || 0})
+                    </Button>
+                    {item.label.trim() && (
+                      <a href={faaliyetPath(item)} target="_blank" rel="noopener noreferrer" title="Sayfayı aç (kaydedilmiş hâli)">
+                        <Button variant="outline" size="icon" type="button">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </a>
+                    )}
+                    <Button variant="outline" size="icon" type="button" onClick={() => removeRow(index)} title="Bu öğeyi kaldır">
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <Button variant="outline" onClick={addRow} disabled={rows.length >= FOOTER_SERVICES_MAX} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Öğe Ekle ({rows.length}/{FOOTER_SERVICES_MAX})
+              </Button>
+              <Button onClick={saveAll} disabled={saving}>
+                {saving ? "Kaydediliyor..." : "Listeyi Kaydet"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Yeni eklediğiniz bir öğenin gönderilerini eklemeden önce başlık ve kategorisini yazıp "Listeyi Kaydet"e basın.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            Yeni eklediğiniz bir öğenin içeriğini yazmadan önce "Listeyi Kaydet"e basın.
-          </p>
-        </div>
+        )}
       </main>
     </div>
   );
