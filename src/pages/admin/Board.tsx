@@ -24,6 +24,7 @@ import { Plus, Edit, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import ImageUploadField from "@/components/admin/ImageUploadField";
+import { logActivity } from "@/lib/activityLog";
 
 interface BoardMember {
   id: number;
@@ -89,6 +90,7 @@ const AdminBoard = () => {
           throw error;
         }
         
+        logActivity('update', 'board', formData.name);
         toast.success('Üye güncellendi!');
       } else {
         // Yeni üye ekle
@@ -100,6 +102,7 @@ const AdminBoard = () => {
           throw error;
         }
         
+        logActivity('create', 'board', formData.name);
         toast.success('Üye eklendi!');
       }
 
@@ -141,6 +144,7 @@ const AdminBoard = () => {
           throw error;
         }
         
+        logActivity('delete', 'board', member?.name || 'Üye');
         toast.success('Üye silindi!');
         loadMembers();
       } catch (error: any) {

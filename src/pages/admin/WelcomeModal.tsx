@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { logActivity } from "@/lib/activityLog";
 
 interface WelcomeModalContent {
   title: string;
@@ -92,6 +93,7 @@ const AdminWelcomeModal = () => {
           { onConflict: "key" }
         );
       if (error) throw error;
+      logActivity("update", "welcome-modal", "Hoş geldiniz pop-up'ı");
       toast.success("Hoş geldiniz pop-up içeriği güncellendi. Ziyaretçiler artık yeni metni görecek.");
     } catch (error: any) {
       toast.error("Hata: " + (error?.message || "Kaydedilemedi"));

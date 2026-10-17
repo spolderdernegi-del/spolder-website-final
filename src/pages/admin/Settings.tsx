@@ -86,9 +86,8 @@ const AdminSettings = () => {
     }
   };
 
-  const loadActivityLogs = () => {
-    const logs = getActivityLogs(50);
-    setActivityLogs(logs);
+  const loadActivityLogs = async () => {
+    setActivityLogs(await getActivityLogs(50));
   };
 
   const loadCurrentEmail = async () => {

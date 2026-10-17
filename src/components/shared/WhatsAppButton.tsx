@@ -1,13 +1,46 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+// Ayarlarda telefon girilmemişse veya anlaşılamıyorsa kullanılan numara.
+const FALLBACK_WHATSAPP = "905423045073";
+
+// "0542 304 50 73", "+90 542 304 50 73", "542 304 50 73" gibi yazımları wa.me biçimine
+// (ülke kodlu, yalnızca rakam) çevirir. Geçerli bir cep numarası çıkmazsa null döner.
+const toWhatsAppNumber = (raw: string | null | undefined): string | null => {
+  const digits = (raw || "").replace(/\D/g, "");
+  if (/^905\d{9}$/.test(digits)) return digits;
+  if (/^05\d{9}$/.test(digits)) return "9" + digits;
+  if (/^5\d{9}$/.test(digits)) return "90" + digits;
+  return null;
+};
 
 // Yönetim panelinde gösterilmez (kaydet butonlarının üstüne biniyordu).
+// Numara, Ayarlar → İletişim Bilgileri'ndeki telefondan alınır.
 const WhatsAppButton = () => {
   const { pathname } = useLocation();
+  const [number, setNumber] = useState(FALLBACK_WHATSAPP);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("settings")
+      .select("key, value")
+      .eq("key", "contact_phone")
+      .then(({ data }: any) => {
+        const parsed = toWhatsAppNumber(data?.[0]?.value);
+        if (!cancelled && parsed) setNumber(parsed);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (pathname.startsWith("/admin")) return null;
 
   return (
     <a
-      href="https://wa.me/905423045073"
+      href={`https://wa.me/${number}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"

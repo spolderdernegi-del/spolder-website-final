@@ -9,6 +9,7 @@ import { useContentEditorHandoff } from "@/hooks/useContentEditorHandoff";
 import { ArrowLeft, ExternalLink, FileEdit, FolderOpen, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatDate } from "@/lib/formatDate";
+import { logActivity } from "@/lib/activityLog";
 import {
   DEFAULT_FOOTER_SERVICES,
   FOOTER_SERVICES_MAX,
@@ -171,7 +172,7 @@ const AdminActivities = () => {
     return cleaned;
   };
 
-  const run = async (list: Row[], postsMap: PostsMap, successMessage: string) => {
+  const run = async (list: Row[], postsMap: PostsMap, successMessage: string, logTitle = "Faaliyetlerimiz", logAction: "update" | "create" | "delete" = "update") => {
     setSaving(true);
     try {
       const cleaned = await persist(list, postsMap);
@@ -179,6 +180,7 @@ const AdminActivities = () => {
         setRows(cleaned);
         setPosts(postsMap);
         toast.success(successMessage);
+        logActivity(logAction, "activity", logTitle);
         return true;
       }
     } catch (err: any) {
@@ -245,7 +247,8 @@ const AdminActivities = () => {
     } else {
       list.push({ ...rest, id: newId(), title: rest.title.trim(), date: new Date().toISOString() });
     }
-    const ok = await run(rows, { ...posts, [activityId]: list }, "Gönderi kaydedildi.");
+    const isNew = !(editingPost !== null && editingPost >= 0);
+    const ok = await run(rows, { ...posts, [activityId]: list }, "Gönderi kaydedildi.", formData.title.trim(), isNew ? "create" : "update");
     if (ok) closeForm();
   };
 
@@ -253,7 +256,7 @@ const AdminActivities = () => {
     const post = posts[activityId][index];
     if (!window.confirm(`"${post.title}" gönderisi silinsin mi? Bu işlem geri alınamaz.`)) return;
     const list = posts[activityId].filter((_, i) => i !== index);
-    await run(rows, { ...posts, [activityId]: list }, "Gönderi silindi.");
+    await run(rows, { ...posts, [activityId]: list }, "Gönderi silindi.", post.title, "delete");
   };
 
   if (loading) {

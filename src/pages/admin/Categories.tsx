@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, Tag } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { logActivity } from "@/lib/activityLog";
 
 interface Category {
   id: number;
@@ -111,6 +112,7 @@ const AdminCategories = () => {
           }
         }
 
+        logActivity('update', 'category', formData.name);
         toast.success('Kategori güncellendi!');
       } else {
         // Yeni kategori ekle
@@ -122,6 +124,7 @@ const AdminCategories = () => {
           throw error;
         }
         
+        logActivity('create', 'category', formData.name);
         toast.success('Kategori eklendi!');
       }
 
@@ -176,6 +179,7 @@ const AdminCategories = () => {
         throw error;
       }
       
+      logActivity('delete', 'category', category.name);
       toast.success('Kategori silindi!');
       fetchCategories();
     } catch (error: any) {

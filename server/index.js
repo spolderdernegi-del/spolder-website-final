@@ -979,6 +979,83 @@ app.post(
   }),
 );
 
+// --- Yönetim işlem günlüğü ---------------------------------------------------
+// Admin panelinde kimin neyi eklediği/güncellediği/sildiği. Eskiden yalnızca
+// o tarayıcının localStorage'ında tutuluyordu (başka cihazda/tarayıcıda görünmez,
+// kullanıcı adı sahteydi). Artık veritabanında, oturumdaki gerçek e-posta ile tutulur.
+const ACTIVITY_ACTIONS = new Set(["create", "update", "delete", "publish", "unpublish"]);
+const ACTIVITY_TYPES = new Set(["event", "news", "blog", "project", "file", "category", "welcome-modal", "activity", "board", "settings"]);
+const ACTIVITY_KEEP_ROWS = 1000;
+let activityLogEnabled = false;
+
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id BIGSERIAL PRIMARY KEY,
+        action TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        content_title TEXT NOT NULL DEFAULT '',
+        user_email TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`);
+    activityLogEnabled = true;
+  } catch (err) {
+    console.warn(
+      "İşlem günlüğü kapalı: activity_log tablosu oluşturulamadı (" + err.message + "). " +
+        "SQL'i postgres ile çalıştırın: CREATE TABLE activity_log (id BIGSERIAL PRIMARY KEY, action TEXT NOT NULL, content_type TEXT NOT NULL, content_title TEXT NOT NULL DEFAULT '', user_email TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now()); GRANT ALL ON activity_log TO <uygulama_kullanıcısı>; GRANT USAGE, SELECT ON SEQUENCE activity_log_id_seq TO <uygulama_kullanıcısı>;",
+    );
+  }
+})();
+
+app.post(
+  "/api/activity-log",
+  writeLimiter,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    if (!activityLogEnabled) return res.json({ data: { logged: false }, error: null });
+    const { action, contentType, contentTitle } = req.body || {};
+    if (!ACTIVITY_ACTIONS.has(action) || !ACTIVITY_TYPES.has(contentType)) {
+      throw new HttpError(400, "Geçersiz işlem kaydı");
+    }
+    const title = String(contentTitle || "").slice(0, 200);
+    await queryDatabase(
+      `INSERT INTO activity_log (action, content_type, content_title, user_email) VALUES ($1, $2, $3, $4)`,
+      [action, contentType, title, req.session.email || ""],
+    );
+    // Tablo sonsuza kadar büyümesin: yalnızca son ACTIVITY_KEEP_ROWS kayıt tutulur.
+    await queryDatabase(
+      `DELETE FROM activity_log WHERE id <= (SELECT id FROM activity_log ORDER BY id DESC OFFSET $1 LIMIT 1)`,
+      [ACTIVITY_KEEP_ROWS],
+    );
+    return res.json({ data: { logged: true }, error: null });
+  }),
+);
+
+app.get(
+  "/api/activity-log",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    if (!activityLogEnabled) return res.json({ data: [], error: null });
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "50"), 10) || 50, 1), 200);
+    const result = await queryDatabase(
+      `SELECT id, action, content_type, content_title, user_email, created_at FROM activity_log ORDER BY id DESC LIMIT $1`,
+      [limit],
+    );
+    return res.json({
+      data: result.rows.map((r) => ({
+        id: Number(r.id),
+        action: r.action,
+        contentType: r.content_type,
+        contentTitle: r.content_title,
+        user: r.user_email,
+        timestamp: r.created_at,
+      })),
+      error: null,
+    });
+  }),
+);
+
 // Medya kütüphanesi: uploads/ klasöründeki TÜM görselleri (hangi içeriğe
 // bağlı olursa olsun, hiç kullanılmayanlar dahil) listeler. Sadece admin.
 const MEDIA_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"]);
