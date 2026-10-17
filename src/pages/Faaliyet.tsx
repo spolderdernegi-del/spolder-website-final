@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Loader } from "lucide-react";
 import { formatDate } from "@/lib/formatDate";
 import Header from "@/components/layout/Header";
+import PageHero from "@/components/shared/PageHero";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,7 +133,7 @@ const Faaliyet = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 pt-20">
-        <section className="bg-gradient-green py-20">
+        <PageHero pageKey="faaliyet">
           <div className="container-custom mx-auto px-4 md:px-8 text-center">
             <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
               {service ? service.label : "Faaliyetlerimiz"}
@@ -143,7 +144,7 @@ const Faaliyet = () => {
                 : "SPOLDER faaliyetleri"}
             </p>
           </div>
-        </section>
+        </PageHero>
 
         {loading && (
           <section className="section-padding">

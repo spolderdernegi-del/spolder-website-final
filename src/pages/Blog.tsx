@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
+import PageHero from "@/components/shared/PageHero";
 import Footer from "@/components/layout/Footer";
 import { Calendar, User, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ const Blog = () => {
       <Header />
       <main className="flex-1 pt-20">
         {/* Hero */}
-        <section className="bg-gradient-blue py-20">
+        <PageHero pageKey="blog">
           <div className="container-custom mx-auto px-4 md:px-8 text-center">
             <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
               Blog
@@ -78,7 +79,7 @@ const Blog = () => {
               Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler
             </p>
           </div>
-        </section>
+        </PageHero>
 
       {/* Loading State */}
       {loading && (

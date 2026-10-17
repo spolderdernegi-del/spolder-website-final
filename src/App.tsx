@@ -43,6 +43,7 @@ const AdminCategories = lazy(() => import("./pages/admin/Categories"));
 const AdminBlog = lazy(() => import("./pages/admin/Blog"));
 const AdminContentEditor = lazy(() => import("./pages/admin/ContentEditor"));
 const AdminWelcomeModal = lazy(() => import("./pages/admin/WelcomeModal"));
+const AdminPageHeroes = lazy(() => import("./pages/admin/PageHeroes"));
 const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 const AdminBoard = lazy(() => import("./pages/admin/Board"));
 const AdminBankInfo = lazy(() => import("./pages/admin/BankInfo"));
@@ -95,6 +96,7 @@ const App = () => (
           <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
           <Route path="/admin/blog" element={<ProtectedRoute><AdminBlog /></ProtectedRoute>} />
           <Route path="/admin/content-editor" element={<ProtectedRoute><AdminContentEditor /></ProtectedRoute>} />
+          <Route path="/admin/page-heroes" element={<ProtectedRoute><AdminPageHeroes /></ProtectedRoute>} />
           <Route path="/admin/welcome-modal" element={<ProtectedRoute><AdminWelcomeModal /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/admin/media" element={<ProtectedRoute><AdminMediaLibrary /></ProtectedRoute>} />

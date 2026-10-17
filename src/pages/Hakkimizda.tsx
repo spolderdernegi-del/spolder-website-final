@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import Header from "@/components/layout/Header";
+import PageHero from "@/components/shared/PageHero";
 import Footer from "@/components/layout/Footer";
 import { Target, Eye, Heart } from "lucide-react";
 import CorporateIdentitySection from "@/components/about/CorporateIdentitySection";
@@ -93,7 +94,7 @@ const Hakkimizda = () => {
       <Header />
       <main className="flex-1 pt-20">
         {/* Hero */}
-        <section className="bg-gradient-green py-20">
+        <PageHero pageKey="hakkimizda">
           <div className="container-custom mx-auto px-4 md:px-8 text-center">
             <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
               Hakkımızda
@@ -102,7 +103,7 @@ const Hakkimizda = () => {
               Spor Politikaları Derneği'ni tanıyın.
             </p>
           </div>
-        </section>
+        </PageHero>
 
         {/* President Message */}
         <section className="section-padding">

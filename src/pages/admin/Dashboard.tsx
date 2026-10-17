@@ -170,6 +170,13 @@ const AdminDashboard = () => {
       color: "bg-cyan-500",
     },
     {
+      title: "Sayfa Başlık Görselleri",
+      description: "Sayfaların yeşil başlık alanına görsel ekle",
+      icon: Image,
+      href: "/admin/page-heroes",
+      color: "bg-lime-600",
+    },
+    {
       title: "Faaliyetlerimiz",
       description: "Site altlığı faaliyet sayfaları",
       icon: ListChecks,

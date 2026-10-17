@@ -146,6 +146,7 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "faaliyet_pages",
   "faaliyet_posts",
   "welcome_modal",
+  "page_heroes",
 ]);
 
 app.set("trust proxy", 1); // behind Nginx
