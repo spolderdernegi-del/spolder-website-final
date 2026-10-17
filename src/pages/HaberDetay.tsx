@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
+import RelatedCard from "@/components/shared/RelatedCard";
 import Footer from "@/components/layout/Footer";
 import { Calendar, User, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -191,26 +192,13 @@ const HaberDetay = () => {
                 </h3>
                 <div className="space-y-4">
                   {relatedNews.map((relatedNewsItem) => (
-                    <Link
-                      to={`/haber/${relatedNewsItem.id}`}
+                    <RelatedCard
                       key={relatedNewsItem.id}
-                      className="flex gap-3 items-start p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      {relatedNewsItem.gorsel && (
-                        <img
-                          src={relatedNewsItem.gorsel}
-                          alt={relatedNewsItem.baslik}
-                          loading="lazy"
-                          className="w-20 h-16 object-cover rounded-md shrink-0"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
-                          {relatedNewsItem.baslik}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedNewsItem.tarih)}</p>
-                      </div>
-                    </Link>
+                      to={`/haber/${relatedNewsItem.id}`}
+                      title={relatedNewsItem.baslik}
+                      image={relatedNewsItem.gorsel}
+                      date={formatDate(relatedNewsItem.tarih)}
+                    />
                   ))}
                 </div>
               </aside>

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader, Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
+import RelatedCard from "@/components/shared/RelatedCard";
 import Footer from "@/components/layout/Footer";
 import DOMPurify from "dompurify";
 import { formatDate } from "@/lib/formatDate";
@@ -180,26 +181,13 @@ const ProjeDetay = () => {
                   </h3>
                   <div className="space-y-4">
                     {relatedProjects.map((relatedProject) => (
-                      <Link
-                        to={`/proje/${relatedProject.id}`}
+                      <RelatedCard
                         key={relatedProject.id}
-                        className="flex gap-3 items-start p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        {relatedProject.image && (
-                          <img
-                            src={relatedProject.image}
-                            alt={relatedProject.title}
-                            loading="lazy"
-                            className="w-20 h-16 object-cover rounded-md shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
-                            {relatedProject.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedProject.start_date)}</p>
-                        </div>
-                      </Link>
+                        to={`/proje/${relatedProject.id}`}
+                        title={relatedProject.title}
+                        image={relatedProject.image}
+                        date={formatDate(relatedProject.start_date)}
+                      />
                     ))}
                   </div>
                 </aside>

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
+import RelatedCard from "@/components/shared/RelatedCard";
 import Footer from "@/components/layout/Footer";
 import { formatDate } from "@/lib/formatDate";
 import { useCategoryColors, getSolidCategoryBadgeStyle } from "@/hooks/useCategoryColors";
@@ -183,26 +184,13 @@ const BlogDetay = () => {
                   </h3>
                   <div className="space-y-4">
                     {relatedPosts.map((relatedPost) => (
-                      <Link
-                        to={`/blog/${relatedPost.id}`}
+                      <RelatedCard
                         key={relatedPost.id}
-                        className="flex gap-3 items-start p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        {relatedPost.image && (
-                          <img
-                            src={relatedPost.image}
-                            alt={relatedPost.title}
-                            loading="lazy"
-                            className="w-20 h-16 object-cover rounded-md shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
-                            {relatedPost.title}
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedPost.date)}</p>
-                        </div>
-                      </Link>
+                        to={`/blog/${relatedPost.id}`}
+                        title={relatedPost.title}
+                        image={relatedPost.image}
+                        date={formatDate(relatedPost.date)}
+                      />
                     ))}
                   </div>
                 </aside>
