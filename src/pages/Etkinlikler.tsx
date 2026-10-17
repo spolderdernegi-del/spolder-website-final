@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import { DEFAULT_EVENT_FORM_URL } from "@/lib/constants";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Event {
   id: number;
@@ -27,6 +28,7 @@ interface Event {
 }
 
 const Etkinlikler = () => {
+  usePageTitle("Etkinlikler - SPOLDER");
   const [events, setEvents] = useState<Event[]>([]);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

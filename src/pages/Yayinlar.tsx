@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Publication {
   id: number;
@@ -21,6 +22,7 @@ interface Publication {
   created_at: string;
 }
 const Yayinlar = () => {
+  usePageTitle("Yayınlar - SPOLDER");
   const [searchParams] = useSearchParams();
   const kategoriParam = searchParams.get("kategori");
   

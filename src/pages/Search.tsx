@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { matchStaticPages } from "@/lib/staticPages";
 import { buildIlikeFilter, sanitizeSearchTerm } from "@/lib/searchQuery";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface SearchResult {
   id: string;
@@ -23,6 +24,7 @@ interface SearchResult {
 }
 
 const Search = () => {
+  usePageTitle("Arama - SPOLDER");
   const [searchParams] = useSearchParams();
   const query = (searchParams.get("q") || "").trim();
   // Sunucuya giden metin: virgül/parantez/joker karakterlerden arındırılmış hâli.

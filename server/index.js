@@ -1274,7 +1274,9 @@ app.get(
     }
 
     res.set("Content-Type", "text/html; charset=UTF-8");
-    return res.send(html);
+    // İçerik yoksa (silinmiş/taslak/hatalı numara) arama motorları "soft 404" görmesin diye
+    // 404 durum koduyla döner; sayfa yine açılır ve "bulunamadı" ekranını gösterir.
+    return res.status(item ? 200 : 404).send(html);
   }),
 );
 

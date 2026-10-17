@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Leaflet marker icon ayarlarını düzelt
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,6 +21,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const Iletisim = () => {
+  usePageTitle("İletişim - SPOLDER");
   const [formData, setFormData] = useState({
     name: "",
     email: "",

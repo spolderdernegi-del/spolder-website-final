@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface Project {
   id: number;
@@ -21,6 +22,7 @@ interface Project {
 }
 
 const Projeler = () => {
+  usePageTitle("Projeler - SPOLDER");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

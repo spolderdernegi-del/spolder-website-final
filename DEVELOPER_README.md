@@ -168,19 +168,17 @@ spolder-website-final/
 │   │
 │   ├── integrations/
 │   │   └── supabase/
-│   │       ├── client.ts    # ⚠️ İsmine rağmen Supabase DEĞİL — kendi
+│   │       └── client.ts    # ⚠️ İsmine rağmen Supabase DEĞİL — kendi
 │   │       │                #    backend'imize istek atan bir uyum
 │   │       │                #    ("shim") katmanı. Bkz. dosyanın başındaki
 │   │       │                #    açıklama.
-│   │       └── types.ts     # TypeScript types
 │   │
 │   ├── lib/
 │   │   ├── utils.ts         # Utility functions
 │   │   ├── toast.ts         # Toast notifications
-│   │   ├── logger.ts        # Production-safe logging
 │   │   ├── activityLog.ts   # Activity logging
-│   │   ├── dataManager.ts   # Export/Import
-│   │   ├── searchIndex.ts / searchQuery.ts # Arama
+│   │   ├── searchQuery.ts   # Arama metni temizleme
+│   │   ├── staticPages.ts   # Aramada gösterilen sabit sayfalar
 │   │   ├── faaliyetler.ts   # Faaliyetlerimiz yardımcıları + ortak slugify
 │   │   ├── formatDate.ts    # Tarih biçimlendirme
 │   │   ├── constants.ts     # Ortak sabitler (varsayılan etkinlik formu vb.)
@@ -189,6 +187,7 @@ spolder-website-final/
 │   │
 │   ├── hooks/
 │   │   ├── use-toast.ts
+│   │   ├── usePageTitle.ts       # Sayfa başlığı
 │   │   ├── useCategoryColors.ts
 │   │   └── useContentEditorHandoff.ts # Tam sayfa editör akışı
 │   │
@@ -266,14 +265,6 @@ node server/reset-password.js admin@spolder.org YeniGucluSifre123
 // Router tanımı
 // Tüm sayfaların routing'i burada yapılır
 // /admin/* sayfaları ProtectedRoute ile korunur
-```
-
-### src/lib/logger.ts
-```typescript
-// Production-safe logging
-// Development'ta console.log çalışır, production'da çalışmaz
-// import { logger } from '@/lib/logger';
-// logger.error('Error message');
 ```
 
 ### src/pages/admin/Login.tsx

@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface BlogPost {
   id: number;
@@ -22,6 +23,7 @@ interface BlogPost {
 }
 
 const Blog = () => {
+  usePageTitle("Blog - SPOLDER");
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

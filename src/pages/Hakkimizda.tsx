@@ -36,9 +36,12 @@ const Hakkimizda = () => {
 
         if (data && data.length > 0) {
           setBoardMembers(data);
-          // Başkanı bul (order = 1)
-          const president = data.find((member: BoardMember) => member.order === 1 || member.position.toLowerCase().includes('başkan'));
-          setPresidentInfo(president || data[0]);
+          // Başkan: görevi tam olarak "Başkan" olan üye (Başkan Yardımcısı vb. sayılmaz).
+          // Yoksa başka bir üye başkan gibi gösterilmez.
+          const president = data.find(
+            (member: BoardMember) => (member.position || '').trim().toLocaleLowerCase('tr') === 'başkan',
+          );
+          setPresidentInfo(president || null);
         }
       } catch (error) {
         console.error('Yönetim kurulu yüklenirken hata:', error);
@@ -104,8 +107,8 @@ const Hakkimizda = () => {
         {/* President Message */}
         <section className="section-padding">
           <div className="container-custom mx-auto">
-            {presidentInfo && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {(
+              <div className={`grid grid-cols-1 ${presidentInfo ? "lg:grid-cols-2" : ""} gap-12 items-center`}>
                 <div className="space-y-6">
                   <span className="text-sky-500 font-semibold text-sm uppercase tracking-wider">
                     Başkanın Mesajı
@@ -134,18 +137,22 @@ const Hakkimizda = () => {
                   <p className="text-muted-foreground leading-relaxed italic">
                     Sporun geleceğini birlikte düşünmek ve birlikte üretmek dileğiyle.
                   </p>
-                  <p className="font-display font-bold text-foreground">
-                    {presidentInfo.name}
-                    <span className="font-normal text-muted-foreground block text-sm">Başkan</span>
-                  </p>
+                  {presidentInfo && (
+                    <p className="font-display font-bold text-foreground">
+                      {presidentInfo.name}
+                      <span className="font-normal text-muted-foreground block text-sm">Başkan</span>
+                    </p>
+                  )}
                 </div>
-                <div className="relative">
-                  <img
-                    src={presidentInfo.image}
-                    alt={presidentInfo.name}
-                    className="rounded-lg shadow-elevated w-full max-w-md mx-auto"
-                  />
-                </div>
+                {presidentInfo && presidentInfo.image && (
+                  <div className="relative">
+                    <img
+                      src={presidentInfo.image}
+                      alt={presidentInfo.name}
+                      className="rounded-lg shadow-elevated w-full max-w-md mx-auto"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

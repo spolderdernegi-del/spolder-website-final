@@ -53,8 +53,8 @@ Görsel yükleme, görselin kullanıldığı formlardan yapılır (kütüphanede
 ## Ayarlar
 - **İletişim bilgileri:** telefon, e-posta, çalışma düzeni, IBAN (TL / EUR) – sitenin iletişim sayfasında ve alt bilgide görünür.
 - **Konum / harita:** kurumun konumu ve iletişim sayfasındaki harita.
-- **Şifre değiştirme**, veri dışa/içe aktarma.
-> ⚠️ İçe aktarma mevcut verilerin üzerine yazar; önce yedek alın.
+- **Şifre değiştirme:** mevcut şifre ve yeni şifre girilir; değişince diğer açık oturumlar kapanır.
+- **Yedek alma:** içerik kayıtlarının JSON yedeği indirilir (görsel dosyaları dahil değildir, yalnızca bağlantıları). Yedek panelden geri yüklenemez; gerekirse sistem yöneticisine verin.
 
 ## Sık sorulanlar
 - **Resim yüklenmiyor:** PNG/JPG kullanın, dosya boyutu makul olsun (≈5 MB altı önerilir).
