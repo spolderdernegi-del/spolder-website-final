@@ -116,7 +116,7 @@ const AdminSettings = () => {
   };
 
   // Veritabanındaki tüm içerik tablolarını tek bir JSON dosyası olarak indirir.
-  const BACKUP_TABLES = ["categories", "board", "bank_info", "events", "news", "blog", "projects", "files", "settings"];
+  const BACKUP_TABLES = ["categories", "board", "events", "news", "blog", "projects", "files", "settings"];
 
   const handleExport = async () => {
     setExporting(true);

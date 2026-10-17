@@ -114,7 +114,6 @@ function notifyNewContactMessage(entry) {
 const PUBLIC_READ_TABLES = new Set([
   "categories",
   "board",
-  "bank_info",
   "events",
   "news",
   "blog",

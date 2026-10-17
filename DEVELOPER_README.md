@@ -162,7 +162,6 @@ spolder-website-final/
 │   │       ├── WelcomeModal.tsx # Hoş geldiniz pop-up'ı
 │   │       ├── Trash.tsx        # Çöp kutusu
 │   │       ├── Guide.tsx + guideContent.ts # Panel içi kullanım rehberi
-│   │       ├── BankInfo.tsx     # Banka/IBAN bilgisi (kullanıma hazır, menüde yok)
 │   │       ├── ContactMessages.tsx
 │   │       └── MediaLibrary.tsx
 │   │
@@ -225,7 +224,7 @@ oluşturun ve `DATABASE_URL`'i buna göre ayarlayın.
 ### 2. Tabloları Oluşturun
 `server/index.js` içindeki `PUBLIC_READ_TABLES` / `ALL_TABLES` listesi
 uygulamanın kullandığı tabloları gösterir: `categories`, `board`,
-`bank_info`, `events`, `news`, `blog`, `projects`, `files`, `settings`,
+`events`, `news`, `blog`, `projects`, `files`, `settings`,
 `contact_messages`, ayrıca girişler için `admin_users`. `news`, `events`,
 `blog`, `projects` tablolarında `deleted_at` kolonu çöp kutusu (soft-delete)
 için kullanılır. Bu projenin geçmişi
