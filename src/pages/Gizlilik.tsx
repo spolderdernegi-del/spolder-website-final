@@ -13,7 +13,7 @@ const Gizlilik = () => {
             <div className="space-y-6 text-foreground/90">
               <div>
                 <h2 className="text-2xl font-bold mb-3">1. Genel Bilgiler</h2>
-                <p>SPOlDER Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
+                <p>Spor Politikaları Derneği olarak, kullanıcılarımızın gizliliğini ve kişisel verilerinin korunmasını son derece önemli görüyoruz.</p>
               </div>
 
               <div>
@@ -25,6 +25,12 @@ const Gizlilik = () => {
                   <li>Telefon Numarası</li>
                   <li>IP Adresi ve Tarayıcı Bilgileri</li>
                 </ul>
+                <p className="mt-3">
+                  Sitemizde, ziyaretçi sayısı ve sayfa kullanımı gibi anonim istatistikleri ölçmek amacıyla
+                  Google Analytics kullanılmaktadır. Bu hizmet, tarayıcınıza çerez yerleştirebilir ve
+                  anonim kullanım verileri toplar. Tarayıcı ayarlarınızdan çerezleri dilediğiniz zaman
+                  engelleyebilir veya silebilirsiniz.
+                </p>
               </div>
 
               <div>
@@ -44,7 +50,7 @@ const Gizlilik = () => {
 
               <div>
                 <h2 className="text-2xl font-bold mb-3">5. İletişim</h2>
-                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize info@spolider.org.tr adresinden ulaşın.</p>
+                <p>Gizlilik politikası hakkında sorularınız varsa, lütfen bize iletisim@spolder.org adresinden ulaşın.</p>
               </div>
             </div>
           </div>
