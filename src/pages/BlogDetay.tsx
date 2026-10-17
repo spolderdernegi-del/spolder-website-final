@@ -186,20 +186,22 @@ const BlogDetay = () => {
                       <Link
                         to={`/blog/${relatedPost.id}`}
                         key={relatedPost.id}
-                        className="block p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                        className="flex gap-3 items-start p-3 rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         {relatedPost.image && (
                           <img
                             src={relatedPost.image}
                             alt={relatedPost.title}
                             loading="lazy"
-                            className="w-full aspect-video object-cover rounded-md mb-3"
+                            className="w-20 h-16 object-cover rounded-md shrink-0"
                           />
                         )}
-                        <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
-                          {relatedPost.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedPost.date)}</p>
+                        <div className="min-w-0">
+                          <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
+                            {relatedPost.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-2">{formatDate(relatedPost.date)}</p>
+                        </div>
                       </Link>
                     ))}
                   </div>
