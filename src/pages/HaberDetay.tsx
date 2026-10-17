@@ -196,6 +196,14 @@ const HaberDetay = () => {
                       key={relatedNewsItem.id}
                       className="block p-3 rounded-lg hover:bg-muted/50 transition-colors"
                     >
+                      {relatedNewsItem.gorsel && (
+                        <img
+                          src={relatedNewsItem.gorsel}
+                          alt={relatedNewsItem.baslik}
+                          loading="lazy"
+                          className="w-full aspect-video object-cover rounded-md mb-3"
+                        />
+                      )}
                       <h4 className="font-medium text-sm text-foreground hover:text-primary transition-colors line-clamp-2">
                         {relatedNewsItem.baslik}
                       </h4>
