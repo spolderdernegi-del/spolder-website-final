@@ -37,7 +37,7 @@ const Blog = () => {
       setLoading(true);
       const { data, error: supabaseError } = await supabase
         .from("blog")
-        .select("*")
+        .select("id, title, excerpt, image, author, date, category, categories, created_at")
         .eq('publishStatus', 'published')
         .order("date", { ascending: false });
       

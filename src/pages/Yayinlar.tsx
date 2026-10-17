@@ -44,7 +44,7 @@ const Yayinlar = () => {
       setLoading(true);
       const { data, error: supabaseError } = await supabase
         .from("files")
-        .select("*")
+        .select("id, title, category, categories, description, file_url, file_type, file_size, created_at")
         .order("created_at", { ascending: false });
       
       if (supabaseError) throw supabaseError;

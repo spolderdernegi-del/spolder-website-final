@@ -43,7 +43,7 @@ const Etkinlikler = () => {
       setLoading(true);
       const { data, error: supabaseError } = await supabase
         .from("events")
-        .select("*")
+        .select("id, baslik, ozet, tarih, saat, konum, gorsel, durum, kategori, categories, google_form_link, created_at")
         .eq('yayin_durumu', 'yayinlandi')
         .order("tarih", { ascending: false });
       

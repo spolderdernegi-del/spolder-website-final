@@ -47,10 +47,7 @@ export default function CorporateIdentitySection() {
                 <a href="/docs/spolder_vector_logo.ai" target="_blank" rel="noopener noreferrer" download>Vektör Logo (AI)</a>
               </Button>
               <Button asChild variant="outline">
-                <a href="/docs/spolder_logokullanimklavuzu.pdf" target="_blank" rel="noopener noreferrer" download>Logo Kullanım Kılavuzu (PDF)</a>
-              </Button>
-              <Button asChild variant="outline">
-                <a href="/docs/spolder_logokullanimklavuzu_updated.pdf" target="_blank" rel="noopener noreferrer" download>Marka Kılavuzu (PDF)</a>
+                <a href="/docs/spolder_logokullanimklavuzu.pdf" target="_blank" rel="noopener noreferrer" download>Logo ve Marka Kullanım Kılavuzu (PDF)</a>
               </Button>
             </div>
           </CardContent>

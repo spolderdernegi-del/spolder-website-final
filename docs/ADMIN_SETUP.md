@@ -40,7 +40,10 @@ middleware'lerinde yapılır:
 - Geçerli bir `spolder_session` JWT çerezi taşıyan istekler `requireAdmin`
   middleware'inden geçerek yazma (`POST`/`PUT`/`DELETE`) uçlarına erişebilir.
 - Oturumsuz istekler sadece `PUBLIC_READ_TABLES` listesindeki tablolardan
-  okuma yapabilir (`contact_messages` hariç — o sadece admin'e açık).
+  okuma yapabilir (`contact_messages` hariç — o sadece admin'e açık); taslak
+  haber/etkinlik/blog/proje kayıtları oturumsuz isteklere hiç dönmez.
+- Oturum çerezi 8 saat geçerlidir ve şifre özetini taşır; şifre
+  değiştirildiğinde veya sıfırlandığında tüm eski oturumlar geçersiz olur.
 - `settings` tablosunda ayrıca `PUBLIC_SETTINGS_KEYS` allowlist'i vardır:
   oturumsuz istekler bu listedeki anahtarlar dışında hiçbir satırı göremez.
 
@@ -54,7 +57,8 @@ C: `npm run seed:admin` komutunu yukarıdaki gibi çalıştırın.
 
 **S: Mevcut admin kullanıcımın yetkilerini nasıl kaldırırım?**
 C: `admin_users` tablosundan ilgili satırı silin (veritabanına doğrudan
-erişimle).
+erişimle). Açık oturum en geç 8 saat içinde sona erer; hemen kesmek için
+kullanıcının şifresini `reset-password.js` ile değiştirin.
 
 **S: Birden fazla admin kullanıcı olabilir mi?**
 C: Evet — `admin_users` tablosuna istediğiniz kadar satır ekleyebilirsiniz
@@ -73,6 +77,6 @@ Herhangi bir sorun yaşarsanız:
 
 ---
 
-**Son Güncelleme:** 31 Ağustos 2026
+**Son Güncelleme:** 17 Ekim 2026
 **Versiyon:** 2.0 (Natro self-hosted mimari)
 **Yazar:** SPOLDER Geliştirici Ekibi

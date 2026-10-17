@@ -44,7 +44,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "list",
         title: "Her sayfada geçerli kurallar",
         items: [
-          "Oturum 8 saat sürer; sonra yeniden giriş yapmanız istenir.",
+          "Oturum 8 saat sürer; sonra yeniden giriş yapmanız istenir. Şifre değiştirildiğinde açık olan eski oturumlar da kapanır ve yeniden giriş gerekir.",
           "Kısa sürede çok fazla yanlış giriş denerseniz (15 dakikada 20 deneme) sistem sizi bir süre bekletir.",
           "\"Şifremi unuttum\" bağlantısı yoktur. Şifrenizi unutursanız sistem yöneticisinden sıfırlamasını isteyin.",
           "Sol üstteki \"Geri\" düğmesi (Medya Kütüphanesi'nde \"Dashboard'a Dön\") Kontrol Paneli'ne döndürür.",
@@ -361,7 +361,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "warn",
         title: "Önemli",
         items: [
-          "Bir kategoriyi yeniden adlandırırsanız eski içeriklerdeki kategori adı otomatik değişmez. Eski içerikler eski adı taşımaya devam eder ve yeni rengi almaz. İçerikleri açıp yeni kategoriyi seçerek kaydetmeniz gerekir. Mümkünse kategori adını sonradan değiştirmeyin.",
+          "Bir haber, etkinlik, blog veya proje kategorisini yeniden adlandırırsanız, o kategoriyi kullanan içeriklerdeki ad da otomatik güncellenir. Yine de mümkünse kategori adını sonradan değiştirmeyin; Faaliyetlerimiz sayfalarındaki kategori eşleştirmelerini ayrıca kontrol edin.",
           "Bir kategoriyi silerseniz içerikler silinmez; ama içerikler eski kategori adını taşımaya devam eder ve rengi kaybolur.",
           "Düzenlerken \"İçerik Türü\"nü değiştirmeniz önerilmez; mevcut içerikler bundan etkilenmez.",
         ],
@@ -395,7 +395,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "warn",
         items: [
           "Görevi tam olarak \"Başkan\" olan üye silinemez, sadece düzenlenebilir. Görevi başka bir şeye çevirirseniz silinebilir hâle gelir.",
-          "Tablo ilk kez boşsa panel örnek bir Başkan kaydı ekleyebilir; bu kaydı gerçek bilgilerle düzenleyin.",
+          "Tablo boşsa sitede yönetim kurulu bölümü boş görünür; üyeleri \"Yeni Üye Ekle\" ile siz eklersiniz. Panel kendiliğinden örnek kayıt eklemez.",
           "Aynı Sıra numarasını birden fazla üyeye verebilirsiniz; bu durumda aralarındaki sıra belirsiz olur, her üyeye farklı numara verin.",
         ],
       },
@@ -781,7 +781,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "list",
         title: "Kategori rengi sitede değişmedi",
         items: [
-          "Renk, kategori adına göre eşleşir. Kategoriyi yeniden adlandırdıysanız içerikleri açıp yeni kategoriyi seçerek tekrar kaydedin.",
+          "Renk, kategori adına göre eşleşir. Kategoriyi yeniden adlandırdıysanız içerikler otomatik güncellenir; dosya (Yayınlar) kategorileri için içerikleri açıp yeni kategoriyi seçerek tekrar kaydedin. Ardından tarayıcıyı sert yenileyin.",
           "Değişiklikten sonra tarayıcıyı sert yenileyin.",
         ],
       },

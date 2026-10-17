@@ -1,317 +1,67 @@
-# 📚 SPOLDER Admin Paneli - Müşteri Kullanım Kılavuzu
+# 📚 SPOLDER Admin Paneli – Kullanım Kılavuzu
 
-## İçindekiler
-1. [Giriş Yapma](#giriş-yapma)
-2. [Dashboard](#dashboard)
-3. [Haberler Yönetimi](#haberler-yönetimi)
-4. [Etkinlikler Yönetimi](#etkinlikler-yönetimi)
-5. [Projeler Yönetimi](#projeler-yönetimi)
-6. [Blog Yönetimi](#blog-yönetimi)
-7. [Yayınlar (Dosyalar)](#yayınlar-dosyalar)
-8. [Yönetim Kurulu](#yönetim-kurulu)
-9. [Kategoriler](#kategoriler)
-10. [İletişim Mesajları](#iletişim-mesajları)
-11. [Ayarlar](#ayarlar)
-12. [SSS](#sss)
+> Panelin kendi içinde, her sayfayı adım adım anlatan güncel bir **Rehber** vardır
+> (Kontrol Paneli → Rehber). Bu belge onun kısa özetidir; ayrıntı için panel
+> içindeki Rehber esas alınmalıdır.
 
----
+## Giriş
+- Adres: `https://spolder.org/admin/login`
+- E-posta ve şifreyi girin. Oturum **8 saat** sürer. Şifre değiştirilirse açık eski oturumlar kapanır.
+- Şifrenizi unuttuysanız sistem yöneticisinden sıfırlamasını isteyin ("Şifremi unuttum" bağlantısı yoktur).
 
-## 🔐 Giriş Yapma
+## Kontrol Paneli
+Sayaçlar (etkinlik, haber, proje – taslaklar dahil), okunmamış mesajlar ve tüm yönetim sayfalarına kartlar:
+Haberler, Etkinlikler, Projeler, Blog, Yayınlar, Yönetim Kurulu, Kategoriler, İletişim Mesajları,
+Faaliyetlerimiz, Hoş geldiniz pop-up'ı, Medya Kütüphanesi, Çöp Kutusu, Ayarlar, Rehber.
 
-### Adım 1: Admin Paneline Erişim
-```
-URL: https://spolder.org/admin/login
-```
+## Haber / Etkinlik / Proje / Blog
+1. İlgili karttan sayfayı açın, **Yeni … Ekle** deyin.
+2. Başlık, özet, görsel, kategori(ler), tarih vb. alanları doldurun. **İçerik** için "Tam Sayfa Düzenle" ile Word benzeri editörü kullanın.
+3. Yeni kayıtlar **Taslak** başlar; sitede görünmesi için **Yayınla** durumunu seçin. Taslaklar yalnızca panelde görünür.
+4. İsteğe bağlı: SEO ayarları (URL slug, meta başlık ≤ 60, meta açıklama ≤ 160), "Slider'da göster" (ana sayfa slider'ı, ayrı slider görseli yüklenebilir).
+5. **Etkinlik:** tarih, saat, konum (haritadan işaretlenir), kapasite ve isteğe bağlı Google Form kayıt linki. Link boşsa genel kayıt formu kullanılır; durumu "Tamamlandı" olan etkinliklerde "Kayıt Ol" gösterilmez.
+6. **Silme:** Silinen haber/etkinlik/blog/proje **Çöp Kutusu**'na gider ve 30 gün içinde geri alınabilir; sonra kalıcı silinir.
 
-### Adım 2: Kimlik Bilgilerini Girin
-- **E-posta:** Sistem yöneticisi tarafından size verilen e-posta adresi
-- **Şifre:** Sistem yöneticisi tarafından size verilen şifre
+## Yayınlar (Dosyalar)
+Başlık, açıklama, kategori (Rapor / Araştırma / Politika Belgesi / Bültenler) ve dosya (PDF, DOCX vb.) yükleyin.
+Dosyalarda taslak yoktur, kaydedilince yayındadır. Silme **geri alınamaz**.
 
-> **⚠️ ÖNEMLİ:** Kimlik bilgileriniz güvenli tutun. Başkasıyla paylaşmayın!
+## Yönetim Kurulu
+Üye ekleyin/düzenleyin; görevi tam olarak "Başkan" olan üye silinemez, yalnızca düzenlenir. Sıra numarası listeleme sırasını belirler.
 
-### Adım 3: Admin Dashboard'a Erişim
-Başarılı giriş yaparsanız Dashboard sayfasına yönlendirileceksiniz.
+## Kategoriler
+İçerik türüne göre (Haber / Etkinlik / Blog / Proje / Dosya) kategori ve renk tanımlanır. Haber, etkinlik, blog ve proje
+kategorisini yeniden adlandırırsanız o kategorideki içerikler de otomatik güncellenir. "Sabit" dosya kategorileri değiştirilemez.
 
----
+## Faaliyetlerimiz
+Sitenin alt kısmındaki **Faaliyetlerimiz** bağlantıları (en fazla 5) buradan yönetilir. Her öğe için ayrı bir sayfa açılır
+(`/faaliyetlerimiz/öğe-adı`): özet, görsel ve doğrudan içerik girilir; isteğe bağlı olarak aynı kategorideki
+haber/etkinlik/proje/blog kartları sayfanın altında listelenir. Kategori adlarını Kategoriler sayfasındaki yazımla aynı yazın.
 
-## 📊 Dashboard
+## İletişim Mesajları
+Siteden gelen mesajlar listelenir ve açıldığında okundu işaretlenir. Mesaj silme geri alınamaz.
 
-Admin panelinin ana sayfasıdır. Aşağıdaki bilgileri görürsünüz:
+## Hoş geldiniz pop-up'ı
+Ziyaretçilerin ilk girişte gördüğü pencerenin başlık, metin ve düğme yazıları buradan düzenlenir.
 
-### Genel İstatistikler
-- **Toplam Haber:** Yayınlanmış haber sayısı
-- **Toplam Etkinlik:** Oluşturulmuş etkinlik sayısı
-- **Toplam Proje:** Yayınlanmış proje sayısı
-- **Toplam Blog:** Yayınlanmış blog yazısı sayısı
-- **Okunmamış Mesajlar:** İletişim formu üzerinden gelen okunmamış mesaj sayısı
+## Medya Kütüphanesi
+Yüklenmiş görseller listelenir. Silinen görsel kullanıldığı yerlerde varsayılan SPOLDER görseliyle değişir; silme geri alınamaz.
+Görsel yükleme, görselin kullanıldığı formlardan yapılır (kütüphaneden seçim de mümkündür).
 
-### Son Eklenen İçerikler
-En son 10 eklenen haber, etkinlik, proje ve blog yazılarının önizlemesi görünür.
+## Ayarlar
+- **İletişim bilgileri:** telefon, e-posta, çalışma düzeni, IBAN (TL / EUR) – sitenin iletişim sayfasında ve alt bilgide görünür.
+- **Konum / harita:** kurumun konumu ve iletişim sayfasındaki harita.
+- **Şifre değiştirme**, veri dışa/içe aktarma.
+> ⚠️ İçe aktarma mevcut verilerin üzerine yazar; önce yedek alın.
 
-### Hızlı Bağlantılar
-- 📝 Yeni Haber Ekle
-- 📅 Yeni Etkinlik Ekle
-- 💼 Yeni Proje Ekle
-- ✍️ Yeni Blog Yazısı Ekle
+## Sık sorulanlar
+- **Resim yüklenmiyor:** PNG/JPG kullanın, dosya boyutu makul olsun (≈5 MB altı önerilir).
+- **Kaydettim ama sitede görünmüyor:** kaydın durumu "Yayında" mı? Tarayıcıyı sert yenileyin (Ctrl+F5).
+- **Yanlışlıkla sildim:** haber/etkinlik/blog/proje ise Çöp Kutusu'ndan geri alın; dosya, kategori, kurul üyesi, mesaj ve medya silmeleri geri alınamaz.
+- **Slider ne demek:** ana sayfadaki büyük görsel alanıdır; "Slider'da göster" işaretli içerikler orada döner.
 
----
-
-## 📰 Haberler Yönetimi
-
-### Yeni Haber Ekleme
-
-1. **Admin Panel → Haberler** tıklayın
-2. **+ Yeni Haber Ekle** butonuna tıklayın
-3. Aşağıdaki alanları doldurun:
-
-| Alan | Açıklama | Zorunlu |
-|------|----------|---------|
-| **Başlık** | Haber başlığı | ✅ |
-| **Özet** | Haber özeti (liste sayfasında gösterilir) | ✅ |
-| **İçerik** | Haber tam metni (detay sayfasında gösterilir) | ✅ |
-| **Resim** | Haber görseli (JPG, PNG) | ✅ |
-| **Kategori** | Haber kategorisi | ✅ |
-| **Yazar** | Haberi yazan kişi adı | ✅ |
-| **Tarih** | Haber yayın tarihi | ✅ |
-| **Meta Başlığı** | SEO için başlık (70 karakter) | ❌ |
-| **Meta Açıklaması** | SEO için açıklama (160 karakter) | ❌ |
-| **Slider'da Göster** | Anasayfadaki slider'da gösterilsin mi? | ❌ |
-
-4. **Yayınla** veya **Taslak Olarak Kaydet** seçeneğini seçin
-5. **Kaydet** tıklayın
-
-### Haber Düzenleme
-1. Haberler listesinden düzenlemek istediğiniz haberi bulun
-2. **✏️ Düzenle** tıklayın
-3. İlgili alanları güncelleyin
-4. **Güncelle** tıklayın
-
-### Haber Silme
-1. Haberler listesinden silmek istediğiniz haberi bulun
-2. **🗑️ Sil** tıklayın
-3. Onayı verin
+## Destek
+Sorun yaşarsanız sistem yöneticisine veya admin@spolder.org adresine yazın.
 
 ---
-
-## 📅 Etkinlikler Yönetimi
-
-### Yeni Etkinlik Ekleme
-
-1. **Admin Panel → Etkinlikler** tıklayın
-2. **+ Yeni Etkinlik Ekle** butonuna tıklayın
-3. Aşağıdaki alanları doldurun:
-
-| Alan | Açıklama | Zorunlu |
-|------|----------|---------|
-| **Başlık** | Etkinlik adı | ✅ |
-| **Özet** | Etkinlik özeti | ✅ |
-| **İçerik** | Etkinlik tam tanımı | ✅ |
-| **Resim** | Etkinlik görseli | ✅ |
-| **Tarih** | Etkinlik tarihi (GG/AA/YYYY) | ✅ |
-| **Saat** | Etkinlik saati (SS:DD) | ✅ |
-| **Konum** | Etkinlik yeri (şehir/salon adı) | ✅ |
-| **Konum (Harita)** | Harita üzerinde konumu işaretleyin | ✅ |
-| **Kategori** | Etkinlik kategorisi | ✅ |
-| **Kapasite** | Etkinlik kapasitesi (kişi sayısı) | ❌ |
-| **Kayıtlı** | Şu ana kadar kayıtlı kişi sayısı | ❌ |
-| **Durum** | Açık / Kapalı | ❌ |
-| **Google Form Linki** | Kayıt formu linki | ❌ |
-
-### Harita Üzerinde Konum Seçme
-1. Harita alanına tıklayın veya marker'ı sürükleyin
-2. Doğru konuma geldiğinde otomatik kaydedilir
-3. Koordinatlar aşağıda gösterilir
-
----
-
-## 💼 Projeler Yönetimi
-
-Haberler ile benzer şekilde çalışır:
-
-1. **Admin Panel → Projeler** tıklayın
-2. **+ Yeni Proje Ekle** butonuna tıklayın
-3. Proje bilgilerini doldurun:
-   - Başlık
-   - Açıklama
-   - Resim
-   - Kategori
-   - Durum (Devam Ediyor / Tamamlandı)
-   - Başlangıç ve Bitiş Tarihleri
-
----
-
-## ✍️ Blog Yönetimi
-
-Haberler ile benzer şekilde, blog yazıları ekleyebilirsiniz:
-
-1. **Admin Panel → Blog** tıklayın
-2. **+ Yeni Blog Yazısı Ekle** butonuna tıklayın
-3. Blog yazısı bilgilerini doldurun
-
----
-
-## 📄 Yayınlar (Dosyalar)
-
-### Yayın/Dosya Ekleme
-
-1. **Admin Panel → Yayınlar** tıklayın
-2. **+ Yeni Dosya Ekle** butonuna tıklayın
-3. Aşağıdaki bilgileri girin:
-
-| Alan | Açıklama |
-|------|----------|
-| **Başlık** | Dosya adı |
-| **Açıklama** | Dosya açıklaması |
-| **Kategori** | Rapor / Araştırma / Politika Belgesi / Bültenler |
-| **Dosya** | PDF, DOCX, ZIP vb. dosya yükleyin |
-
-### Dosya Silme
-1. Yayınlar listesinden silmek istediğiniz dosyayı bulun
-2. **🗑️ Sil** tıklayın
-
----
-
-## 👥 Yönetim Kurulu
-
-### Başkanın Resmi ve İletişi Güncelleme
-
-1. **Admin Panel → Yönetim Kurulu** tıklayın
-2. **Başkan** satırında **✏️ Düzenle** tıklayın
-3. Aşağıdaki bilgileri güncelleyin:
-   - **Ad Soyad:** Başkanın adı
-   - **Pozisyon:** "Başkan" (değişmesin)
-   - **Biyografi:** Kısa yaşam bilgisi
-   - **Resim:** Fotoğraf yükleyin
-
-4. **Güncelle** tıklayın
-
-### Kurulu Üye Ekleme/Silme
-
-1. **+ Yeni Üye Ekle** tıklayın
-2. Üyenin bilgilerini girin
-3. **Kaydet** tıklayın
-
-> **Not:** Başkan silinemez, sadece düzenlenebilir.
-
----
-
-## 🏷️ Kategoriler
-
-### Kategori Ekleme
-
-1. **Admin Panel → Kategoriler** tıklayın
-2. **+ Yeni Kategori Ekle** butonuna tıklayın
-3. Kategori adını girin
-4. Kategori türünü seçin (Haber / Etkinlik / Blog / Proje / Dosya)
-5. Renk seçin (SEO ise mavi, Spor ise yeşil vb.)
-6. **Kaydet** tıklayın
-
-### Kategori Düzenleme/Silme
-1. Kategoriler listesinden işlem yapın
-2. **✏️ Düzenle** veya **🗑️ Sil** tıklayın
-
----
-
-## 💬 İletişim Mesajları
-
-### Gelen Mesajları Görüntüleme
-
-1. **Admin Panel → İletişim Mesajları** tıklayın
-2. Siteden gelen tüm mesajlar listelenir
-3. Okunmamış mesajlar **kalın** gösterilir
-
-### Mesajı Okuma
-
-1. Mesajı listeden tıklayın
-2. Mesaj detayını görün:
-   - **Gönderen Adı:** Kişi adı
-   - **E-posta:** İletişim adresi
-   - **Konu:** Mesaj konusu
-   - **Mesaj:** Tam mesaj metni
-
-### Mesajı Silme
-
-1. Mesajın sağında **🗑️ Sil** tıklayın
-2. Onayı verin
-
-> **💡 İpucu:** Önemli mesajları not alıp silmeyi unutmayın!
-
----
-
-## ⚙️ Ayarlar
-
-### İletişim Bilgilerini Güncelleme
-
-1. **Admin Panel → Ayarlar** tıklayın
-2. **İletişim Bilgileri** bölümünü açın
-3. Aşağıdaki bilgileri güncelleyin:
-
-| Bilgi | Kullanım Yeri |
-|-------|--------------|
-| **Telefon** | Footer'da gösterilir |
-| **E-posta** | Footer'da gösterilir |
-| **Çalışma Saatleri** | Footer'da gösterilir |
-| **IBAN (TL)** | Banka transferi bilgisi |
-| **IBAN (EUR)** | Uluslararası transfer |
-
-4. **Kaydet** tıklayın
-
-### Konum Bilgisi Güncelleme
-
-1. **Ayarlar** sayfasında **Konum** bölümünü bulun
-2. Harita üzerinde konumu işaretleyin
-3. Koordinatlar otomatik kaydedilir
-
-### Veri Yedekleme
-
-1. **Ayarlar** → **Dışa Aktar** tıklayın
-2. JSON dosyası indirilecektir
-3. Bu dosyayı güvenli bir yerde saklayın
-
-### Veri Geri Yükleme
-
-1. **Ayarlar** → **İçe Aktar** tıklayın
-2. Daha önce indirdiğiniz JSON dosyasını seçin
-3. **Yükle** tıklayın
-
-> **⚠️ DİKKAT:** Bu işlem mevcut verilerin üzerine yazacaktır!
-
----
-
-## ❓ SSS
-
-### S: Resim yükleyemiyorum?
-**C:** Dosya formatı PNG veya JPG olmalıdır. Dosya boyutu 5MB'den küçük olmalıdır.
-
-### S: Etkinlik tarihi nasıl format olmalı?
-**C:** GG/AA/YYYY formatında girin. Örnek: 15/01/2026
-
-### S: Harita üzerinde konum nasıl işaretlerim?
-**C:** Harita üzerine tıklayın veya marker'ı sürükleyin. Konum otomatik kaydedilir.
-
-### S: Mesajı yanlışlıkla sildim, geri yükleyebilir miyim?
-**C:** Hayır. Silinen mesajlar geri yüklenemez. Önemli mesajları kopyalayıp not edin.
-
-### S: Şifremi unuttum?
-**C:** Panelden şifre değiştirmek mevcut şifreyi bilmeyi gerektirir. Hiç giriş yapamıyorsanız, sistem yöneticisiyle iletişime geçin; şifre sunucu üzerinden sıfırlanabilir.
-
-### S: Kaç kişi aynı anda giriş yapabilir?
-**C:** Birden fazla kullanıcı aynı anda giriş yapabilir. Ancak tüm değişiklikler herkese görünür.
-
-### S: Draft (Taslak) olarak kaydettiğim içerik sitede görünmez mi?
-**C:** Doğru! Draft içerikler sadece admin panelinde görünür. Sitede göstermek için "Yayınla" seçeneğini seçin.
-
-### S: Slider'da gösterilmesi ne demek?
-**C:** Anasayfadaki büyük resim galerisi slider'ıdır. Bu kutuyu işaretlerseniz içerik orada gösterilir.
-
----
-
-## 📞 Destek
-
-Herhangi bir sorunla karşılaşırsanız:
-- Email: admin@spolder.org
-
----
-
-**Son Güncelleme:** 01 Ocak 2026
-**Versiyon:** 1.0
+**Son Güncelleme:** 17 Ekim 2026 · **Versiyon:** 2.0

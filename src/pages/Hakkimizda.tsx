@@ -26,7 +26,7 @@ const Hakkimizda = () => {
       try {
         const { data, error } = await supabase
           .from('board')
-          .select('*')
+          .select('id, name, position, image, "order"')
           .order('order', { ascending: true });
 
         if (error) {

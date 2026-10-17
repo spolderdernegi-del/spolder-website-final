@@ -36,7 +36,7 @@ const Projeler = () => {
       setLoading(true);
       const { data, error: supabaseError } = await supabase
         .from("projects")
-        .select("*")
+        .select("id, title, description, image, status, category, categories, start_date, created_at")
         .eq('publishStatus', 'published')
         .order("start_date", { ascending: false });
       

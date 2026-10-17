@@ -26,7 +26,10 @@
 
 ### Özellikler
 - ✅ Responsive Admin Dashboard
-- ✅ Haber, Etkinlik, Proje, Blog Yönetimi
+- ✅ Haber, Etkinlik, Proje, Blog, Yayın (dosya) Yönetimi
+- ✅ Faaliyetlerimiz sayfaları (admin: /admin/activities)
+- ✅ Çöp kutusu (30 gün soft-delete), Medya Kütüphanesi, Hoş geldiniz pop-up'ı
+- ✅ Google Analytics (GA4)
 - ✅ İletişim Formu
 - ✅ Harita İntegrasyonu (OpenStreetMap/Leaflet)
 - ✅ SEO Optimizasyonu
@@ -82,7 +85,9 @@ cp env.example server/.env
 ```
 
 `server/.env` dosyasını doldurun (bkz. `env.example` içindeki açıklamalar):
-`DATABASE_URL`, `SESSION_SECRET`, `ALLOWED_ORIGINS`, `NODE_ENV`, `PORT`.
+`DATABASE_URL`, `SESSION_SECRET`, `ALLOWED_ORIGINS`, `NODE_ENV`, `PORT`;
+opsiyonel: `DATABASE_SSL`, SMTP ayarları ve `CONTACT_NOTIFY_EMAIL` (iletişim formu
+bildirim maili). Production'da `SESSION_SECRET` ve `ALLOWED_ORIGINS` zorunludur.
 
 ### 4. Veritabanını Hazırlayın
 `admin_users` tablosu ve diğer tablolar için bir migration/şema betiği
@@ -121,7 +126,8 @@ spolder-website-final/
 │   │   ├── layout/          # Header, Footer
 │   │   ├── about/           # About page components
 │   │   ├── home/            # Home page components
-│   │   ├── ui/              # Shadcn UI components
+│   │   ├── shared/          # CategoryFilterBar, WhatsAppButton
+│   │   ├── ui/              # Yalnızca kullanılan Shadcn bileşenleri
 │   │   └── admin/           # Admin components (Map, Image Upload, etc)
 │   │
 │   ├── pages/
@@ -131,7 +137,12 @@ spolder-website-final/
 │   │   ├── HaberDetay.tsx   # News detail
 │   │   ├── Etkinlikler.tsx  # Events listing
 │   │   ├── EtkinlikDetay.tsx# Event detail
+│   │   ├── ProjeDetay.tsx   # Project detail
 │   │   ├── Projeler.tsx     # Projects listing
+│   │   ├── Faaliyet.tsx     # Faaliyetlerimiz sayfaları (/faaliyetlerimiz/:slug)
+│   │   ├── BlogDetay.tsx    # Blog detail
+│   │   ├── Gizlilik.tsx / KVKK.tsx
+│   │   ├── NotFound.tsx     # 404
 │   │   ├── Blog.tsx         # Blog listing
 │   │   ├── Yayinlar.tsx     # Publications
 │   │   ├── Search.tsx       # Search page
@@ -147,6 +158,11 @@ spolder-website-final/
 │   │       ├── Files.tsx    # Publications management
 │   │       ├── Board.tsx    # Board members
 │   │       ├── Categories.tsx
+│   │       ├── Activities.tsx   # Faaliyetlerimiz yönetimi
+│   │       ├── WelcomeModal.tsx # Hoş geldiniz pop-up'ı
+│   │       ├── Trash.tsx        # Çöp kutusu
+│   │       ├── Guide.tsx + guideContent.ts # Panel içi kullanım rehberi
+│   │       ├── BankInfo.tsx     # Banka/IBAN bilgisi (kullanıma hazır, menüde yok)
 │   │       ├── ContactMessages.tsx
 │   │       └── MediaLibrary.tsx
 │   │
@@ -164,11 +180,17 @@ spolder-website-final/
 │   │   ├── logger.ts        # Production-safe logging
 │   │   ├── activityLog.ts   # Activity logging
 │   │   ├── dataManager.ts   # Export/Import
-│   │   └── searchIndex.ts   # Search functionality
+│   │   ├── searchIndex.ts / searchQuery.ts # Arama
+│   │   ├── faaliyetler.ts   # Faaliyetlerimiz yardımcıları + ortak slugify
+│   │   ├── formatDate.ts    # Tarih biçimlendirme
+│   │   ├── constants.ts     # Ortak sabitler (varsayılan etkinlik formu vb.)
+│   │   ├── GoogleAnalytics.tsx # GA4 (ölçüm kimliği burada)
+│   │   └── mediaLibrary.ts / uploadImage.ts
 │   │
 │   ├── hooks/
 │   │   ├── use-toast.ts
-│   │   └── use-mobile.tsx
+│   │   ├── useCategoryColors.ts
+│   │   └── useContentEditorHandoff.ts # Tam sayfa editör akışı
 │   │
 │   ├── App.tsx              # Main router
 │   ├── main.tsx             # Entry point
@@ -205,7 +227,9 @@ oluşturun ve `DATABASE_URL`'i buna göre ayarlayın.
 `server/index.js` içindeki `PUBLIC_READ_TABLES` / `ALL_TABLES` listesi
 uygulamanın kullandığı tabloları gösterir: `categories`, `board`,
 `bank_info`, `events`, `news`, `blog`, `projects`, `files`, `settings`,
-`contact_messages`, ayrıca girişler için `admin_users`. Bu projenin geçmişi
+`contact_messages`, ayrıca girişler için `admin_users`. `news`, `events`,
+`blog`, `projects` tablolarında `deleted_at` kolonu çöp kutusu (soft-delete)
+için kullanılır. Bu projenin geçmişi
 Supabase'ten geldiği için tabloların ilk şeması eski `supabase/*.sql`
 dosyalarından türetilmiştir, ancak artık RLS (Row Level Security) veya
 Supabase'e özgü hiçbir şey kullanılmıyor — tüm erişim kontrolü doğrudan
@@ -282,8 +306,15 @@ node server/reset-password.js admin@spolder.org YeniGucluSifre123
   form gönderimi hariç) `requireAdmin` middleware'i ile korunur: geçerli bir
   `spolder_session` JWT çerezi olmayan istekler 401 alır.
 - Okuma (`GET /api/db/:table`) `PUBLIC_READ_TABLES` listesindeki tablolar
-  için herkese açıktır (eski Supabase RLS "herkes okuyabilir" politikasının
-  karşılığı) — `contact_messages` hariç, o sadece admin'e açık.
+  için herkese açıktır — `contact_messages` hariç, o sadece admin'e açık.
+  Oturumsuz okumada `news`/`events` için `yayin_durumu='yayinlandi'`,
+  `projects`/`blog` için `publishStatus='published'` süzmesi sunucuda
+  zorunlu uygulanır (taslaklar API'den de sızmaz); silinmiş (çöp) kayıtlar gizlidir.
+  Sorgularda varsayılan/üst `LIMIT` 1000'dir.
+- Oturum çerezi (`spolder_session`, 8 saat) içinde şifre özeti parmak izi
+  (`pv`) taşır: şifre değişince eski oturumlar geçersiz olur.
+- İletişim formu (`contact_messages` POST) alan whitelist'i, uzunluk sınırı ve
+  ayrı bir hız sınırlayıcıya sahiptir.
 - `settings` tablosu karışıktır (halka açık iletişim/IBAN bilgileri +
   yalnızca admin'e ait değerler); `server/index.js` içinde
   `PUBLIC_SETTINGS_KEYS` allowlist'i, oturumsuz isteklerin bu listedeki
@@ -383,26 +414,32 @@ const { data, error } = await supabase
 Production, Natro XCloud VPS üzerinde Nginx (reverse proxy + SSL) ve PM2
 (Node process manager, uygulama adı `spolder-backend`) ile çalışıyor.
 
-**Önemli:** `/var/www/spolder` bir git reposu DEĞİL — dosyalar oraya elle
-kopyalanmış. `git pull` çalışmaz. Güncelleme akışı:
+**Önemli:** `/var/www/spolder` bir git reposu DEĞİL — dosyalar GitHub'dan
+tarball olarak indirilip kopyalanır. `git pull` çalışmaz. Ham dosya CDN'i
+(raw.githubusercontent) önbellek yüzünden eski içerik verebildiği için
+`codeload` tarball'ı kullanılır:
 
 ```bash
-# 1. Değişikliği GitHub'a push edin (bu repo)
-git add .
-git commit -m "Feature description"
-git push origin main
+# 1. Değişikliği GitHub'a push edin
+git add . && git commit -m "feat: ..." && git push origin main
 
-# 2. VPS'te değişen dosyayı çekin
+# 2. VPS'te son sürümü indirip kopyalayın
 cd /var/www/spolder
-curl -fsSL -o <değişen-dosya-yolu> \
-  https://raw.githubusercontent.com/spolderdernegi-del/spolder-website-final/main/<değişen-dosya-yolu>
+rm -rf /tmp/spolder-latest && mkdir -p /tmp/spolder-latest
+curl -sL https://codeload.github.com/spolderdernegi-del/spolder-website-final/tar.gz/refs/heads/main \
+  | tar -xz --strip-components=1 -C /tmp/spolder-latest
+rsync -av --delete /tmp/spolder-latest/src/ /var/www/spolder/src/
+rsync -av /tmp/spolder-latest/public/ /var/www/spolder/public/     # public/ değiştiyse
+cp /tmp/spolder-latest/index.html /var/www/spolder/index.html      # index.html değiştiyse
+cp /tmp/spolder-latest/server/index.js /var/www/spolder/server/index.js   # sunucu değiştiyse
+# package.json / package-lock.json değiştiyse ilgili klasörde `npm install` çalıştırın
 
-# 3. Frontend değiştiyse build alın
+# 3. Frontend build + backend restart
 npm run build
-
-# 4. Backend'i yeniden başlatın
 pm2 restart spolder-backend
 ```
+
+Veritabanı değişiklikleri için: `sudo -u postgres psql -d spolder`.
 
 ---
 
@@ -416,6 +453,10 @@ pm2 restart spolder-backend
 - `admin_users` tablosunda ilgili e-posta ile bir satır var mı kontrol edin
 - Gerekirse `server/seed-admin.js` veya `server/reset-password.js` ile
   şifreyi sıfırlayın
+
+### Problem: Deploy sonrası admin paneli giriş istiyor
+**Çözüm:** Beklenen davranış — sunucu güncellendiğinde veya şifre değiştiğinde
+eski oturumlar geçersiz olur; yeniden giriş yapın.
 
 ### Problem: "Harita marker'ı sürüklenemiyor"
 **Çözüm:** `src/components/admin/GoogleMapPicker.tsx` dosyasında marker ref kontrol edin
@@ -496,6 +537,6 @@ Bu proje SPOLDER Spor Politikaları Derneği tarafından yönetilmektedir.
 
 ---
 
-**Son Güncelleme:** 31 Ağustos 2026
-**Versiyon:** 2.0 (Natro self-hosted mimari)
+**Son Güncelleme:** 17 Ekim 2026
+**Versiyon:** 2.1 (Natro self-hosted mimari, kod denetimi sonrası)
 **Bakım Yapan:** Geliştiriciler Ekibi
