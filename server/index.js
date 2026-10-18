@@ -624,7 +624,8 @@ const INDEXNOW_KEY =
   process.env.INDEXNOW_KEY ||
   crypto.createHash("sha256").update(`${SESSION_SECRET || "spolder"}:indexnow`).digest("hex").slice(0, 32);
 const INDEXNOW_ENABLED = process.env.NODE_ENV !== "development" && process.env.INDEXNOW_DISABLED !== "1";
-const INDEXNOW_TABLES = new Set(["news", "events", "projects", "blog"]);
+// settings: Faaliyetlerimiz sayfaları ve gönderileri Ayarlar tablosunda tutulur.
+const INDEXNOW_TABLES = new Set(["news", "events", "projects", "blog", "settings"]);
 
 app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => {
   res.type("text/plain").send(INDEXNOW_KEY);
@@ -639,6 +640,17 @@ const collectIndexNowUrls = async () => {
       [publishedVal],
     );
     for (const row of rows.rows) urls.add(`${SITE_URL}${r.prefix}${row.id}`);
+  }
+  try {
+    const { services, posts } = await loadFaaliyetData();
+    for (const sv of services) {
+      urls.add(`${SITE_URL}/faaliyetlerimiz/${encodeURIComponent(sv.slug)}`);
+      for (const post of Array.isArray(posts[sv.id]) ? posts[sv.id] : []) {
+        if (post && post.id) urls.add(`${SITE_URL}/faaliyetlerimiz/${encodeURIComponent(sv.slug)}/${encodeURIComponent(String(post.id))}`);
+      }
+    }
+  } catch {
+    // Faaliyet adresleri okunamazsa diğer adresler yine bildirilir.
   }
   return [...urls];
 };
@@ -1345,11 +1357,33 @@ app.use(
 // meta etiketleriyle DEĞİŞTİRİLMİŞ bir index.html döndürüyoruz - normal
 // ziyaretçiler için site yine olağan şekilde çalışmaya devam ediyor,
 // React üstüne binip render ediyor.
+// ===== SEO MERKEZİ ===========================================================
+// Yeni bir sayfa/içerik türü eklerken SEO için yapılacak TEK iş buraya bir kayıt eklemektir:
+//  - Sabit sayfa  -> SITE_PAGES: başlık, açıklama, sitemap, "bilinen sayfa" (404 değil), isteğe bağlı bağlantı listesi
+//  - İçerik türü  -> DETAIL_META_ROUTES: detay sayfası başlığı/açıklaması/görseli, JSON-LD, ekmek kırıntısı,
+//                    düz metin içerik, sitemap ve IndexNow bildirimi (PUBLISH_FILTERS'a da eklenmeli)
+// Faaliyetlerimiz sayfaları Ayarlar'dan geldiği için ayrı rotada (/faaliyetlerimiz/...) otomatik işlenir.
+const SITE_PAGES = [
+  { path: "/", changefreq: "daily", priority: "1.0", list: { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Son haberler" } },
+  { path: "/hakkimizda", changefreq: "monthly", priority: "0.9", crumb: "Hakkımızda", title: "Hakkımızda - SPOLDER Spor Politikaları Derneği", description: "SPOLDER Spor Politikaları Derneği hakkında: misyon, vizyon, değerler, yönetim kurulu ve kurumsal kimlik." },
+  { path: "/haberler", changefreq: "daily", priority: "0.8", crumb: "Haberler", title: "Haberler - SPOLDER", description: "SPOLDER'den en güncel haberler, duyurular ve spor politikalarındaki gelişmeler.", list: { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Haberler" } },
+  { path: "/etkinlikler", changefreq: "weekly", priority: "0.8", crumb: "Etkinlikler", title: "Etkinlikler - SPOLDER", description: "Spor Politikaları Derneği'nin yaklaşan ve geçmiş etkinlikleri, eğitimleri ve toplantıları.", list: { table: "events", prefix: "/etkinlik/", titleCol: "baslik", label: "Etkinlikler" } },
+  { path: "/projeler", changefreq: "monthly", priority: "0.8", crumb: "Projeler", title: "Projeler - SPOLDER", description: "Spor politikalarını geliştirmek için Spor Politikaları Derneği'nin (SPOLDER) yürüttüğü projeler.", list: { table: "projects", prefix: "/proje/", titleCol: "title", label: "Projeler" } },
+  { path: "/blog", changefreq: "weekly", priority: "0.7", crumb: "Blog", title: "Blog - SPOLDER", description: "Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler.", list: { table: "blog", prefix: "/blog/", titleCol: "title", label: "Blog yazıları" } },
+  { path: "/yayinlar", changefreq: "monthly", priority: "0.7", crumb: "Yayınlar", title: "Yayınlar - SPOLDER", description: "SPOLDER'in hazırladığı raporlar, araştırmalar ve politika belgeleri." },
+  { path: "/iletisim", changefreq: "yearly", priority: "0.6", crumb: "İletişim", title: "İletişim - SPOLDER", description: "SPOLDER ile iletişime geçin: adres, telefon, e-posta ve mesaj formu." },
+  { path: "/gizlilik", changefreq: "yearly", priority: "0.3", crumb: "Gizlilik Politikası", title: "Gizlilik Politikası - SPOLDER", description: "SPOLDER web sitesi gizlilik politikası." },
+  { path: "/kvkk", changefreq: "yearly", priority: "0.3", crumb: "KVKK Aydınlatma Metni", title: "KVKK Aydınlatma Metni - SPOLDER", description: "SPOLDER kişisel verilerin korunması (KVKK) aydınlatma metni." },
+  // Arama sonuçları dizine alınmaz (sonsuz sayıda adres üretir).
+  { path: "/search", sitemap: false, noindex: true, title: "Arama - SPOLDER", description: "SPOLDER sitesinde arama." },
+];
+const SITE_PAGE_BY_PATH = Object.fromEntries(SITE_PAGES.map((pg) => [pg.path, pg]));
+
 const DETAIL_META_ROUTES = [
-  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", authorCol: "yazar", catCol: "kategori", ldType: "NewsArticle" },
-  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", locationCol: "konum", catCol: "kategori", ldType: "Event" },
-  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image", bodyCol: "content", dateCol: "start_date", catCol: "category", ldType: "CreativeWork" },
-  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image", bodyCol: "content", dateCol: "date", authorCol: "author", catCol: "category", ldType: "BlogPosting" },
+  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", authorCol: "yazar", catCol: "kategori", ldType: "NewsArticle", sectionLabel: "Haberler", sectionPath: "/haberler" },
+  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", locationCol: "konum", catCol: "kategori", ldType: "Event", sectionLabel: "Etkinlikler", sectionPath: "/etkinlikler" },
+  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image", bodyCol: "content", dateCol: "start_date", catCol: "category", ldType: "CreativeWork", sectionLabel: "Projeler", sectionPath: "/projeler" },
+  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image", bodyCol: "content", dateCol: "date", authorCol: "author", catCol: "category", ldType: "BlogPosting", sectionLabel: "Blog", sectionPath: "/blog" },
 ];
 
 // --- SEO yardımcıları --------------------------------------------------------
@@ -1391,6 +1425,53 @@ const toIsoDate = (v) => {
 const jsonLdTag = (obj) =>
   `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
 const ORG_LD = { "@type": "Organization", "@id": "https://spolder.org/#organization", name: "SPOLDER", url: "https://spolder.org" };
+
+const SITE_ORIGIN = "https://spolder.org";
+const breadcrumbLd = (items) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: items.map((it, i) => ({ "@type": "ListItem", position: i + 1, name: it.name, item: it.url })),
+});
+// Ekranda görünmeyen ama botların okuyabildiği blok (JavaScript'siz tarayıcılar için).
+const hiddenForBots = (inner) =>
+  `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">${inner}</div>`;
+const articleFallback = (title, isoDate, paragraphs) =>
+  `<article><h1>${escapeHtmlAttr(title)}</h1>` +
+  (isoDate ? `<time datetime="${isoDate}">${isoDate.slice(0, 10)}</time>` : "") +
+  paragraphs.map((t) => `<p>${escapeHtmlAttr(t)}</p>`).join("") +
+  `</article>`;
+// Tüm sayfalar için tek SEO uygulayıcısı: başlık, açıklama, anahtar kelime, OG/Twitter, canonical,
+// robots, JSON-LD (dizi) ve botlar için düz metin içerik.
+//  o = { title, ogTitle?, description?, keywords?, url, image?, ogType?, noindex?, ld?: object[], fallbackHtml? }
+const applySeo = (html, o) => {
+  const t = escapeHtmlAttr(o.title);
+  const ot = escapeHtmlAttr(o.ogTitle || o.title);
+  html = setMeta(html, /<title>.*?<\/title>/, `<title>${t}</title>`);
+  html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${ot}" />`);
+  html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${ot}" />`);
+  if (o.description !== undefined) {
+    const d = escapeHtmlAttr(o.description);
+    html = setMeta(html, /<meta name="description" content=".*?"\s*\/>/, `<meta name="description" content="${d}" />`);
+    html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${d}" />`);
+    html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${d}" />`);
+  }
+  if (o.keywords) html = setMeta(html, /<meta name="keywords" content=".*?"\s*\/>/, `<meta name="keywords" content="${escapeHtmlAttr(o.keywords)}" />`);
+  if (o.ogType) html = setMeta(html, /<meta property="og:type" content=".*?"\s*\/>/, `<meta property="og:type" content="${o.ogType}" />`);
+  if (o.image) {
+    html = setMeta(html, /<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(o.image)}" />`);
+    html = setMeta(html, /<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(o.image)}" />`);
+  }
+  if (o.url) {
+    html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(o.url)}" />`);
+    html = setCanonical(html, o.url);
+  }
+  const extra = [];
+  if (o.noindex) extra.push('<meta name="robots" content="noindex, follow" />');
+  (o.ld || []).forEach((obj) => extra.push(jsonLdTag(obj)));
+  if (extra.length) html = html.replace("</head>", () => `    ${extra.join("\n    ")}\n  </head>`);
+  if (o.fallbackHtml) html = html.replace('<div id="root"></div>', () => `<div id="root">${hiddenForBots(o.fallbackHtml)}</div>`);
+  return html;
+};
 
 // dist/index.html kısa süre bellekte tutulur (her istekte diskten okunmasın),
 // ama deploy sonrası yeni dosya en geç 30 sn içinde görülür.
@@ -1448,34 +1529,17 @@ app.get(
       const bodyParagraphs = htmlToParagraphs(item.body);
       // Özet boşsa açıklama içeriğin ilk cümlelerinden üretilir (boş description arama sonuçlarında kötü görünür).
       const rawDescription = (String(item.description || "").replace(/\s+/g, " ").trim() || bodyParagraphs.join(" ").slice(0, 200)).slice(0, 200);
-      const title = escapeHtmlAttr(rawTitle);
-      const description = escapeHtmlAttr(rawDescription);
       // base64 (data:) görseller paylaşım botları tarafından getirilemez
       // (gerçek bir URL değiller) - bu durumda varsayılan kapak görseline düşülür.
       const rawImage = item.image || "";
       // Bağıl adresler (/uploads/..., /varsayilan-gorsel.png) paylaşım botları için
       // tam adrese çevrilir.
       let image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
-      if (image.startsWith("/")) image = `https://spolder.org${image}`;
-      const url = `https://spolder.org${req.path.replace(/\/$/, "")}`;
+      if (image.startsWith("/")) image = `${SITE_ORIGIN}${image}`;
+      const url = `${SITE_ORIGIN}${req.path.replace(/\/$/, "")}`;
       const isoDate = toIsoDate(item.item_date);
       const category = item.category ? String(item.category).split(",")[0].trim() : "";
       const keywords = [category, "SPOLDER", "spor politikaları"].filter(Boolean).join(", ");
-
-      html = setMeta(html, /<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`);
-      // Standart description/keywords: önceden yalnızca og:description güncelleniyordu,
-      // arama sonuçlarındaki açıklama her sayfada aynı genel metin oluyordu.
-      html = setMeta(html, /<meta name="description" content=".*?"\s*\/>/, `<meta name="description" content="${description}" />`);
-      html = setMeta(html, /<meta name="keywords" content=".*?"\s*\/>/, `<meta name="keywords" content="${escapeHtmlAttr(keywords)}" />`);
-      html = setMeta(html, /<meta property="og:type" content=".*?"\s*\/>/, `<meta property="og:type" content="${route.ldType === "Event" ? "website" : "article"}" />`);
-      html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`);
-      html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`);
-      html = setMeta(html, /<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`);
-      html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(url)}" />`);
-      html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${title}" />`);
-      html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`);
-      html = setMeta(html, /<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
-      html = setCanonical(html, url);
 
       // Yapısal veri (JSON-LD): içeriğin SPOLDER'e ait ORİJİNAL kaynak olduğunu,
       // yayın tarihini ve yayıncıyı arama motorlarına/yapay zekâ özetlerine açıkça bildirir.
@@ -1510,20 +1574,26 @@ app.get(
       if (rawDescription) ld.description = rawDescription;
       ld.image = [image];
       if (category) ld.articleSection = category;
-      html = html.replace("</head>", () => `    ${jsonLdTag(ld)}\n  </head>`);
 
-      // JavaScript çalıştırmayan botlar (çoğu yapay zekâ tarayıcısı) için içeriğin düz metni.
-      // Ekranda görünmez; React yüklenince #root zaten bununla değiştirilir.
-      const paragraphs = bodyParagraphs;
-      if (paragraphs.length > 0) {
-        const fallback =
-          `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">` +
-          `<article><h1>${escapeHtmlAttr(rawTitle)}</h1>` +
-          (isoDate ? `<time datetime="${isoDate}">${isoDate.slice(0, 10)}</time>` : "") +
-          paragraphs.map((t) => `<p>${escapeHtmlAttr(t)}</p>`).join("") +
-          `</article></div>`;
-        html = html.replace('<div id="root"></div>', () => `<div id="root">${fallback}</div>`);
-      }
+      html = applySeo(html, {
+        title: `${rawTitle} - SPOLDER`,
+        ogTitle: rawTitle,
+        description: rawDescription,
+        keywords,
+        url,
+        image,
+        ogType: route.ldType === "Event" ? "website" : "article",
+        ld: [
+          ld,
+          breadcrumbLd([
+            { name: "Ana Sayfa", url: SITE_ORIGIN },
+            { name: route.sectionLabel, url: `${SITE_ORIGIN}${route.sectionPath}` },
+            { name: rawTitle, url },
+          ]),
+        ],
+        // JavaScript çalıştırmayan botlar (çoğu yapay zekâ tarayıcısı) için içeriğin düz metni.
+        fallbackHtml: bodyParagraphs.length > 0 ? articleFallback(rawTitle, isoDate, bodyParagraphs) : "",
+      });
     }
 
     res.set("Content-Type", "text/html; charset=UTF-8");
@@ -1541,18 +1611,7 @@ app.get(
 // ve yeniden tarama hızını yavaşlatıyordu. Bu, veritabanından her istekte
 // güncel içerikle üretiliyor; yeni bir haber eklendiğinde otomatik olarak
 // site haritasına dahil olur, elle güncellemeye gerek kalmaz.
-const SITEMAP_STATIC_PAGES = [
-  { loc: "/", changefreq: "daily", priority: "1.0" },
-  { loc: "/hakkimizda", changefreq: "monthly", priority: "0.9" },
-  { loc: "/haberler", changefreq: "daily", priority: "0.8" },
-  { loc: "/etkinlikler", changefreq: "weekly", priority: "0.8" },
-  { loc: "/projeler", changefreq: "monthly", priority: "0.8" },
-  { loc: "/blog", changefreq: "weekly", priority: "0.7" },
-  { loc: "/yayinlar", changefreq: "monthly", priority: "0.7" },
-  { loc: "/iletisim", changefreq: "yearly", priority: "0.6" },
-  { loc: "/gizlilik", changefreq: "yearly", priority: "0.3" },
-  { loc: "/kvkk", changefreq: "yearly", priority: "0.3" },
-];
+const SITEMAP_STATIC_PAGES = SITE_PAGES.filter((pg) => pg.sitemap !== false).map((pg) => ({ loc: pg.path, changefreq: pg.changefreq, priority: pg.priority }));
 
 // Başlıktan sayfa adresi üretir (src/lib/faaliyetler.ts'teki slugify ile aynı).
 const slugifyTr = (value) =>
@@ -1581,12 +1640,14 @@ app.get(
       (p) => `  <url>\n    <loc>https://spolder.org${p.loc}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`,
     );
 
-    const contentQueries = [
-      { table: "news", prefix: "/haber/", dateCol: "tarih", statusCol: "yayin_durumu", publishedVal: "yayinlandi" },
-      { table: "events", prefix: "/etkinlik/", dateCol: "tarih", statusCol: "yayin_durumu", publishedVal: "yayinlandi" },
-      { table: "projects", prefix: "/proje/", dateCol: "start_date", statusCol: "publishStatus", publishedVal: "published" },
-      { table: "blog", prefix: "/blog/", dateCol: "date", statusCol: "publishStatus", publishedVal: "published" },
-    ];
+    // İçerik türleri DETAIL_META_ROUTES kaydından gelir: yeni tür eklenince sitemap'e kendiliğinden girer.
+    const contentQueries = DETAIL_META_ROUTES.map((r) => ({
+      table: r.table,
+      prefix: r.prefix,
+      dateCol: r.dateCol,
+      statusCol: PUBLISH_FILTERS[r.table][0],
+      publishedVal: PUBLISH_FILTERS[r.table][1],
+    }));
 
     for (const q of contentQueries) {
       try {
@@ -1641,6 +1702,121 @@ app.get(
   }),
 );
 
+// --- Faaliyetlerimiz sayfaları (Ayarlar'dan gelen içerik) -----------------------
+// /faaliyetlerimiz/<ad> ve /faaliyetlerimiz/<ad>/<gönderi> için başlık/açıklama/JSON-LD/düz metin.
+// Yeni faaliyet veya gönderi admin panelinden eklenince bunlar da kendiliğinden devreye girer.
+const DEFAULT_FOOTER_SERVICE_LABELS = ["Araştırma & Analiz", "Eğitim Programları", "Politika Önerileri", "Spor Danışmanlığı", "Uluslararası İşbirlikleri"];
+const safeJson = (raw, fallback) => {
+  try {
+    const v = raw ? JSON.parse(raw) : fallback;
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+const loadFaaliyetData = async () => {
+  const rows = await queryDatabase(`SELECT "key", value FROM settings WHERE "key" = ANY($1)`, [["footer_services", "faaliyet_pages", "faaliyet_posts"]]);
+  const byKey = Object.fromEntries(rows.rows.map((r) => [r.key, r.value]));
+  const list = safeJson(byKey.footer_services, []);
+  const base = Array.isArray(list) && list.length > 0 ? list : DEFAULT_FOOTER_SERVICE_LABELS.map((label) => ({ label }));
+  const services = base
+    .filter((x) => x && x.label)
+    .map((x) => ({ id: x.id || slugifyTr(x.label), label: String(x.label), slug: slugifyTr(x.label) }));
+  const pages = safeJson(byKey.faaliyet_pages, {});
+  const posts = safeJson(byKey.faaliyet_posts, {});
+  return { services, pages: pages && typeof pages === "object" ? pages : {}, posts: posts && typeof posts === "object" ? posts : {} };
+};
+const absoluteImage = (img) => {
+  if (!img || String(img).startsWith("data:")) return DEFAULT_OG_IMAGE;
+  return String(img).startsWith("/") ? `${SITE_ORIGIN}${img}` : String(img);
+};
+
+app.get(
+  /^\/faaliyetlerimiz\/([^/]+)(?:\/([^/]+))?\/?$/,
+  asyncHandler(async (req, res, next) => {
+    let html;
+    try {
+      html = await readIndexHtml();
+    } catch {
+      return next();
+    }
+    let slug;
+    let postId;
+    try {
+      slug = decodeURIComponent(req.params[0]);
+      postId = req.params[1] ? decodeURIComponent(req.params[1]) : null;
+    } catch {
+      return next();
+    }
+    const { services, pages, posts } = await loadFaaliyetData();
+    const service = services.find((sv) => sv.slug === slug);
+    const url = `${SITE_ORIGIN}/faaliyetlerimiz/${encodeURIComponent(slug)}${postId ? `/${encodeURIComponent(postId)}` : ""}`;
+    res.set("Content-Type", "text/html; charset=UTF-8");
+    if (!service) {
+      return res.status(404).send(applySeo(html, { title: "Sayfa Bulunamadı | SPOLDER", noindex: true }));
+    }
+    const page = pages[service.id] && typeof pages[service.id] === "object" ? pages[service.id] : {};
+    const postList = (Array.isArray(posts[service.id]) ? posts[service.id] : []).filter((x) => x && x.id && x.title);
+    const crumbs = [
+      { name: "Ana Sayfa", url: SITE_ORIGIN },
+      { name: service.label, url: `${SITE_ORIGIN}/faaliyetlerimiz/${encodeURIComponent(service.slug)}` },
+    ];
+
+    if (postId) {
+      let post = postList.find((x) => String(x.id) === postId);
+      if (!post && postId === "sayfa" && (page.content || page.image)) {
+        post = { id: "sayfa", title: service.label, summary: page.summary || "", image: page.image || "", content: page.content || "" };
+      }
+      if (!post) return res.status(404).send(applySeo(html, { title: "Sayfa Bulunamadı | SPOLDER", noindex: true }));
+      const paras = htmlToParagraphs(post.content);
+      const desc = (String(post.summary || "").replace(/\s+/g, " ").trim() || paras.join(" ")).slice(0, 200);
+      const image = absoluteImage(post.image);
+      const isoDate = toIsoDate(post.date);
+      const ld = { "@context": "https://schema.org", "@type": "Article", headline: String(post.title), url, mainEntityOfPage: url, inLanguage: "tr", image: [image], author: ORG_LD, publisher: ORG_LD, articleSection: service.label };
+      if (desc) ld.description = desc;
+      if (isoDate) {
+        ld.datePublished = isoDate;
+        ld.dateModified = isoDate;
+      }
+      return res.send(
+        applySeo(html, {
+          title: `${post.title} - ${service.label} - SPOLDER`,
+          ogTitle: String(post.title),
+          description: desc,
+          keywords: `${service.label}, SPOLDER, spor politikaları`,
+          url,
+          image,
+          ogType: "article",
+          ld: [ld, breadcrumbLd([...crumbs, { name: String(post.title), url }])],
+          fallbackHtml: paras.length > 0 ? articleFallback(String(post.title), isoDate, paras) : "",
+        }),
+      );
+    }
+
+    // Faaliyet ana sayfası: açıklama + gönderilerin bağlantıları + sayfa metni
+    const paras = htmlToParagraphs(page.content);
+    const desc = (String(page.summary || "").replace(/\s+/g, " ").trim() || `${service.label} kapsamındaki çalışmalarımız ve içeriklerimiz`).slice(0, 200);
+    const links = postList
+      .map((x) => `<li><a href="/faaliyetlerimiz/${encodeURIComponent(service.slug)}/${encodeURIComponent(String(x.id))}">${escapeHtmlAttr(String(x.title))}</a></li>`)
+      .join("");
+    const ld = { "@context": "https://schema.org", "@type": "CollectionPage", name: service.label, url, inLanguage: "tr", description: desc, publisher: ORG_LD };
+    return res.send(
+      applySeo(html, {
+        title: `${service.label} - SPOLDER`,
+        ogTitle: service.label,
+        description: desc,
+        url,
+        image: absoluteImage(page.image),
+        ld: [ld, breadcrumbLd(crumbs)],
+        fallbackHtml:
+          `<article><h1>${escapeHtmlAttr(service.label)}</h1><p>${escapeHtmlAttr(desc)}</p>${paras.map((t) => `<p>${escapeHtmlAttr(t)}</p>`).join("")}` +
+          (links ? `<nav aria-label="${escapeHtmlAttr(service.label)}"><ul>${links}</ul></nav>` : "") +
+          `</article>`,
+      }),
+    );
+  }),
+);
+
 // Vite, her build'de dist/assets/ içine yeni hash'li dosya adları
 // (ör. index-DIphAxY9.js) üretip eskilerini siler. Bu yüzden:
 //  - /assets/* dosyaları TARAYICIDA UZUN SÜRE (1 yıl, immutable) cache'lenebilir;
@@ -1668,83 +1844,52 @@ app.get(/^\/(uploads|assets)\//, (_req, res) => res.status(404).end());
 
 // Sitenin gerçek sayfaları; bunların dışındaki adresler için React "Sayfa bulunamadı"
 // ekranını gösterir ama HTTP durumu 404 olur (arama motorları yanlış sayfaları dizinlemesin).
-// Liste sayfalarındaki botlar için bağlantı listesi (tablo, adres öneki, başlık sütunu).
-const LIST_LINK_FALLBACKS = {
-  "/": { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Son haberler" },
-  "/haberler": { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Haberler" },
-  "/etkinlikler": { table: "events", prefix: "/etkinlik/", titleCol: "baslik", label: "Etkinlikler" },
-  "/projeler": { table: "projects", prefix: "/proje/", titleCol: "title", label: "Projeler" },
-  "/blog": { table: "blog", prefix: "/blog/", titleCol: "title", label: "Blog yazıları" },
-};
-// Sabit sayfaların arama sonuçlarında görünecek başlık ve açıklamaları.
-const STATIC_PAGE_SEO = {
-  "/hakkimizda": { title: "Hakkımızda - SPOLDER Spor Politikaları Derneği", description: "SPOLDER Spor Politikaları Derneği hakkında: misyon, vizyon, değerler, yönetim kurulu ve kurumsal kimlik." },
-  "/haberler": { title: "Haberler - SPOLDER", description: "SPOLDER'den en güncel haberler, duyurular ve spor politikalarındaki gelişmeler." },
-  "/etkinlikler": { title: "Etkinlikler - SPOLDER", description: "Spor Politikaları Derneği'nin yaklaşan ve geçmiş etkinlikleri, eğitimleri ve toplantıları." },
-  "/projeler": { title: "Projeler - SPOLDER", description: "Spor politikalarını geliştirmek için Spor Politikaları Derneği'nin (SPOLDER) yürüttüğü projeler." },
-  "/blog": { title: "Blog - SPOLDER", description: "Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler." },
-  "/yayinlar": { title: "Yayınlar - SPOLDER", description: "SPOLDER'in hazırladığı raporlar, araştırmalar ve politika belgeleri." },
-  "/iletisim": { title: "İletişim - SPOLDER", description: "SPOLDER ile iletişime geçin: adres, telefon, e-posta ve mesaj formu." },
-  "/gizlilik": { title: "Gizlilik Politikası - SPOLDER", description: "SPOLDER web sitesi gizlilik politikası." },
-  "/kvkk": { title: "KVKK Aydınlatma Metni - SPOLDER", description: "SPOLDER kişisel verilerin korunması (KVKK) aydınlatma metni." },
-};
-const KNOWN_PAGE_PATHS = new Set([
-  "/", "/hakkimizda", "/haberler", "/etkinlikler", "/projeler", "/blog", "/yayinlar",
-  "/iletisim", "/search", "/gizlilik", "/kvkk",
-]);
+// Sitenin gerçek sayfaları: SITE_PAGES kaydı + yönetim paneli. Bunların dışındaki adresler için React
+// "Sayfa bulunamadı" ekranını gösterir ama HTTP durumu 404 olur (arama motorları yanlış sayfaları dizinlemesin).
+const KNOWN_PAGE_PATHS = new Set(SITE_PAGES.map((pg) => pg.path));
 const KNOWN_PAGE_PREFIXES = ["/haber/", "/etkinlik/", "/proje/", "/blog/", "/faaliyetlerimiz/", "/admin"];
 app.get(
   /^\/(?!api\/).*/,
   asyncHandler(async (req, res) => {
     res.set("Cache-Control", "no-cache");
     const cleanPath = req.path.length > 1 ? req.path.replace(/\/+$/, "") : req.path;
-    const known = KNOWN_PAGE_PATHS.has(cleanPath) || KNOWN_PAGE_PREFIXES.some((p) => cleanPath.startsWith(p));
+    const known = KNOWN_PAGE_PATHS.has(cleanPath) || KNOWN_PAGE_PREFIXES.some((pfx) => cleanPath.startsWith(pfx));
+    const isAdmin = cleanPath.startsWith("/admin");
+    // Yönetim paneli ve 404 sayfaları arama motoru dizinine alınmasın.
+    if (isAdmin || !known) res.set("X-Robots-Tag", "noindex, nofollow");
     let html;
     try {
       html = await readIndexHtml();
     } catch {
       return res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
     }
-    if (known && !cleanPath.startsWith("/admin")) {
-      // Her sayfa kendi adresini "canonical" olarak bildirir (önceden hepsi ana sayfayı gösteriyordu).
-      html = setCanonical(html, `https://spolder.org${cleanPath === "/" ? "" : cleanPath}`);
-      // Liste/sabit sayfalara özgü başlık ve açıklama (önceden hepsi ana sayfanınkini gösteriyordu).
-      const seo = STATIC_PAGE_SEO[cleanPath];
-      if (seo) {
-        const t = escapeHtmlAttr(seo.title);
-        const d = escapeHtmlAttr(seo.description);
-        html = setMeta(html, /<title>.*?<\/title>/, `<title>${t}</title>`);
-        html = setMeta(html, /<meta name="description" content=".*?"\s*\/>/, `<meta name="description" content="${d}" />`);
-        html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${t}" />`);
-        html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${d}" />`);
-        html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(`https://spolder.org${cleanPath}`)}" />`);
-        html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${t}" />`);
-        html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${d}" />`);
-      }
-    }
-    // Liste sayfalarına (ve ana sayfaya) JavaScript'siz botlar için düz bağlantı listesi:
-    // Google ve yapay zekâ tarayıcıları detay sayfalarını doğrudan bu bağlantılardan keşfeder.
-    const listCfg = LIST_LINK_FALLBACKS[cleanPath];
-    if (listCfg && known) {
-      try {
-        const [statusCol, publishedVal] = PUBLISH_FILTERS[listCfg.table];
-        const rows = await queryDatabase(
-          `SELECT id, "${listCfg.titleCol}" AS title FROM "${listCfg.table}" WHERE "${statusCol}" = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""} ORDER BY id DESC LIMIT ${cleanPath === "/" ? 10 : 100}`,
-          [publishedVal],
-        );
-        if (rows.rows.length > 0) {
+    if (known && !isAdmin) {
+      const pg = SITE_PAGE_BY_PATH[cleanPath];
+      const url = `${SITE_ORIGIN}${cleanPath === "/" ? "" : cleanPath}`;
+      const seo = { url, title: pg?.title, description: pg?.description, noindex: !!pg?.noindex, ld: [] };
+      if (pg?.crumb) seo.ld.push(breadcrumbLd([{ name: "Ana Sayfa", url: SITE_ORIGIN }, { name: pg.crumb, url }]));
+      // Liste sayfalarına (ve ana sayfaya) JavaScript'siz botlar için düz bağlantı listesi:
+      // Google ve yapay zekâ tarayıcıları detay sayfalarını doğrudan bu bağlantılardan keşfeder.
+      if (pg?.list) {
+        try {
+          const [statusCol, publishedVal] = PUBLISH_FILTERS[pg.list.table];
+          const rows = await queryDatabase(
+            `SELECT id, "${pg.list.titleCol}" AS title FROM "${pg.list.table}" WHERE "${statusCol}" = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""} ORDER BY id DESC LIMIT ${cleanPath === "/" ? 10 : 100}`,
+            [publishedVal],
+          );
           const links = rows.rows
             .filter((r) => r.title)
-            .map((r) => `<li><a href="${listCfg.prefix}${r.id}">${escapeHtmlAttr(r.title)}</a></li>`)
+            .map((r) => `<li><a href="${pg.list.prefix}${r.id}">${escapeHtmlAttr(r.title)}</a></li>`)
             .join("");
-          const nav =
-            `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">` +
-            `<nav aria-label="${escapeHtmlAttr(listCfg.label)}"><ul>${links}</ul></nav></div>`;
-          html = html.replace('<div id="root"></div>', () => `<div id="root">${nav}</div>`);
+          if (links) seo.fallbackHtml = `<nav aria-label="${escapeHtmlAttr(pg.list.label)}"><ul>${links}</ul></nav>`;
+        } catch (err) {
+          console.error("Liste bağlantıları eklenemedi:", err.message);
         }
-      } catch (err) {
-        console.error("Liste bağlantıları eklenemedi:", err.message);
       }
+      if (pg?.title) html = applySeo(html, { ...seo, title: pg.title });
+      else html = applySeo(html, { url, ld: seo.ld, fallbackHtml: seo.fallbackHtml, title: "SPOLDER - Spor Politikaları Derneği", description: undefined });
+    } else if (!known) {
+      html = applySeo(html, { title: "Sayfa Bulunamadı | SPOLDER", noindex: true });
     }
     res.status(known ? 200 : 404);
     res.set("Content-Type", "text/html; charset=UTF-8");

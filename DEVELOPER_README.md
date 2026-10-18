@@ -530,3 +530,18 @@ Bu proje SPOLDER Spor Politikaları Derneği tarafından yönetilmektedir.
 **Son Güncelleme:** 17 Ekim 2026
 **Versiyon:** 2.1 (Natro self-hosted mimari, kod denetimi sonrası)
 **Bakım Yapan:** Geliştiriciler Ekibi
+
+
+## SEO merkezi (server/index.js)
+
+Tüm sayfaların başlık/açıklama/JSON-LD/canonical/robots ayarı tek yerden yönetilir:
+
+- **Sabit sayfa eklemek:** `SITE_PAGES` listesine bir kayıt ekleyin (`path`, `title`, `description`, `changefreq`, `priority`,
+  isteğe bağlı `crumb`, `list`, `noindex`). Kayıt; sayfa başlığını/açıklamasını, sitemap'i ve "bilinen sayfa" (404 olmaması) durumunu birlikte sağlar.
+- **İçerik türü eklemek (haber/blog gibi):** `DETAIL_META_ROUTES`'a kayıt ekleyin ve `PUBLISH_FILTERS`'a yayın koşulunu yazın.
+  Detay sayfası SEO'su, JSON-LD (NewsArticle/BlogPosting/Event/CreativeWork), ekmek kırıntısı, botlar için düz metin, sitemap ve
+  IndexNow bildirimi otomatik gelir.
+- **Faaliyetlerimiz:** Admin panelinden eklenen faaliyet/gönderi sayfaları (`/faaliyetlerimiz/...`) için SEO ve sitemap otomatiktir.
+- **Dizine alınmayanlar:** `/admin`, 404 sayfaları (`X-Robots-Tag`/meta robots) ve `/search` (`noindex`).
+- Tüm bunlar `applySeo()` yardımcısından geçer; yeni bir sayfa türünde de onu kullanın.
+- **IndexNow:** İçerik yazma işlemlerinden bir dakika sonra güncel adresler Bing/Yandex'e bildirilir (`INDEXNOW_DISABLED=1` ile kapatılır).
