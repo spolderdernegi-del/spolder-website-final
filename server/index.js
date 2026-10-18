@@ -1484,7 +1484,19 @@ app.get(
       if (route.ldType === "Event") {
         ld.name = rawTitle;
         if (isoDate) ld.startDate = isoDate;
-        if (item.location) ld.location = { "@type": "Place", name: String(item.location) };
+        ld.eventStatus = "https://schema.org/EventScheduled";
+        const loc = item.location ? String(item.location).trim() : "";
+        // Konum alanında internet adresi / çevrimiçi platform yazıyorsa etkinlik çevrimiçi sayılır.
+        const looksOnline = /^(https?:\/\/|www\.)|\.(com|org|net|tv|me|gle)\b|instagram|youtube|zoom|teams|meet|online|çevrimiçi|cevrimici|canlı yayın/i.test(loc);
+        if (loc && looksOnline) {
+          const hasUrl = /^https?:\/\//i.test(loc);
+          const onlineUrl = hasUrl ? loc : /^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(loc) ? `https://${loc}` : url;
+          ld.eventAttendanceMode = "https://schema.org/OnlineEventAttendanceMode";
+          ld.location = { "@type": "VirtualLocation", url: onlineUrl };
+        } else if (loc) {
+          ld.eventAttendanceMode = "https://schema.org/OfflineEventAttendanceMode";
+          ld.location = { "@type": "Place", name: loc, address: loc };
+        }
         ld.organizer = ORG_LD;
       } else {
         ld[route.ldType === "CreativeWork" ? "name" : "headline"] = rawTitle;
