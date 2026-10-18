@@ -33,6 +33,42 @@
     <link rel="shortcut icon" href="/favicon.ico" />
     
     <link rel="canonical" href="https://spolder.org" />
+    <!-- Yapısal veri: kuruluşun kimliği (arama motorları ve yapay zekâ özetleri için) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://spolder.org/#organization",
+            "name": "SPOLDER",
+            "alternateName": "Spor Politikaları Derneği",
+            "url": "https://spolder.org",
+            "logo": "https://spolder.org/apple-touch-icon.png",
+            "description": "Türkiye'de spor politikalarının geliştirilmesi ve spor kültürünün yaygınlaştırılması için çalışan dernek.",
+            "sameAs": [
+              "https://www.facebook.com/spolderorg/",
+              "https://x.com/spolderorg",
+              "https://www.instagram.com/spolderorg/",
+              "https://www.linkedin.com/in/spolderorg"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://spolder.org/#website",
+            "url": "https://spolder.org",
+            "name": "SPOLDER - Spor Politikaları Derneği",
+            "inLanguage": "tr",
+            "publisher": { "@id": "https://spolder.org/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://spolder.org/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
 
   <body>

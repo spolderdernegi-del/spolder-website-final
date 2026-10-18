@@ -1277,11 +1277,51 @@ app.use(
 // ziyaretçiler için site yine olağan şekilde çalışmaya devam ediyor,
 // React üstüne binip render ediyor.
 const DETAIL_META_ROUTES = [
-  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
-  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel" },
-  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image" },
-  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image" },
+  { prefix: "/haber/", table: "news", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", authorCol: "yazar", catCol: "kategori", ldType: "NewsArticle" },
+  { prefix: "/etkinlik/", table: "events", titleCol: "baslik", descCol: "ozet", imageCol: "gorsel", bodyCol: "icerik", dateCol: "tarih", locationCol: "konum", catCol: "kategori", ldType: "Event" },
+  { prefix: "/proje/", table: "projects", titleCol: "title", descCol: "description", imageCol: "image", bodyCol: "content", dateCol: "start_date", catCol: "category", ldType: "CreativeWork" },
+  { prefix: "/blog/", table: "blog", titleCol: "title", descCol: "excerpt", imageCol: "image", bodyCol: "content", dateCol: "date", authorCol: "author", catCol: "category", ldType: "BlogPosting" },
 ];
+
+// --- SEO yardımcıları --------------------------------------------------------
+// Admin editörünün HTML'ini, arama/yapay zekâ botları için DÜZ METİN paragraflarına çevirir
+// (etiketler atılır, yalnızca escape edilmiş metin yazılır; böylece XSS riski olmaz).
+const decodeBasicEntities = (t) =>
+  t
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'");
+const htmlToParagraphs = (html, maxChars = 20000) => {
+  const text = decodeBasicEntities(
+    String(html || "")
+      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<\/(p|div|h[1-6]|li|blockquote|tr)>|<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]*>/g, " "),
+  );
+  const paras = text
+    .split(/\n+/)
+    .map((t) => t.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const out = [];
+  let used = 0;
+  for (const para of paras) {
+    if (used + para.length > maxChars) break;
+    out.push(para);
+    used += para.length;
+  }
+  return out;
+};
+const toIsoDate = (v) => {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+const jsonLdTag = (obj) =>
+  `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
+const ORG_LD = { "@type": "Organization", "@id": "https://spolder.org/#organization", name: "SPOLDER", url: "https://spolder.org" };
 
 // dist/index.html kısa süre bellekte tutulur (her istekte diskten okunmasın),
 // ama deploy sonrası yeni dosya en geç 30 sn içinde görülür.
@@ -1321,15 +1361,24 @@ app.get(
 
     // Taslak içeriğin başlığı/görseli paylaşım önizlemesine sızmasın.
     const [statusCol, publishedVal] = PUBLISH_FILTERS[route.table];
+    const extraCols = [
+      route.bodyCol && `"${route.bodyCol}" AS body`,
+      route.dateCol && `"${route.dateCol}" AS item_date`,
+      route.authorCol && `"${route.authorCol}" AS author`,
+      route.locationCol && `"${route.locationCol}" AS location`,
+      route.catCol && `"${route.catCol}" AS category`,
+    ].filter(Boolean);
     const result = await queryDatabase(
-      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image FROM "${route.table}" WHERE id = $1 AND "${statusCol}" = $2${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
+      `SELECT "${route.titleCol}" AS title, "${route.descCol}" AS description, "${route.imageCol}" AS image, ${extraCols.join(", ")} FROM "${route.table}" WHERE id = $1 AND "${statusCol}" = $2${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
       [id, publishedVal],
     );
     const item = result.rows[0];
 
     if (item) {
-      const title = escapeHtmlAttr(item.title || "SPOLDER");
-      const description = escapeHtmlAttr(String(item.description || "").slice(0, 200));
+      const rawTitle = String(item.title || "SPOLDER");
+      const rawDescription = String(item.description || "").replace(/\s+/g, " ").trim().slice(0, 200);
+      const title = escapeHtmlAttr(rawTitle);
+      const description = escapeHtmlAttr(rawDescription);
       // base64 (data:) görseller paylaşım botları tarafından getirilemez
       // (gerçek bir URL değiller) - bu durumda varsayılan kapak görseline düşülür.
       const rawImage = item.image || "";
@@ -1337,9 +1386,17 @@ app.get(
       // tam adrese çevrilir.
       let image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
       if (image.startsWith("/")) image = `https://spolder.org${image}`;
-      const url = `https://spolder.org${req.path}`;
+      const url = `https://spolder.org${req.path.replace(/\/$/, "")}`;
+      const isoDate = toIsoDate(item.item_date);
+      const category = item.category ? String(item.category).split(",")[0].trim() : "";
+      const keywords = [category, "SPOLDER", "spor politikaları"].filter(Boolean).join(", ");
 
       html = setMeta(html, /<title>.*?<\/title>/, `<title>${title} - SPOLDER</title>`);
+      // Standart description/keywords: önceden yalnızca og:description güncelleniyordu,
+      // arama sonuçlarındaki açıklama her sayfada aynı genel metin oluyordu.
+      html = setMeta(html, /<meta name="description" content=".*?"\s*\/>/, `<meta name="description" content="${description}" />`);
+      html = setMeta(html, /<meta name="keywords" content=".*?"\s*\/>/, `<meta name="keywords" content="${escapeHtmlAttr(keywords)}" />`);
+      html = setMeta(html, /<meta property="og:type" content=".*?"\s*\/>/, `<meta property="og:type" content="${route.ldType === "Event" ? "website" : "article"}" />`);
       html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${title}" />`);
       html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${description}" />`);
       html = setMeta(html, /<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(image)}" />`);
@@ -1348,6 +1405,42 @@ app.get(
       html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${description}" />`);
       html = setMeta(html, /<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(image)}" />`);
       html = setCanonical(html, url);
+
+      // Yapısal veri (JSON-LD): içeriğin SPOLDER'e ait ORİJİNAL kaynak olduğunu,
+      // yayın tarihini ve yayıncıyı arama motorlarına/yapay zekâ özetlerine açıkça bildirir.
+      const authorName = item.author ? String(item.author).trim() : "";
+      const ld = { "@context": "https://schema.org", "@type": route.ldType, url, mainEntityOfPage: url, inLanguage: "tr" };
+      if (route.ldType === "Event") {
+        ld.name = rawTitle;
+        if (isoDate) ld.startDate = isoDate;
+        if (item.location) ld.location = { "@type": "Place", name: String(item.location) };
+        ld.organizer = ORG_LD;
+      } else {
+        ld[route.ldType === "CreativeWork" ? "name" : "headline"] = rawTitle;
+        if (isoDate) {
+          ld.datePublished = isoDate;
+          ld.dateModified = isoDate;
+        }
+        ld.author = authorName && authorName.toLocaleLowerCase("tr") !== "spolder" ? { "@type": "Person", name: authorName } : ORG_LD;
+        ld.publisher = ORG_LD;
+      }
+      if (rawDescription) ld.description = rawDescription;
+      ld.image = [image];
+      if (category) ld.articleSection = category;
+      html = html.replace("</head>", () => `    ${jsonLdTag(ld)}\n  </head>`);
+
+      // JavaScript çalıştırmayan botlar (çoğu yapay zekâ tarayıcısı) için içeriğin düz metni.
+      // Ekranda görünmez; React yüklenince #root zaten bununla değiştirilir.
+      const paragraphs = htmlToParagraphs(item.body);
+      if (paragraphs.length > 0) {
+        const fallback =
+          `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">` +
+          `<article><h1>${escapeHtmlAttr(rawTitle)}</h1>` +
+          (isoDate ? `<time datetime="${isoDate}">${isoDate.slice(0, 10)}</time>` : "") +
+          paragraphs.map((t) => `<p>${escapeHtmlAttr(t)}</p>`).join("") +
+          `</article></div>`;
+        html = html.replace('<div id="root"></div>', () => `<div id="root">${fallback}</div>`);
+      }
     }
 
     res.set("Content-Type", "text/html; charset=UTF-8");
@@ -1490,6 +1583,18 @@ app.get(/^\/(uploads|assets)\//, (_req, res) => res.status(404).end());
 
 // Sitenin gerçek sayfaları; bunların dışındaki adresler için React "Sayfa bulunamadı"
 // ekranını gösterir ama HTTP durumu 404 olur (arama motorları yanlış sayfaları dizinlemesin).
+// Sabit sayfaların arama sonuçlarında görünecek başlık ve açıklamaları.
+const STATIC_PAGE_SEO = {
+  "/hakkimizda": { title: "Hakkımızda - SPOLDER Spor Politikaları Derneği", description: "SPOLDER Spor Politikaları Derneği hakkında: misyon, vizyon, değerler, yönetim kurulu ve kurumsal kimlik." },
+  "/haberler": { title: "Haberler - SPOLDER", description: "SPOLDER'den en güncel haberler, duyurular ve spor politikalarındaki gelişmeler." },
+  "/etkinlikler": { title: "Etkinlikler - SPOLDER", description: "Spor Politikaları Derneği'nin yaklaşan ve geçmiş etkinlikleri, eğitimleri ve toplantıları." },
+  "/projeler": { title: "Projeler - SPOLDER", description: "Spor politikalarını geliştirmek için Spor Politikaları Derneği'nin (SPOLDER) yürüttüğü projeler." },
+  "/blog": { title: "Blog - SPOLDER", description: "Spor politikaları, araştırmalar ve güncel gelişmeler hakkında uzman görüşleri ve analizler." },
+  "/yayinlar": { title: "Yayınlar - SPOLDER", description: "SPOLDER'in hazırladığı raporlar, araştırmalar ve politika belgeleri." },
+  "/iletisim": { title: "İletişim - SPOLDER", description: "SPOLDER ile iletişime geçin: adres, telefon, e-posta ve mesaj formu." },
+  "/gizlilik": { title: "Gizlilik Politikası - SPOLDER", description: "SPOLDER web sitesi gizlilik politikası." },
+  "/kvkk": { title: "KVKK Aydınlatma Metni - SPOLDER", description: "SPOLDER kişisel verilerin korunması (KVKK) aydınlatma metni." },
+};
 const KNOWN_PAGE_PATHS = new Set([
   "/", "/hakkimizda", "/haberler", "/etkinlikler", "/projeler", "/blog", "/yayinlar",
   "/iletisim", "/search", "/gizlilik", "/kvkk",
@@ -1510,6 +1615,19 @@ app.get(
     if (known && !cleanPath.startsWith("/admin")) {
       // Her sayfa kendi adresini "canonical" olarak bildirir (önceden hepsi ana sayfayı gösteriyordu).
       html = setCanonical(html, `https://spolder.org${cleanPath === "/" ? "" : cleanPath}`);
+      // Liste/sabit sayfalara özgü başlık ve açıklama (önceden hepsi ana sayfanınkini gösteriyordu).
+      const seo = STATIC_PAGE_SEO[cleanPath];
+      if (seo) {
+        const t = escapeHtmlAttr(seo.title);
+        const d = escapeHtmlAttr(seo.description);
+        html = setMeta(html, /<title>.*?<\/title>/, `<title>${t}</title>`);
+        html = setMeta(html, /<meta name="description" content=".*?"\s*\/>/, `<meta name="description" content="${d}" />`);
+        html = setMeta(html, /<meta property="og:title" content=".*?"\s*\/>/, `<meta property="og:title" content="${t}" />`);
+        html = setMeta(html, /<meta property="og:description" content=".*?"\s*\/>/, `<meta property="og:description" content="${d}" />`);
+        html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(`https://spolder.org${cleanPath}`)}" />`);
+        html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${t}" />`);
+        html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${d}" />`);
+      }
     }
     res.status(known ? 200 : 404);
     res.set("Content-Type", "text/html; charset=UTF-8");
