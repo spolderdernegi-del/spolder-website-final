@@ -612,6 +612,75 @@ const PUBLISH_FILTERS = {
   blog: ["publishStatus", "published"],
 };
 
+// --- IndexNow: yeni/güncel içerik arama motorlarına otomatik bildirilir ------
+// Admin panelinden haber/etkinlik/proje/blog eklenince, düzenlenince veya silinince
+// (kısa bir bekleme sonrası, tek seferde) güncel adresler IndexNow'a gönderilir.
+// IndexNow'u Bing (ChatGPT arama/Copilot kaynağı), Yandex, Seznam, Naver vb. kullanır.
+// Google IndexNow'u desteklemez; Google için sitemap.xml zaten otomatik güncellenir.
+// Anahtar: INDEXNOW_KEY ortam değişkeni, yoksa SESSION_SECRET'tan türetilir; sahiplik
+// kanıtı olarak /<anahtar>.txt adresinden sunulur. Kapatmak için INDEXNOW_DISABLED=1.
+const SITE_URL = "https://spolder.org";
+const INDEXNOW_KEY =
+  process.env.INDEXNOW_KEY ||
+  crypto.createHash("sha256").update(`${SESSION_SECRET || "spolder"}:indexnow`).digest("hex").slice(0, 32);
+const INDEXNOW_ENABLED = process.env.NODE_ENV !== "development" && process.env.INDEXNOW_DISABLED !== "1";
+const INDEXNOW_TABLES = new Set(["news", "events", "projects", "blog"]);
+
+app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => {
+  res.type("text/plain").send(INDEXNOW_KEY);
+});
+
+const collectIndexNowUrls = async () => {
+  const urls = new Set(["", "/haberler", "/etkinlikler", "/projeler", "/blog"].map((p) => `${SITE_URL}${p}`));
+  for (const r of DETAIL_META_ROUTES) {
+    const [statusCol, publishedVal] = PUBLISH_FILTERS[r.table];
+    const rows = await queryDatabase(
+      `SELECT id FROM "${r.table}" WHERE "${statusCol}" = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""} ORDER BY id DESC LIMIT 500`,
+      [publishedVal],
+    );
+    for (const row of rows.rows) urls.add(`${SITE_URL}${r.prefix}${row.id}`);
+  }
+  return [...urls];
+};
+
+let indexNowTimer = null;
+const scheduleIndexNow = () => {
+  if (!INDEXNOW_ENABLED) return;
+  clearTimeout(indexNowTimer);
+  indexNowTimer = setTimeout(async () => {
+    try {
+      const urlList = await collectIndexNowUrls();
+      const resp = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({
+          host: new URL(SITE_URL).host,
+          key: INDEXNOW_KEY,
+          keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
+          urlList,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      console.log(`IndexNow: ${urlList.length} adres bildirildi (HTTP ${resp.status})`);
+    } catch (err) {
+      console.error("IndexNow bildirimi başarısız:", err.message);
+    }
+  }, 60 * 1000);
+};
+
+// Başarılı bir yazma işleminden sonra (yanıt gönderildikten sonra) bildirimi planlar.
+app.use("/api/db", (req, res, next) => {
+  if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+    const table = req.path.split("/")[1];
+    if (INDEXNOW_TABLES.has(table)) {
+      res.on("finish", () => {
+        if (res.statusCode < 300) scheduleIndexNow();
+      });
+    }
+  }
+  next();
+});
+
 // GET herkese açıktır; istisnalar: contact_messages (yalnızca admin okur), settings
 // (anonim için yalnızca PUBLIC_SETTINGS_KEYS) ve yukarıdaki PUBLISH_FILTERS tabloları
 // (anonim için yalnızca yayınlanmış satırlar).
@@ -1568,6 +1637,8 @@ app.get(
 // Önceden ikisi de aynı (zayıf, varsayılan) şekilde cache'leniyordu.
 app.use(
   express.static(path.join(__dirname, "..", "dist"), {
+    // "/" için index.html'i doğrudan sunma: ana sayfa da aşağıdaki akıştan (canonical, bağlantı listesi) geçsin.
+    index: false,
     setHeaders: (res, filePath) => {
       if (filePath.includes(`${path.sep}assets${path.sep}`)) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -1583,6 +1654,14 @@ app.get(/^\/(uploads|assets)\//, (_req, res) => res.status(404).end());
 
 // Sitenin gerçek sayfaları; bunların dışındaki adresler için React "Sayfa bulunamadı"
 // ekranını gösterir ama HTTP durumu 404 olur (arama motorları yanlış sayfaları dizinlemesin).
+// Liste sayfalarındaki botlar için bağlantı listesi (tablo, adres öneki, başlık sütunu).
+const LIST_LINK_FALLBACKS = {
+  "/": { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Son haberler" },
+  "/haberler": { table: "news", prefix: "/haber/", titleCol: "baslik", label: "Haberler" },
+  "/etkinlikler": { table: "events", prefix: "/etkinlik/", titleCol: "baslik", label: "Etkinlikler" },
+  "/projeler": { table: "projects", prefix: "/proje/", titleCol: "title", label: "Projeler" },
+  "/blog": { table: "blog", prefix: "/blog/", titleCol: "title", label: "Blog yazıları" },
+};
 // Sabit sayfaların arama sonuçlarında görünecek başlık ve açıklamaları.
 const STATIC_PAGE_SEO = {
   "/hakkimizda": { title: "Hakkımızda - SPOLDER Spor Politikaları Derneği", description: "SPOLDER Spor Politikaları Derneği hakkında: misyon, vizyon, değerler, yönetim kurulu ve kurumsal kimlik." },
@@ -1627,6 +1706,30 @@ app.get(
         html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(`https://spolder.org${cleanPath}`)}" />`);
         html = setMeta(html, /<meta name="twitter:title" content=".*?"\s*\/>/, `<meta name="twitter:title" content="${t}" />`);
         html = setMeta(html, /<meta name="twitter:description" content=".*?"\s*\/>/, `<meta name="twitter:description" content="${d}" />`);
+      }
+    }
+    // Liste sayfalarına (ve ana sayfaya) JavaScript'siz botlar için düz bağlantı listesi:
+    // Google ve yapay zekâ tarayıcıları detay sayfalarını doğrudan bu bağlantılardan keşfeder.
+    const listCfg = LIST_LINK_FALLBACKS[cleanPath];
+    if (listCfg && known) {
+      try {
+        const [statusCol, publishedVal] = PUBLISH_FILTERS[listCfg.table];
+        const rows = await queryDatabase(
+          `SELECT id, "${listCfg.titleCol}" AS title FROM "${listCfg.table}" WHERE "${statusCol}" = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""} ORDER BY id DESC LIMIT ${cleanPath === "/" ? 10 : 100}`,
+          [publishedVal],
+        );
+        if (rows.rows.length > 0) {
+          const links = rows.rows
+            .filter((r) => r.title)
+            .map((r) => `<li><a href="${listCfg.prefix}${r.id}">${escapeHtmlAttr(r.title)}</a></li>`)
+            .join("");
+          const nav =
+            `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">` +
+            `<nav aria-label="${escapeHtmlAttr(listCfg.label)}"><ul>${links}</ul></nav></div>`;
+          html = html.replace('<div id="root"></div>', () => `<div id="root">${nav}</div>`);
+        }
+      } catch (err) {
+        console.error("Liste bağlantıları eklenemedi:", err.message);
       }
     }
     res.status(known ? 200 : 404);
