@@ -24,6 +24,9 @@ const RESULT_KEY = 'spolder_admin_content_result';
 const MAX_INLINE_IMAGE_MB = 3;
 const MAX_DOCX_MB = 15;
 
+// Yüklemesi başlatılmış görseller (HTML'e öznitelik yazmadan işaretlemek için).
+const uploadingImgs = new WeakSet<Element>();
+
 interface InflightDraft {
   content: string;
   returnPath: string;
@@ -173,9 +176,12 @@ const AdminContentEditor = () => {
     if (!dataUrl.startsWith('data:')) return;
 
     requestAnimationFrame(() => {
-      const [leafBlot] = ed.getLeaf(insertIndex);
-      const insertedImg = (leafBlot as any)?.domNode as HTMLImageElement | undefined;
+      // Eklenen görseli, henüz yükleme için işaretlenmemiş ve src'si bu base64 olan
+      // <img> olarak bul (art arda eklenen görsellerde indeksle bulmak yanlış görseli veriyordu).
+      const candidates = Array.from(ed.root.querySelectorAll('img')) as HTMLImageElement[];
+      const insertedImg = candidates.find((el) => el.getAttribute('src') === dataUrl && !uploadingImgs.has(el));
       if (!insertedImg) return;
+      uploadingImgs.add(insertedImg);
       uploadImage(dataUrl)
         .then((url) => {
           insertedImg.src = url;
@@ -219,6 +225,133 @@ const AdminContentEditor = () => {
     };
     editor.root.addEventListener('click', onClick);
     return () => editor.root.removeEventListener('click', onClick);
+  }, [content === '']);
+
+  // Sürükle-bırak ve yapıştır:
+  //  - Bilgisayardan bir (veya birkaç) görsel dosyası editöre sürüklenip bırakılınca
+  //    bırakılan yere eklenir; panodan görsel yapıştırılınca imlecin olduğu yere eklenir.
+  //  - Editördeki bir görsel sürüklenip başka bir yere bırakılınca taşınır.
+  // Görseller arka planda gerçek dosyaya yüklenir (insertImage); sonradan görsele
+  // tıklayıp kırpılabilir.
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const root = editor.root as HTMLElement;
+    let draggedImg: HTMLImageElement | null = null;
+
+    const indexAtPoint = (x: number, y: number): number => {
+      try {
+        const doc = document as any;
+        let node: Node | null = null;
+        let offset = 0;
+        if (doc.caretRangeFromPoint) {
+          const r = doc.caretRangeFromPoint(x, y);
+          if (r) { node = r.startContainer; offset = r.startOffset; }
+        } else if (doc.caretPositionFromPoint) {
+          const p = doc.caretPositionFromPoint(x, y);
+          if (p) { node = p.offsetNode; offset = p.offset; }
+        }
+        if (node && root.contains(node)) {
+          const sel = (editor as any).selection;
+          const normalized = sel.normalizeNative({
+            startContainer: node, startOffset: offset, endContainer: node, endOffset: offset,
+          });
+          const range = normalized && sel.normalizedToRange(normalized);
+          if (range && typeof range.index === 'number') return range.index;
+        }
+      } catch {
+        // aşağıdaki yedeğe düş
+      }
+      return editor.getSelection()?.index ?? Math.max(editor.getLength() - 1, 0);
+    };
+
+    const imageFiles = (list: FileList | null | undefined): File[] =>
+      Array.from(list || []).filter((f) => f.type.startsWith('image/'));
+
+    const insertFiles = async (files: File[], startIndex: number) => {
+      let idx = startIndex;
+      for (const file of files) {
+        if (file.size > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
+          toast.error(`"${file.name}" çok büyük (max ${MAX_INLINE_IMAGE_MB}MB), eklenmedi.`);
+          continue;
+        }
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        }).catch(() => '');
+        if (!dataUrl) {
+          toast.error(`"${file.name}" okunamadı.`);
+          continue;
+        }
+        insertImage(dataUrl, idx);
+        idx += 1;
+      }
+    };
+
+    const onDragStart = (e: DragEvent) => {
+      const t = e.target as HTMLElement;
+      draggedImg = t && t.tagName === 'IMG' ? (t as HTMLImageElement) : null;
+    };
+    const onDragEnd = () => { draggedImg = null; };
+    const onDragOver = (e: DragEvent) => {
+      const hasFiles = Array.from(e.dataTransfer?.types || []).includes('Files');
+      if (hasFiles || draggedImg) e.preventDefault();
+    };
+    const onDrop = (e: DragEvent) => {
+      // Editördeki görseli taşı
+      if (draggedImg) {
+        e.preventDefault();
+        e.stopPropagation();
+        const img = draggedImg;
+        draggedImg = null;
+        const blot = Quill.find(img) as any;
+        if (!blot) return;
+        const from = editor.getIndex(blot);
+        let to = indexAtPoint(e.clientX, e.clientY);
+        if (to === from || to === from + 1) return;
+        const src = img.getAttribute('src') || '';
+        editor.deleteText(from, 1, 'user');
+        if (to > from) to -= 1;
+        editor.insertEmbed(to, 'image', src, 'user');
+        editor.setSelection(to + 1, 0);
+        syncContentFromDom();
+        return;
+      }
+      // Bilgisayardan görsel dosyası bırakıldı
+      const files = imageFiles(e.dataTransfer?.files);
+      if (files.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        void insertFiles(files, indexAtPoint(e.clientX, e.clientY));
+      } else if ((e.dataTransfer?.files?.length ?? 0) > 0) {
+        // Görsel olmayan dosya bırakılırsa tarayıcı sayfayı o dosyaya yönlendirmesin.
+        e.preventDefault();
+        toast.error('Yalnızca görsel dosyaları (JPG, PNG, WEBP...) bırakabilirsiniz.');
+      }
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      const files = imageFiles(e.clipboardData?.files);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = editor.getSelection(true)?.index ?? Math.max(editor.getLength() - 1, 0);
+      void insertFiles(files, idx);
+    };
+
+    root.addEventListener('dragstart', onDragStart);
+    root.addEventListener('dragend', onDragEnd);
+    root.addEventListener('dragover', onDragOver);
+    root.addEventListener('drop', onDrop, true);
+    root.addEventListener('paste', onPaste, true);
+    return () => {
+      root.removeEventListener('dragstart', onDragStart);
+      root.removeEventListener('dragend', onDragEnd);
+      root.removeEventListener('dragover', onDragOver);
+      root.removeEventListener('drop', onDrop, true);
+      root.removeEventListener('paste', onPaste, true);
+    };
   }, [content === '']);
 
   // Word (.docx) belgesi yükleme: admin, içeriği (resimler, başlıklar,
@@ -392,7 +525,7 @@ const AdminContentEditor = () => {
               </div>
             </div>
             <span className="text-[11px] text-muted-foreground">
-              Metni seçip değiştirin. Eklenmiş bir görseli kırpmak için görsele tıklayın.
+              Görselleri bilgisayarınızdan sürükleyip editöre bırakabilir veya yapıştırabilirsiniz; eklenmiş görseli sürükleyerek taşıyabilir, tıklayarak kırpabilirsiniz.
             </span>
           </div>
           <ReactQuill
