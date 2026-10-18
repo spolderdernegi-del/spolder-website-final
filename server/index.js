@@ -1445,7 +1445,9 @@ app.get(
 
     if (item) {
       const rawTitle = String(item.title || "SPOLDER");
-      const rawDescription = String(item.description || "").replace(/\s+/g, " ").trim().slice(0, 200);
+      const bodyParagraphs = htmlToParagraphs(item.body);
+      // Özet boşsa açıklama içeriğin ilk cümlelerinden üretilir (boş description arama sonuçlarında kötü görünür).
+      const rawDescription = (String(item.description || "").replace(/\s+/g, " ").trim() || bodyParagraphs.join(" ").slice(0, 200)).slice(0, 200);
       const title = escapeHtmlAttr(rawTitle);
       const description = escapeHtmlAttr(rawDescription);
       // base64 (data:) görseller paylaşım botları tarafından getirilemez
@@ -1500,7 +1502,7 @@ app.get(
 
       // JavaScript çalıştırmayan botlar (çoğu yapay zekâ tarayıcısı) için içeriğin düz metni.
       // Ekranda görünmez; React yüklenince #root zaten bununla değiştirilir.
-      const paragraphs = htmlToParagraphs(item.body);
+      const paragraphs = bodyParagraphs;
       if (paragraphs.length > 0) {
         const fallback =
           `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">` +
