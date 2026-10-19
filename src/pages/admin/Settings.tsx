@@ -33,15 +33,11 @@ const AdminSettings = () => {
     phone: "",
     email: "",
     working_hours: "",
-    iban_tl: "",
-    iban_eur: ""
   });
   const [contactInfoInput, setContactInfoInput] = useState({
     phone: "",
     email: "",
     working_hours: "",
-    iban_tl: "",
-    iban_eur: ""
   });
 
   const checkAuth = useCallback(async () => {
@@ -285,7 +281,7 @@ const AdminSettings = () => {
 
   const loadContactInfo = async () => {
     try {
-      const keys = ['contact_phone', 'contact_email', 'contact_working_hours', 'contact_iban_tl', 'contact_iban_eur'];
+      const keys = ['contact_phone', 'contact_email', 'contact_working_hours'];
       const { data, error } = await supabase
         .from('settings')
         .select('key, value')
@@ -296,16 +292,12 @@ const AdminSettings = () => {
           phone: "",
           email: "",
           working_hours: "",
-          iban_tl: "",
-          iban_eur: ""
         };
         
         data.forEach((item: any) => {
           if (item.key === 'contact_phone') contactData.phone = item.value;
           if (item.key === 'contact_email') contactData.email = item.value;
           if (item.key === 'contact_working_hours') contactData.working_hours = item.value;
-          if (item.key === 'contact_iban_tl') contactData.iban_tl = item.value;
-          if (item.key === 'contact_iban_eur') contactData.iban_eur = item.value;
         });
         
         setContactInfo(contactData);
@@ -322,8 +314,6 @@ const AdminSettings = () => {
         { key: 'contact_phone', value: contactInfoInput.phone },
         { key: 'contact_email', value: contactInfoInput.email },
         { key: 'contact_working_hours', value: contactInfoInput.working_hours },
-        { key: 'contact_iban_tl', value: contactInfoInput.iban_tl },
-        { key: 'contact_iban_eur', value: contactInfoInput.iban_eur }
       ];
 
       for (const update of updates) {
@@ -585,26 +575,6 @@ const AdminSettings = () => {
               onChange={(e) => setContactInfoInput({ ...contactInfoInput, working_hours: e.target.value })}
               placeholder="Pazartesi - Cuma: 09:00 - 18:00&#10;Cumartesi - Pazar: Kapalı"
             />
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">IBAN (TL)</label>
-              <Input
-                value={contactInfoInput.iban_tl}
-                onChange={(e) => setContactInfoInput({ ...contactInfoInput, iban_tl: e.target.value })}
-                placeholder="TR00 0000 0000 0000 0000 00"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">IBAN (EUR)</label>
-              <Input
-                value={contactInfoInput.iban_eur}
-                onChange={(e) => setContactInfoInput({ ...contactInfoInput, iban_eur: e.target.value })}
-                placeholder="TR00 0000 0000 0000 0000 01"
-              />
-            </div>
           </div>
 
           <Button onClick={handleContactInfoChange} className="w-full mt-4">İletişim Bilgilerini Kaydet</Button>

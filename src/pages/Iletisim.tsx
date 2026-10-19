@@ -4,7 +4,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Phone, Mail, Clock, Copy } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,13 +36,11 @@ const Iletisim = () => {
   const [organizationLat, setOrganizationLat] = useState(39.9334);
   const [organizationLng, setOrganizationLng] = useState(32.8597);
   // Varsayılanlar bilerek boş: gerçek değerler admin panelinden (Ayarlar) girilir; sahte
-  // telefon/e-posta/IBAN gösterilmez.
+  // telefon/e-posta gösterilmez.
   const [contactInfo, setContactInfo] = useState({
     phone: "",
     email: "",
     working_hours: "",
-    iban_tl: "",
-    iban_eur: ""
   });
 
   useEffect(() => {
@@ -56,8 +54,6 @@ const Iletisim = () => {
           'contact_phone',
           'contact_email',
           'contact_working_hours',
-          'contact_iban_tl',
-          'contact_iban_eur'
         ];
 
         const { data } = await supabase
@@ -75,8 +71,6 @@ const Iletisim = () => {
             if (item.key === 'contact_phone') newContactInfo.phone = item.value;
             if (item.key === 'contact_email') newContactInfo.email = item.value;
             if (item.key === 'contact_working_hours') newContactInfo.working_hours = item.value;
-            if (item.key === 'contact_iban_tl') newContactInfo.iban_tl = item.value;
-            if (item.key === 'contact_iban_eur') newContactInfo.iban_eur = item.value;
           });
 
           setContactInfo(newContactInfo);
@@ -130,20 +124,6 @@ const Iletisim = () => {
     }
   };
 
-  // IBAN henüz girilmemişse "TR......" yer tutucusu gösterilir ve Kopyala düğmesi çıkmaz.
-  const IBAN_PLACEHOLDER = "TR............................";
-  const donationIbanTL = contactInfo.iban_tl.trim();
-  const donationIbanEUR = contactInfo.iban_eur.trim();
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Kopyalandı: " + text);
-    } catch (e) {
-      toast.error("Kopyalama başarısız. Lütfen manuel kopyalayın.");
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -179,42 +159,6 @@ const Iletisim = () => {
                       <p className="text-muted-foreground text-sm whitespace-pre-line">
                         {organizationLocation || "—"}
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Donation Card */}
-                  <div id="bagis" className="flex items-start gap-4 p-4 bg-card rounded-lg shadow-soft">
-                    <div className="w-12 h-12 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0">
-                      <svg className="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground">Bizi Destekleyebilirsiniz</h3>
-                      <p className="text-muted-foreground text-sm mb-2">Katkılarınızla çalışmalarımızı sürdürmemize destek olabilirsiniz.</p>
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
-                          <div className="flex-1 min-w-fit">
-                            <div className="text-xs text-muted-foreground">IBAN (TL)</div>
-                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanTL || IBAN_PLACEHOLDER}</div>
-                          </div>
-                          {donationIbanTL && (
-                          <button onClick={() => copyToClipboard(donationIbanTL)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
-                            <Copy className="w-4 h-4" /> Kopyala
-                          </button>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-2 bg-background p-3 rounded">
-                          <div className="flex-1 min-w-fit">
-                            <div className="text-xs text-muted-foreground">IBAN (EUR)</div>
-                            <div className="font-mono text-sm whitespace-nowrap">{donationIbanEUR || IBAN_PLACEHOLDER}</div>
-                          </div>
-                          {donationIbanEUR && (
-                          <button onClick={() => copyToClipboard(donationIbanEUR)} className="px-3 py-2 rounded bg-sky-500 text-white flex items-center gap-2 shrink-0">
-                            <Copy className="w-4 h-4" /> Kopyala
-                          </button>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
 

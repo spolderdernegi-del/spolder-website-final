@@ -731,7 +731,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         type: "steps",
         title: "İletişim bilgilerini güncelleme",
         items: [
-          "\"İletişim Bilgileri\" bölümünde Telefon, E-posta, Çalışma Düzeni, IBAN (TL) ve IBAN (EUR) alanlarını doldurun. Hiçbiri zorunlu değildir.",
+          "\"İletişim Bilgileri\" bölümünde Telefon, E-posta, ve Çalışma Düzeni alanlarını doldurun. Hiçbiri zorunlu değildir.",
           "\"İletişim Bilgilerini Kaydet\" düğmesine basın.",
           "Bu bilgiler İletişim sayfasında ve sitenin altında görünür.",
         ],

@@ -125,7 +125,7 @@ const PUBLIC_READ_TABLES = new Set([
 const INSERT_ONLY_PUBLIC_TABLE = "contact_messages";
 const ALL_TABLES = new Set([...PUBLIC_READ_TABLES, INSERT_ONLY_PUBLIC_TABLE]);
 
-// settings is a mixed table: some keys (contact info, IBAN, map embed) are
+// settings is a mixed table: some keys (contact info, map embed) are
 // meant to be shown on the public site, but others (e.g. an admin display
 // email, if one is ever stored there) are not meant for anyone to read.
 // Rather than trust every row in the table, an unauthenticated request only
@@ -135,8 +135,6 @@ const PUBLIC_SETTINGS_KEYS = new Set([
   "contact_phone",
   "contact_email",
   "contact_working_hours",
-  "contact_iban_tl",
-  "contact_iban_eur",
   "contact_map_embed",
   "organization_location",
   "organization_lat",
@@ -715,7 +713,7 @@ app.get(
     const requestedLimit = parseInt(String(req.query.limit || ""), 10);
     const limit = requestedLimit > 0 ? Math.min(requestedLimit, 1000) : 1000;
 
-    // settings holds a mix of public site content (contact info, IBAN, map
+    // settings holds a mix of public site content (contact info, map
     // embed) and admin-only display values. An unauthenticated caller never
     // sees a row outside PUBLIC_SETTINGS_KEYS, no matter what select/where it
     // asked for - this is enforced here, not left to the frontend to respect.
