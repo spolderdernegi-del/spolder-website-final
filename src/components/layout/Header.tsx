@@ -51,12 +51,6 @@ const Header = () => {
     const currentSlogan = headerSlogans[sloganIndex];
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Hareketi azalt tercihi olanlar için daktilo efekti yerine sabit slogan.
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setTypedSlogan(headerSlogans[0]);
-      return;
-    }
-
     if (!isDeletingSlogan && typedSlogan.length < currentSlogan.length) {
       // Yazıyor
       timeoutId = setTimeout(() => {
