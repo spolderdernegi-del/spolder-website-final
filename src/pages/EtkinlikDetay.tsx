@@ -106,13 +106,13 @@ const EtkinlikDetay = () => {
       <Header />
       <main className="flex-1 pt-20">
         {/* Hero Image */}
-        <section className="relative h-96">
+        <section className="relative h-96 bg-gradient-to-br from-primary to-secondary">
           <img
             src={etkinlik.gorsel}
             alt={etkinlik.baslik}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-anthracite/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/85 via-secondary/35 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-8">
             <div className="container-custom mx-auto">
               <div className="flex flex-wrap items-center gap-2 mb-4">

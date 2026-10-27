@@ -17,7 +17,7 @@ const items = [
     icon: Heart,
     title: "Değerlerimiz",
     description: "Bilimsellik • Şeffaflık • Liyakat • Katılımcılık • Eşitlik • Sürdürülebilirlik • İş Birliği • Toplumsal Fayda",
-    color: "turquoise",
+    color: "primary",
   },
 ];
 
