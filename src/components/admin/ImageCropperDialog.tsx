@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
+import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop, convertToPixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,19 @@ const ImageCropperDialog = ({
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // Görsel yüklenince varsayılan kırpma alanını hem ekranda hem de "tamamlanan kırpma"
+  // olarak ayarla. Aksi halde kullanıcı kutuyu hiç sürüklemeden "Kırp ve Kaydet"e basarsa
+  // completedCrop boş kalır ve buton sessizce hiçbir şey yapmazdı; ayrıca ikinci bir fotoğraf
+  // seçildiğinde bir önceki fotoğrafın kırpma koordinatları kullanılırdı.
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const initial: Crop = aspectRatio
+      ? centerCrop(makeAspectCrop({ unit: "%", width: 90 }, aspectRatio, width, height), width, height)
+      : { unit: "%", width: 90, height: 90, x: 5, y: 5 };
+    setCrop(initial);
+    setCompletedCrop(convertToPixelCrop(initial, width, height));
+  };
 
   const getCroppedImg = useCallback(async () => {
     if (!completedCrop || !imgRef.current) return;
@@ -70,7 +83,10 @@ const ImageCropperDialog = ({
 
     return new Promise<string>((resolve) => {
       canvas.toBlob((blob) => {
-        if (!blob) return;
+        if (!blob) {
+          resolve("");
+          return;
+        }
         const reader = new FileReader();
         reader.readAsDataURL(blob);
         reader.onloadend = () => {
@@ -113,6 +129,7 @@ const ImageCropperDialog = ({
             <img
               ref={imgRef}
               src={imageUrl}
+              onLoad={handleImageLoad}
               alt="Kırpılacak görsel"
               style={{ maxHeight: "60vh", maxWidth: "100%" }}
             />

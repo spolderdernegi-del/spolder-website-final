@@ -200,17 +200,21 @@ const AdminBoard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members
-                .sort((a, b) => a.order - b.order)
+              {[...members]
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                 .map((member) => (
                   <TableRow key={member.id}>
                     <TableCell>{member.order}</TableCell>
                     <TableCell>
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
+                      {member.image ? (
+                        <img
+                          src={member.image}
+                          alt={member.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-muted" />
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">{member.name}</TableCell>
                     <TableCell>{member.position}</TableCell>
@@ -305,7 +309,7 @@ const AdminBoard = () => {
                   type="number"
                   value={formData.order}
                   onChange={(e) =>
-                    setFormData({ ...formData, order: parseInt(e.target.value) })
+                    setFormData({ ...formData, order: parseInt(e.target.value, 10) || 0 })
                   }
                   required
                 />

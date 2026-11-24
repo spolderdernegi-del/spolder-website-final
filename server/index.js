@@ -1458,6 +1458,13 @@ const applySeo = (html, o) => {
   if (o.image) {
     html = setMeta(html, /<meta property="og:image" content=".*?"\s*\/>/, `<meta property="og:image" content="${escapeHtmlAttr(o.image)}" />`);
     html = setMeta(html, /<meta name="twitter:image" content=".*?"\s*\/>/, `<meta name="twitter:image" content="${escapeHtmlAttr(o.image)}" />`);
+    if (o.image !== DEFAULT_OG_IMAGE) {
+      // Sabit 1200x630 ölçüsü yalnızca varsayılan görsel ve sharp ile üretilen görsel için doğrudur.
+      html = setMeta(html, /<meta property="og:image:alt" content=".*?"\s*\/>/, `<meta property="og:image:alt" content="${escapeHtmlAttr(o.ogTitle || o.title)}" />`);
+      if (!o.imageSized) {
+        html = html.replace(/\s*<meta property="og:image:width" content=".*?"\s*\/>/, "").replace(/\s*<meta property="og:image:height" content=".*?"\s*\/>/, "");
+      }
+    }
   }
   if (o.url) {
     html = setMeta(html, /<meta property="og:url" content=".*?"\s*\/>/, `<meta property="og:url" content="${escapeHtmlAttr(o.url)}" />`);
@@ -1491,6 +1498,84 @@ const escapeHtmlAttr = (v) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+
+// --- Paylaşım (WhatsApp/Facebook) kapak görseli ------------------------------
+// Paylaşım botları çok büyük, base64 (data:) ya da WebP/AVIF görselleri çoğu zaman
+// göstermez ve sadece sitenin varsayılan logosuna düşer. Bu uç nokta kapak görselini
+// 1200x630 JPEG'e (genelde < 200 KB) çevirip /og-image/<tür>/<id>.jpg olarak sunar.
+// "sharp" kurulu değilse sessizce devre dışı kalır (ham görsel adresi kullanılır).
+let sharpLib = null;
+try {
+  sharpLib = (await import("sharp")).default;
+} catch {
+  console.warn("[og-image] 'sharp' kurulu değil: paylaşım görselleri yeniden boyutlandırılmayacak (cd server && npm install sharp).");
+}
+const OG_IMAGE_ROUTES = { haber: "/haber/", etkinlik: "/etkinlik/", proje: "/proje/", blog: "/blog/" };
+const OG_FIRST_IMG_RE = /<img[^>]+src=["']([^"']+)["']/i;
+const ogImageCache = new Map(); // anahtar -> { buf, at }
+const OG_CACHE_MAX = 60;
+// Kapak adresini (data:, /uploads/..., tam URL) bir Buffer'a çevirir; olmazsa null.
+const loadCoverBuffer = async (src) => {
+  const v = String(src || "").trim();
+  if (!v) return null;
+  if (v.startsWith("data:")) {
+    const m = v.match(/^data:image\/[\w.+-]+;base64,(.+)$/);
+    return m ? Buffer.from(m[1], "base64") : null;
+  }
+  const local = v.match(/^(?:https?:\/\/(?:www\.)?spolder\.org)?\/uploads\/([\w.-]+)$/i);
+  if (local) {
+    try {
+      return await fs.promises.readFile(path.join(UPLOADS_DIR, path.basename(local[1])));
+    } catch {
+      return null;
+    }
+  }
+  return null; // dış kaynaklı görseller olduğu gibi kullanılır
+};
+const ogCoverSource = (item, route) => {
+  const cover = String(item.image || "");
+  if (cover) return cover;
+  const m = String(item.body || "").match(OG_FIRST_IMG_RE); // kapak yoksa içerikteki ilk görsel
+  return m ? m[1] : "";
+};
+app.get(
+  /^\/og-image\/(haber|etkinlik|proje|blog)\/(\d{1,9})\.jpg$/,
+  asyncHandler(async (req, res) => {
+    const route = DETAIL_META_ROUTES.find((r) => r.prefix === OG_IMAGE_ROUTES[req.params[0]]);
+    const id = req.params[1];
+    if (!route || !sharpLib) return res.redirect(302, DEFAULT_OG_IMAGE);
+    const [statusCol, publishedVal] = PUBLISH_FILTERS[route.table];
+    const result = await queryDatabase(
+      `SELECT "${route.imageCol}" AS image, "${route.bodyCol}" AS body FROM "${route.table}" WHERE id = $1 AND "${statusCol}" = $2${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
+      [id, publishedVal],
+    );
+    const item = result.rows[0];
+    if (!item) return res.redirect(302, DEFAULT_OG_IMAGE);
+    const src = ogCoverSource(item, route);
+    const key = `${req.params[0]}:${id}:${crypto.createHash("sha1").update(src).digest("hex").slice(0, 12)}`;
+    let entry = ogImageCache.get(key);
+    if (!entry) {
+      let input = await loadCoverBuffer(src);
+      if (!input) return res.redirect(302, /^https?:\/\//i.test(src) ? src : DEFAULT_OG_IMAGE);
+      let buf;
+      try {
+        buf = await sharpLib(input, { failOn: "none" })
+          .rotate()
+          .resize(1200, 630, { fit: "cover", position: "attention" })
+          .flatten({ background: "#ffffff" })
+          .jpeg({ quality: 80, mozjpeg: true })
+          .toBuffer();
+      } catch {
+        return res.redirect(302, DEFAULT_OG_IMAGE);
+      }
+      entry = { buf, at: Date.now() };
+      if (ogImageCache.size >= OG_CACHE_MAX) ogImageCache.delete(ogImageCache.keys().next().value);
+      ogImageCache.set(key, entry);
+    }
+    res.set({ "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400" });
+    return res.send(entry.buf);
+  }),
+);
 
 app.get(
   /^\/(haber|etkinlik|proje|blog)\/[^/]+\/?$/,
@@ -1534,6 +1619,17 @@ app.get(
       // tam adrese çevrilir.
       let image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
       if (image.startsWith("/")) image = `${SITE_ORIGIN}${image}`;
+      // Paylaşım görseli: sharp varsa 1200x630 JPEG uç noktasından (kapak yoksa içerikteki ilk görselden).
+      let ogImageSized = false;
+      if (sharpLib) {
+        const coverSrc = ogCoverSource(item, route);
+        const sourceIsLocal = !coverSrc || coverSrc.startsWith("data:") || /^(?:https?:\/\/(?:www\.)?spolder\.org)?\/uploads\//i.test(coverSrc);
+        if (coverSrc && sourceIsLocal) {
+          const ver = crypto.createHash("sha1").update(coverSrc).digest("hex").slice(0, 8);
+          image = `${SITE_ORIGIN}/og-image/${route.prefix.replace(/\//g, "")}/${id}.jpg?v=${ver}`;
+          ogImageSized = true;
+        }
+      }
       const url = `${SITE_ORIGIN}${req.path.replace(/\/$/, "")}`;
       const isoDate = toIsoDate(item.item_date);
       const category = item.category ? String(item.category).split(",")[0].trim() : "";
@@ -1580,6 +1676,7 @@ app.get(
         keywords,
         url,
         image,
+        imageSized: ogImageSized,
         ogType: route.ldType === "Event" ? "website" : "article",
         ld: [
           ld,
