@@ -1111,6 +1111,82 @@ app.post(
   }),
 );
 
+// --- Etkinlik "Kayıt Ol" tıklamaları ------------------------------------------
+// Kayıt formu Google Form'da (siteden ayrı), bu yüzden gerçek kayıt/başvuru sayısını siteden
+// bilemeyiz. Bunun yerine herkese açık etkinlik sayfasındaki "Kayıt Ol" butonuna kaç kez
+// (ve kaç farklı ziyaretçi tarafından) basıldığı kendi veritabanımızda sayılır; admin panelinde
+// etkinlik listesinde gösterilir. Ziyaretçi, IP + tarayıcı bilgisinden tuzlanmış tek yönlü
+// özet (hash) ile ayırt edilir; IP/tarayıcı bilgisi saklanmaz. Aynı ziyaretçinin aynı etkinlik
+// için 10 dk içindeki tekrar tıklaması sayıyı şişirmesin diye tek sayılır.
+let registerClicksEnabled = false;
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS event_register_clicks (
+        id BIGSERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL,
+        visitor_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS event_register_clicks_event_idx ON event_register_clicks (event_id, visitor_hash)`);
+    registerClicksEnabled = true;
+  } catch (err) {
+    console.warn(
+      "Kayıt tıklama sayacı kapalı: event_register_clicks tablosu oluşturulamadı (" + err.message + "). " +
+        "SQL'i postgres ile çalıştırın: CREATE TABLE event_register_clicks (id BIGSERIAL PRIMARY KEY, event_id INTEGER NOT NULL, visitor_hash TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now()); CREATE INDEX event_register_clicks_event_idx ON event_register_clicks (event_id, visitor_hash); GRANT ALL ON event_register_clicks TO <uygulama_kullanıcısı>; GRANT USAGE, SELECT ON SEQUENCE event_register_clicks_id_seq TO <uygulama_kullanıcısı>;",
+    );
+  }
+})();
+const registerClickLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: "Çok fazla istek." } },
+});
+app.post(
+  "/api/track/event-register",
+  registerClickLimiter,
+  asyncHandler(async (req, res) => {
+    // Sayaç hatası ziyaretçiyi asla etkilemesin: her durumda 204 döner.
+    try {
+      if (!registerClicksEnabled) return res.status(204).end();
+      const eventId = parseInt(String(req.body?.eventId), 10);
+      if (!Number.isInteger(eventId) || eventId < 1 || eventId > 2147483647) return res.status(204).end();
+      const exists = await queryDatabase(`SELECT 1 FROM "events" WHERE id = $1${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`, [eventId]);
+      if (!exists.rows.length) return res.status(204).end();
+      const visitor = crypto
+        .createHash("sha256")
+        .update(`${req.ip}|${req.get("user-agent") || ""}|${SESSION_SECRET}`)
+        .digest("hex")
+        .slice(0, 32);
+      const recent = await queryDatabase(
+        `SELECT 1 FROM event_register_clicks WHERE event_id = $1 AND visitor_hash = $2 AND created_at > now() - interval '10 minutes' LIMIT 1`,
+        [eventId, visitor],
+      );
+      if (!recent.rows.length) {
+        await queryDatabase(`INSERT INTO event_register_clicks (event_id, visitor_hash) VALUES ($1, $2)`, [eventId, visitor]);
+      }
+    } catch (error) {
+      console.warn("Kayıt tıklaması kaydedilemedi:", error.message);
+    }
+    return res.status(204).end();
+  }),
+);
+app.get(
+  "/api/event-register-counts",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    if (!registerClicksEnabled) return res.json({ data: {}, enabled: false, error: null });
+    const result = await queryDatabase(
+      `SELECT event_id, COUNT(*)::int AS total, COUNT(DISTINCT visitor_hash)::int AS visitors FROM event_register_clicks GROUP BY event_id`,
+    );
+    const data = {};
+    for (const r of result.rows) data[r.event_id] = { total: r.total, visitors: r.visitors };
+    return res.json({ data, enabled: true, error: null });
+  }),
+);
+
 app.get(
   "/api/activity-log",
   requireAdmin,

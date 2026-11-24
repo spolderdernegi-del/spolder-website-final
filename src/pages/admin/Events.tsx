@@ -42,6 +42,9 @@ interface Event {
 const AdminEvents = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
+  // Etkinlik başına "Kayıt Ol" tıklama sayısı (toplam ve farklı ziyaretçi)
+  const [registerCounts, setRegisterCounts] = useState<Record<string, { total: number; visitors: number }>>({});
+  const [registerCountsEnabled, setRegisterCountsEnabled] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -118,7 +121,20 @@ const AdminEvents = () => {
     setLoading(false);
   };
 
+  const fetchRegisterCounts = async () => {
+    try {
+      const res = await fetch("/api/event-register-counts", { credentials: "include" });
+      if (!res.ok) return;
+      const json = await res.json();
+      setRegisterCounts(json.data || {});
+      setRegisterCountsEnabled(json.enabled !== false);
+    } catch {
+      /* sayaç yüklenemezse liste yine de görünür */
+    }
+  };
+
   const fetchEvents = async () => {
+    fetchRegisterCounts();
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -880,6 +896,15 @@ const AdminEvents = () => {
                       <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded">
                         {event.durum}
                       </span>
+                      {registerCountsEnabled && (
+                        <span
+                          className="px-2 py-0.5 bg-secondary/15 text-secondary rounded font-medium"
+                          title="Etkinlik sayfasındaki Kayıt Ol butonuna tıklama sayısı (kayıt formu Google Form'da olduğu için gerçek kayıt sayısı değildir)"
+                        >
+                          Kayıt Ol tıklaması: {registerCounts[event.id]?.total ?? 0}
+                          {registerCounts[event.id] ? ` (${registerCounts[event.id].visitors} kişi)` : ""}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4 flex-shrink-0">

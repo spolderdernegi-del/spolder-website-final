@@ -239,6 +239,17 @@ const EtkinlikDetay = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block mt-5"
+                        onClick={() => {
+                          // Kayıt Ol tıklamasını kendi sayacımıza yaz (admin panelinde etkinlik listesinde görünür).
+                          try {
+                            navigator.sendBeacon?.(
+                              "/api/track/event-register",
+                              new Blob([JSON.stringify({ eventId: etkinlik.id })], { type: "application/json" }),
+                            );
+                          } catch {
+                            /* sayaç hatası kullanıcıyı etkilemesin */
+                          }
+                        }}
                       >
                         <Button variant="turquoise" className="w-full">
                           Kayıt Ol
