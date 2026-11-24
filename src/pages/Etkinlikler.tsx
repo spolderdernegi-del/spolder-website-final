@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryColors, getCategoryBadgeStyle } from "@/hooks/useCategoryColors";
 import { DEFAULT_EVENT_FORM_URL } from "@/lib/constants";
+import { trackEventRegister } from "@/lib/trackEventRegister";
 import CategoryFilterBar from "@/components/shared/CategoryFilterBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -244,6 +245,7 @@ const Etkinlikler = () => {
                             href={event.google_form_link || DEFAULT_EVENT_FORM_URL}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => trackEventRegister(event.id)}
                           >
                             <Button variant="turquoise" size="sm">
                               Kayıt Ol

@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { trackEventRegister } from "@/lib/trackEventRegister";
 import { Calendar, Clock, MapPin, ArrowLeft, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,17 +240,7 @@ const EtkinlikDetay = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block mt-5"
-                        onClick={() => {
-                          // Kayıt Ol tıklamasını kendi sayacımıza yaz (admin panelinde etkinlik listesinde görünür).
-                          try {
-                            navigator.sendBeacon?.(
-                              "/api/track/event-register",
-                              new Blob([JSON.stringify({ eventId: etkinlik.id })], { type: "application/json" }),
-                            );
-                          } catch {
-                            /* sayaç hatası kullanıcıyı etkilemesin */
-                          }
-                        }}
+                        onClick={() => trackEventRegister(etkinlik.id)}
                       >
                         <Button variant="turquoise" className="w-full">
                           Kayıt Ol
