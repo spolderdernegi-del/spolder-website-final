@@ -17,6 +17,8 @@ interface BlogPost {
   content: string;
   date: string;
   author: string;
+  author_title?: string | null;
+  author_image?: string | null;
   image: string;
   category: string;
   categories?: string[];
@@ -41,7 +43,7 @@ const BlogDetay = () => {
       try {
         const { data, error } = await supabase
           .from('blog')
-          .select('id, title, excerpt, content, date, author, image, category, categories')
+          .select('id, title, excerpt, content, date, author, author_title, author_image, image, category, categories')
           .eq('id', parseInt(id || "0"))
           .eq('publishStatus', 'published')
           .single();
@@ -177,24 +179,56 @@ const BlogDetay = () => {
               </div>
 
               {/* Sidebar */}
-              {relatedPosts.length > 0 && (
-                <aside className="bg-card rounded-lg p-6 h-fit">
-                  <h3 className="font-display text-lg font-bold text-foreground mb-6">
-                    İlgili Yazılar
-                  </h3>
-                  <div className="space-y-4">
-                    {relatedPosts.map((relatedPost) => (
-                      <RelatedCard
-                        key={relatedPost.id}
-                        to={`/blog/${relatedPost.id}`}
-                        title={relatedPost.title}
-                        image={relatedPost.image}
-                        date={formatDate(relatedPost.date)}
-                      />
-                    ))}
+              <aside className="space-y-6 h-fit">
+                {/* Yazar paneli: görsel değil gerçek metin (tarayıcı çevirisi çalışsın diye) */}
+                {post.author && (
+                  <div className="bg-card rounded-lg p-6" aria-label="Yazar">
+                    <div className="flex items-center gap-4">
+                      {post.author_image ? (
+                        <img
+                          src={post.author_image}
+                          alt={post.author}
+                          loading="lazy"
+                          className="w-16 h-16 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-display text-xl font-bold">
+                          {post.author.trim().charAt(0).toLocaleUpperCase("tr-TR")}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-display text-lg font-bold text-foreground break-words">{post.author}</p>
+                        {post.author_title && (
+                          <p className="text-sm text-muted-foreground break-words">{post.author_title}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Yazı</p>
+                      <p className="font-medium text-foreground leading-snug break-words">{post.title}</p>
+                    </div>
                   </div>
-                </aside>
-              )}
+                )}
+
+                {relatedPosts.length > 0 && (
+                  <div className="bg-card rounded-lg p-6">
+                    <h3 className="font-display text-lg font-bold text-foreground mb-6">
+                      İlgili Yazılar
+                    </h3>
+                    <div className="space-y-4">
+                      {relatedPosts.map((relatedPost) => (
+                        <RelatedCard
+                          key={relatedPost.id}
+                          to={`/blog/${relatedPost.id}`}
+                          title={relatedPost.title}
+                          image={relatedPost.image}
+                          date={formatDate(relatedPost.date)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </aside>
             </div>
           </div>
         </section>

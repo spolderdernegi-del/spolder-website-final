@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ const HeroSlider = () => {
   // Slider haber/etkinlik/proje/blog içeriklerini karışık gösterdiği için
   // tüm türlerdeki kategori renklerini tek haritada topluyoruz.
   const categoryColors = useCategoryColors();
+  // Mobilde kaydırarak (swipe) slayt değiştirme
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     // Supabase'den tüm slider içeriklerini yükle (events, news, projects)
@@ -161,10 +163,31 @@ const HeroSlider = () => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [slides]);
+  }, [slides, currentSlide]); // elle değiştirilince süre sıfırlansın
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || slides.length < 2) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    // Yatay ve yeterince uzun kaydırma; dikey sayfa kaydırması slayt değiştirmesin.
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) nextSlide();
+    else prevSlide();
+  };
+
+  // Çok sayıda slayt olduğunda noktalar ekrana sığmıyor/üst üste biniyordu: en fazla 7 nokta
+  // (geçerli slaytın etrafındaki pencere) gösterilir.
+  const MAX_DOTS = 7;
+  const dotStart = slides.length <= MAX_DOTS ? 0 : Math.min(Math.max(currentSlide - Math.floor(MAX_DOTS / 2), 0), slides.length - MAX_DOTS);
+  const dotIndexes = Array.from({ length: Math.min(MAX_DOTS, slides.length) }, (_, i) => dotStart + i);
 
   // Slider boşsa hiçbir şey gösterme
   if (slides.length === 0) {
@@ -172,7 +195,11 @@ const HeroSlider = () => {
   }
 
   return (
-    <section className="relative h-[90vh] min-h-[600px] overflow-hidden bg-gray-900">
+    <section
+      className="relative h-[100svh] min-h-[620px] max-h-[920px] md:h-[90vh] md:min-h-[600px] overflow-hidden bg-gray-900 touch-pan-y"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Background Slides */}
       {slides.map((slide, index) => (
         <div
@@ -185,13 +212,14 @@ const HeroSlider = () => {
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${slide.gorsel})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-anthracite/90 via-anthracite/60 to-transparent" />
+          {/* Mobilde metin tüm genişliği kapladığı için alttan yukarı koyulaşan, masaüstünde soldan sağa gradyan */}
+          <div className="absolute inset-0 bg-gradient-to-t from-anthracite/95 via-anthracite/70 to-anthracite/25 md:bg-gradient-to-r md:from-anthracite/90 md:via-anthracite/60 md:to-transparent" />
         </div>
       ))}
 
       {/* Content */}
-      <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-center">
-        <div className="w-full min-w-0 max-w-2xl space-y-6 animate-fade-up">
+      <div className="relative h-full container-custom mx-auto px-4 md:px-8 flex items-end md:items-center pt-28 pb-24 md:py-0">
+        <div className="w-full min-w-0 max-w-2xl space-y-4 md:space-y-6 animate-fade-up">
           {/* Category Badges */}
           <div className="flex flex-wrap gap-2">
             {slides[currentSlide].categories && slides[currentSlide].categories.length > 0 ? (
@@ -215,12 +243,12 @@ const HeroSlider = () => {
           </div>
 
           {/* Title */}
-          <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal break-words">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-normal break-words">
             {truncateText(slides[currentSlide].baslik, 58)}
           </h2>
 
           {/* Description */}
-          <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-xl break-words">
+          <p className="text-base md:text-lg text-primary-foreground/90 leading-relaxed max-w-xl break-words">
             {truncateText(slides[currentSlide].ozet, 110)}
           </p>
 
@@ -231,7 +259,7 @@ const HeroSlider = () => {
           </div>
 
           {/* CTA */}
-          <div className="flex flex-wrap gap-4 pt-4">
+          <div className="flex flex-wrap gap-3 md:gap-4 pt-2 md:pt-4">
             <Link to={slides[currentSlide].link}>
               <Button variant="hero" size="lg">
                 Devamını Oku
@@ -255,7 +283,7 @@ const HeroSlider = () => {
       </div>
 
       {/* Navigation Arrows */}
-      <div className="absolute bottom-8 right-8 flex gap-3">
+      <div className="absolute bottom-8 right-8 hidden md:flex gap-3">
         <button
           onClick={prevSlide}
           aria-label="Önceki slayt"
@@ -273,8 +301,8 @@ const HeroSlider = () => {
       </div>
 
       {/* Slide Indicators */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-        {slides.map((_, index) => (
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        {dotIndexes.map((index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}

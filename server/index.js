@@ -2016,6 +2016,12 @@ app.use((err, req, res, _next) => {
 // saniyelerde geçerli çerezler de reddedilirdi).
 const startServer = async () => {
   await startSessionRefresh();
+  // Blog yazar paneli (yazar ünvanı + fotoğrafı) için kolonlar; yoksa eklenir, varsa dokunulmaz.
+  try {
+    await queryDatabase(`ALTER TABLE IF EXISTS blog ADD COLUMN IF NOT EXISTS author_title text, ADD COLUMN IF NOT EXISTS author_image text`);
+  } catch (error) {
+    console.warn("[migrate] blog.author_title/author_image eklenemedi (elle: ALTER TABLE blog ADD COLUMN author_title text, ADD COLUMN author_image text):", error.message);
+  }
   const server = app.listen(PORT, "127.0.0.1", () => {
     console.log(`SPOLDER backend listening on 127.0.0.1:${PORT}`);
   });

@@ -20,6 +20,8 @@ interface BlogPost {
   content: string;
   image: string;
   author: string;
+  author_title?: string | null;
+  author_image?: string | null;
   category: string;
   categories?: string[];
   date: string;
@@ -50,6 +52,8 @@ const AdminBlog = () => {
     content: "",
     image: "",
     author: "SPOLDER",
+    author_title: "",
+    author_image: "",
     category: "",
     categories: [] as string[],
     date: "",
@@ -205,6 +209,8 @@ const AdminBlog = () => {
       content: post.content,
       image: post.image,
       author: post.author,
+      author_title: post.author_title || '',
+      author_image: post.author_image || '',
       category: post.category,
       categories: post.categories || (post.category ? [post.category] : []),
       date: post.date,
@@ -309,6 +315,8 @@ const AdminBlog = () => {
       content: "",
       image: "",
       author: "SPOLDER",
+    author_title: "",
+    author_image: "",
       category: "",
       categories: [],
       date: "",
@@ -416,6 +424,24 @@ const AdminBlog = () => {
                   <Input
                     value={formData.author}
                     onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Yazar Ünvanı</label>
+                  <Input
+                    value={formData.author_title || ""}
+                    placeholder="Örn: Spor Yöneticisi, Doç. Dr."
+                    onChange={(e) => setFormData({ ...formData, author_title: e.target.value })}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <ImageUploadField
+                    label="Yazar Fotoğrafı (isteğe bağlı)"
+                    value={formData.author_image || ""}
+                    onChange={(value) => setFormData({ ...formData, author_image: value })}
+                    aspectRatio={1}
                   />
                 </div>
 

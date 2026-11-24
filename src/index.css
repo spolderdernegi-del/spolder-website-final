@@ -212,3 +212,75 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+/* --- Yazı içeriği (haber/etkinlik/proje/blog/faaliyet) mobil sağlamlaştırma ---------
+   Word / Google Docs / web sayfasından yapıştırılan içerik sabit genişlik, "satır
+   sonu yok" (nowrap), sabit yükseklikli görsel, geniş tablo ve iframe getirebilir.
+   Bunlar tek başına sayfayı yatayda taşırıp mobil tarayıcıyı uzaklaştırıyor
+   ("küçük/bozuk görünüm") ve görselleri eziyordu. Satır içi stilleri burada ezeriz. */
+.prose {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.prose p,
+.prose div,
+.prose span,
+.prose li,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose blockquote {
+  white-space: normal !important;
+  max-width: 100% !important;
+}
+.prose p,
+.prose div,
+.prose blockquote {
+  width: auto !important;
+}
+.prose img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+.prose table {
+  display: block;
+  width: auto !important;
+  max-width: 100% !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.prose td,
+.prose th {
+  width: auto !important;
+  min-width: 6rem;
+}
+.prose iframe,
+.prose video,
+.prose embed,
+.prose object {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+.prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+@media (max-width: 767px) {
+  /* Word girintileri dar ekranda metni sağa iter. */
+  .prose p,
+  .prose div,
+  .prose blockquote,
+  .prose ul,
+  .prose ol {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    text-indent: 0 !important;
+  }
+}
