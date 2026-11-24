@@ -1504,11 +1504,34 @@ const escapeHtmlAttr = (v) =>
 // göstermez ve sadece sitenin varsayılan logosuna düşer. Bu uç nokta kapak görselini
 // 1200x630 JPEG'e (genelde < 200 KB) çevirip /og-image/<tür>/<id>.jpg olarak sunar.
 // "sharp" kurulu değilse sessizce devre dışı kalır (ham görsel adresi kullanılır).
-let sharpLib = null;
+// Yeniden boyutlandırıcı: önce "sharp" (hızlı, yerel); bazı sunuculardaki eski/sanal CPU'larda
+// hazır ikili dosyalar çalışmıyor (ör. "Unsupported CPU ... v2 microarchitecture"). O durumda
+// tamamen JavaScript ile yazılmış "jimp"e düşülür (daha yavaş ama her yerde çalışır; sonuç
+// önbelleğe alındığı için sorun olmaz). İkisi de yoksa özellik kapanır, ham görsel kullanılır.
+// Her biri buffer alıp 1200x630 JPEG buffer'ı döndürür.
+let ogResize = null;
 try {
-  sharpLib = (await import("sharp")).default;
-} catch {
-  console.warn("[og-image] 'sharp' kurulu değil: paylaşım görselleri yeniden boyutlandırılmayacak (cd server && npm install sharp).");
+  const sharp = (await import("sharp")).default;
+  await sharp({ create: { width: 2, height: 2, channels: 3, background: "#fff" } }).jpeg().toBuffer(); // yükleme/çalışma denemesi
+  ogResize = (input) =>
+    sharp(input, { failOn: "none" })
+      .rotate()
+      .resize(1200, 630, { fit: "cover", position: "attention" })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 80, mozjpeg: true })
+      .toBuffer();
+} catch (error) {
+  try {
+    const { Jimp } = await import("jimp");
+    ogResize = async (input) => {
+      const img = await Jimp.read(input);
+      img.cover({ w: 1200, h: 630 });
+      return img.getBuffer("image/jpeg", { quality: 70 });
+    };
+    console.warn(`[og-image] 'sharp' kullanılamadı (${String(error.message).split("\n")[0]}); 'jimp' kullanılıyor.`);
+  } catch {
+    console.warn("[og-image] 'sharp' ve 'jimp' yüklenemedi: paylaşım görselleri yeniden boyutlandırılmayacak (cd server && npm install).");
+  }
 }
 const OG_IMAGE_ROUTES = { haber: "/haber/", etkinlik: "/etkinlik/", proje: "/proje/", blog: "/blog/" };
 const OG_FIRST_IMG_RE = /<img[^>]+src=["']([^"']+)["']/i;
@@ -1543,7 +1566,7 @@ app.get(
   asyncHandler(async (req, res) => {
     const route = DETAIL_META_ROUTES.find((r) => r.prefix === OG_IMAGE_ROUTES[req.params[0]]);
     const id = req.params[1];
-    if (!route || !sharpLib) return res.redirect(302, DEFAULT_OG_IMAGE);
+    if (!route || !ogResize) return res.redirect(302, DEFAULT_OG_IMAGE);
     const [statusCol, publishedVal] = PUBLISH_FILTERS[route.table];
     const result = await queryDatabase(
       `SELECT "${route.imageCol}" AS image, "${route.bodyCol}" AS body FROM "${route.table}" WHERE id = $1 AND "${statusCol}" = $2${trashEnabled ? ' AND "deleted_at" IS NULL' : ""}`,
@@ -1559,12 +1582,7 @@ app.get(
       if (!input) return res.redirect(302, /^https?:\/\//i.test(src) ? src : DEFAULT_OG_IMAGE);
       let buf;
       try {
-        buf = await sharpLib(input, { failOn: "none" })
-          .rotate()
-          .resize(1200, 630, { fit: "cover", position: "attention" })
-          .flatten({ background: "#ffffff" })
-          .jpeg({ quality: 80, mozjpeg: true })
-          .toBuffer();
+        buf = await ogResize(input);
       } catch {
         return res.redirect(302, DEFAULT_OG_IMAGE);
       }
@@ -1619,9 +1637,9 @@ app.get(
       // tam adrese çevrilir.
       let image = rawImage && !rawImage.startsWith("data:") ? rawImage : DEFAULT_OG_IMAGE;
       if (image.startsWith("/")) image = `${SITE_ORIGIN}${image}`;
-      // Paylaşım görseli: sharp varsa 1200x630 JPEG uç noktasından (kapak yoksa içerikteki ilk görselden).
+      // Paylaşım görseli: yeniden boyutlandırıcı (sharp/jimp) varsa 1200x630 JPEG uç noktasından (kapak yoksa içerikteki ilk görselden).
       let ogImageSized = false;
-      if (sharpLib) {
+      if (ogResize) {
         const coverSrc = ogCoverSource(item, route);
         const sourceIsLocal = !coverSrc || coverSrc.startsWith("data:") || /^(?:https?:\/\/(?:www\.)?spolder\.org)?\/uploads\//i.test(coverSrc);
         if (coverSrc && sourceIsLocal) {
