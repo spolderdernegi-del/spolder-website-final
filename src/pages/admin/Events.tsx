@@ -43,7 +43,8 @@ const AdminEvents = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   // Etkinlik başına "Kayıt Ol" tıklama sayısı (toplam ve farklı ziyaretçi)
-  const [registerCounts, setRegisterCounts] = useState<Record<string, { total: number; visitors: number }>>({});
+  const [registerCounts, setRegisterCounts] = useState<Record<string, { total: number; visitors: number; daily?: { day: string; total: number; visitors: number }[] }>>({});
+  const [openCountsId, setOpenCountsId] = useState<number | null>(null);
   const [registerCountsEnabled, setRegisterCountsEnabled] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -897,15 +898,37 @@ const AdminEvents = () => {
                         {event.durum}
                       </span>
                       {registerCountsEnabled && (
-                        <span
-                          className="px-2 py-0.5 bg-secondary/15 text-secondary rounded font-medium"
-                          title="Etkinlik sayfasındaki Kayıt Ol butonuna tıklama sayısı (kayıt formu Google Form'da olduğu için gerçek kayıt sayısı değildir)"
+                        <button
+                          type="button"
+                          className="px-2 py-0.5 bg-secondary/15 text-secondary rounded font-medium hover:bg-secondary/25"
+                          title="Etkinlik sayfasındaki Kayıt Ol butonuna tıklama sayısı (kayıt formu Google Form'da olduğu için gerçek kayıt sayısı değildir). Gün gün dökümü için tıklayın."
+                          onClick={() => setOpenCountsId(openCountsId === event.id ? null : event.id)}
                         >
                           Kayıt Ol tıklaması: {registerCounts[event.id]?.total ?? 0}
-                          {registerCounts[event.id] ? ` (${registerCounts[event.id].visitors} kişi)` : ""}
-                        </span>
+                          {registerCounts[event.id] ? ` (${registerCounts[event.id].visitors} kişi)` : ""} {openCountsId === event.id ? "▲" : "▼"}
+                        </button>
                       )}
                     </div>
+                    {registerCountsEnabled && openCountsId === event.id && (
+                      <div className="mt-3 max-w-sm border border-border rounded-md overflow-hidden text-xs">
+                        <div className="grid grid-cols-3 bg-muted px-3 py-1.5 font-medium text-foreground">
+                          <span>Tarih</span>
+                          <span className="text-right">Tıklama</span>
+                          <span className="text-right">Kişi</span>
+                        </div>
+                        {(registerCounts[event.id]?.daily || []).length === 0 ? (
+                          <p className="px-3 py-2 text-muted-foreground">Henüz tıklama yok.</p>
+                        ) : (
+                          (registerCounts[event.id]?.daily || []).map((d) => (
+                            <div key={d.day} className="grid grid-cols-3 px-3 py-1.5 border-t border-border">
+                              <span>{d.day.split("-").reverse().join(".")}</span>
+                              <span className="text-right">{d.total}</span>
+                              <span className="text-right">{d.visitors}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 ml-4 flex-shrink-0">
                     <Button

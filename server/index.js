@@ -1182,7 +1182,16 @@ app.get(
       `SELECT event_id, COUNT(*)::int AS total, COUNT(DISTINCT visitor_hash)::int AS visitors FROM event_register_clicks GROUP BY event_id`,
     );
     const data = {};
-    for (const r of result.rows) data[r.event_id] = { total: r.total, visitors: r.visitors };
+    for (const r of result.rows) data[r.event_id] = { total: r.total, visitors: r.visitors, daily: [] };
+    // Gün gün döküm (Türkiye saatine göre gün), en yeni gün başta.
+    const daily = await queryDatabase(
+      `SELECT event_id, to_char(created_at AT TIME ZONE 'Europe/Istanbul', 'YYYY-MM-DD') AS day,
+              COUNT(*)::int AS total, COUNT(DISTINCT visitor_hash)::int AS visitors
+         FROM event_register_clicks GROUP BY event_id, day ORDER BY day DESC`,
+    );
+    for (const r of daily.rows) {
+      if (data[r.event_id]) data[r.event_id].daily.push({ day: r.day, total: r.total, visitors: r.visitors });
+    }
     return res.json({ data, enabled: true, error: null });
   }),
 );
