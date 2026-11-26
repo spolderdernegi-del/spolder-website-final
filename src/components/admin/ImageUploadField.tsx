@@ -29,6 +29,10 @@ const ImageUploadField = ({
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  // Kırpılmamış orijinal görselin adresi. "Kırp" her zaman orijinalden başlar; aksi halde
+  // zaten kırpılmış görsel yeniden kırpılır ve kırpma alanı büyütülemez (kırpılan dışındaki
+  // kısım kaybolmuş olur). current = şu an forma yazılan (kırpılmış) adres.
+  const [original, setOriginal] = useState<{ orig: string; current: string } | null>(null);
 
   // Değer dışarıdan değiştiğinde (form sıfırlama, kütüphaneden seçim, başka kayıt
   // düzenleme) eski yerel önizleme gösterilmesin.
@@ -55,6 +59,7 @@ const ImageUploadField = ({
       setUploading(true);
       try {
         const url = await uploadImage(dataUrl);
+        setOriginal({ orig: url, current: url });
         onChange(url);
       } catch (err: any) {
         toast.error("Görsel yüklenemedi: " + err.message);
@@ -67,7 +72,8 @@ const ImageUploadField = ({
   };
 
   const handleCropImage = () => {
-    const urlToCrop = imagePreview || value;
+    const hasOriginal = original && (value === original.current || value === original.orig);
+    const urlToCrop = hasOriginal ? original.orig : imagePreview || value;
     if (!urlToCrop) {
       toast.error("Lütfen önce bir görsel seçin");
       return;
@@ -80,8 +86,10 @@ const ImageUploadField = ({
     setImagePreview(croppedImage);
     setShowCropper(false);
     setUploading(true);
+    const orig = original && (value === original.current || value === original.orig) ? original.orig : value;
     try {
       const url = await uploadImage(croppedImage);
+      if (orig && !orig.startsWith("data:")) setOriginal({ orig, current: url });
       onChange(url);
     } catch (err: any) {
       toast.error("Kırpılan görsel yüklenemedi: " + err.message);
@@ -147,6 +155,7 @@ const ImageUploadField = ({
         onClose={() => setShowLibrary(false)}
         onSelect={(url) => {
           setImagePreview(url);
+          setOriginal({ orig: url, current: url });
           onChange(url);
         }}
       />
