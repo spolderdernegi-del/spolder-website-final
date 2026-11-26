@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search, Loader2, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loadMediaItems, type MediaItem } from "@/lib/mediaLibrary";
 
@@ -11,17 +12,26 @@ interface MediaPickerDialogProps {
 }
 
 // Medya kütüphanesindeki (sitede yüklenmiş tüm) görsellerden birini seçtirir.
+// Yüklenen dosyalar için küçük (320px) önizleme adresi; diğerleri olduğu gibi kalır.
+const thumbUrl = (url: string) => {
+  const m = url.replace(/^https?:\/\/(?:www\.)?spolder\.org/i, "").match(/^\/uploads\/([\w.-]+)$/);
+  return m ? `/api/media-thumb/${m[1]}` : url;
+};
+const PAGE_SIZE = 40;
+
 const MediaPickerDialog = ({ open, onClose, onSelect }: MediaPickerDialogProps) => {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadsError, setUploadsError] = useState(false);
   const [search, setSearch] = useState("");
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     setSearch("");
+    setVisible(PAGE_SIZE);
     loadMediaItems()
       .then((res) => {
         if (cancelled) return;
@@ -53,7 +63,10 @@ const MediaPickerDialog = ({ open, onClose, onSelect }: MediaPickerDialogProps) 
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setVisible(PAGE_SIZE);
+            }}
             placeholder="Görsel ara..."
             className="pl-9"
           />
@@ -77,7 +90,7 @@ const MediaPickerDialog = ({ open, onClose, onSelect }: MediaPickerDialogProps) 
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {filtered.map((item) => (
+              {filtered.slice(0, visible).map((item) => (
                 <button
                   type="button"
                   key={item.id}
@@ -89,9 +102,10 @@ const MediaPickerDialog = ({ open, onClose, onSelect }: MediaPickerDialogProps) 
                 >
                   <div className="aspect-square bg-muted overflow-hidden">
                     <img
-                      src={item.url}
+                      src={thumbUrl(item.url)}
                       alt={item.title}
                       loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -100,6 +114,13 @@ const MediaPickerDialog = ({ open, onClose, onSelect }: MediaPickerDialogProps) 
                   </p>
                 </button>
               ))}
+            </div>
+          )}
+          {!loading && filtered.length > visible && (
+            <div className="flex justify-center pt-4">
+              <Button type="button" variant="outline" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                Daha fazla göster ({filtered.length - visible})
+              </Button>
             </div>
           )}
         </div>

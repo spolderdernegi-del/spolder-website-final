@@ -1240,6 +1240,43 @@ app.get(
   }),
 );
 
+// Medya kütüphanesi küçük önizlemeleri: orijinaller 1-3 MB olabildiği için seçici penceresinde
+// hepsini tam boyutta yüklemek tarayıcıyı kasıyordu. İlk istekte 320x320 JPEG üretilip
+// uploads/.thumbs/ altında kalıcı saklanır (dosya adı benzersiz olduğu için önbellek güvenli).
+// Üretim tek tek (sıraya alınarak) yapılır ki sunucu CPU'su dolmasın; hata olursa orijinale yönlendirilir.
+const THUMBS_DIR = path.join(UPLOADS_DIR, ".thumbs");
+let thumbQueue = Promise.resolve();
+app.get(
+  "/api/media-thumb/:name",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const name = String(req.params.name || "");
+    if (!/^[\w.-]+$/.test(name) || !MEDIA_IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) return res.status(400).end();
+    const original = path.join(UPLOADS_DIR, name);
+    const thumb = path.join(THUMBS_DIR, `${name}.jpg`);
+    const send = () => {
+      res.setHeader("Cache-Control", "private, max-age=2592000, immutable");
+      res.type("image/jpeg");
+      return res.sendFile(thumb);
+    };
+    if (fs.existsSync(thumb)) return send();
+    if (!thumbResize || !fs.existsSync(original)) return res.redirect(302, `/uploads/${name}`);
+    const job = thumbQueue.then(async () => {
+      if (fs.existsSync(thumb)) return;
+      const buf = await thumbResize(await fs.promises.readFile(original));
+      await fs.promises.mkdir(THUMBS_DIR, { recursive: true });
+      await fs.promises.writeFile(thumb, buf);
+    });
+    thumbQueue = job.catch(() => {});
+    try {
+      await job;
+    } catch {
+      return res.redirect(302, `/uploads/${name}`);
+    }
+    return send();
+  }),
+);
+
 // Medya kütüphanesinden görsel silme. Dosya uploads/ klasöründen silinir ve
 // siteye yayında olan her yerdeki kullanımı varsayılan logolu görselle
 // değiştirilir (kapak görselleri, yazı içindeki görseller, yönetim kurulu
@@ -1595,6 +1632,7 @@ const escapeHtmlAttr = (v) =>
 // önbelleğe alındığı için sorun olmaz). İkisi de yoksa özellik kapanır, ham görsel kullanılır.
 // Her biri buffer alıp 1200x630 JPEG buffer'ı döndürür.
 let ogResize = null;
+let thumbResize = null; // medya kütüphanesi küçük önizlemeleri (320px genişlik)
 try {
   const sharp = (await import("sharp")).default;
   await sharp({ create: { width: 2, height: 2, channels: 3, background: "#fff" } }).jpeg().toBuffer(); // yükleme/çalışma denemesi
@@ -1605,6 +1643,13 @@ try {
       .flatten({ background: "#ffffff" })
       .jpeg({ quality: 80, mozjpeg: true })
       .toBuffer();
+  thumbResize = (input) =>
+    sharp(input, { failOn: "none" })
+      .rotate()
+      .resize(320, 320, { fit: "cover" })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 70 })
+      .toBuffer();
 } catch (error) {
   try {
     const { Jimp } = await import("jimp");
@@ -1612,6 +1657,11 @@ try {
       const img = await Jimp.read(input);
       img.cover({ w: 1200, h: 630 });
       return img.getBuffer("image/jpeg", { quality: 70 });
+    };
+    thumbResize = async (input) => {
+      const img = await Jimp.read(input);
+      img.cover({ w: 320, h: 320 });
+      return img.getBuffer("image/jpeg", { quality: 65 });
     };
     console.warn(`[og-image] 'sharp' kullanılamadı (${String(error.message).split("\n")[0]}); 'jimp' kullanılıyor.`);
   } catch {
