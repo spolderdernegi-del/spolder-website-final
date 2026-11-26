@@ -1,8 +1,10 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
+import typography from "@tailwindcss/typography";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -14,8 +16,13 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Başlıklar (font-display) ve metinler (font-sans) artık aynı tek
+        // font ailesini (Open Sans) kullanıyor, sadece farklı ağırlıklarda -
+        // önceden başlıklar ayrı bir aileydi (Nunito), bu da iki farklı
+        // yazı tipinin bir arada kullanılmasına (tutarsız görünüme) yol
+        // açıyordu.
         sans: ["Open Sans", "system-ui", "sans-serif"],
-        display: ["Nunito", "system-ui", "sans-serif"],
+        display: ["Open Sans", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -117,5 +124,6 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  // typography: haber/blog/proje/etkinlik içeriklerindeki başlık, liste ve alıntı biçimleri (prose sınıfları) için.
+  plugins: [animate, typography],
 } satisfies Config;
